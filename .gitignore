@@ -1,15 +1,22 @@
-# Compiled Object files
+###########
+## C/C++ ##
+###########
+
+# Compiled object files
 *.slo
 *.lo
 *.o
 *.obj
+*.ko
+*.elf
 
-# Compiled Dynamic libraries
+# Compiled dynamic libraries
 *.so
+*.so.*
 *.dylib
 *.dll
 
-# Compiled Static libraries
+# Compiled static libraries
 *.lai
 *.la
 *.a
@@ -19,3 +26,63 @@
 *.exe
 *.out
 *.app
+*.i*86
+*.x86_64
+*.hex
+
+########
+## Qt ##
+########
+
+# Qt MOC, UIC, etc.
+/.qmake.cache
+/.qmake.stash
+*.pro.user
+*.pro.user.*
+*.moc
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+Makefile*
+*-build-*
+
+# Qt Creator
+*.autosave
+
+# QtCtreator Qml
+*.qmlproject.user
+*.qmlproject.user.*
+
+#########################
+## Atmel/Visual Studio ##
+#########################
+
+# User-specific files
+*.atsuo
+*.suo
+*.user
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# MSTest test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# Visual C++ cache files
+ipch/
+*.aps
+*.ncb
+*.opensdf
+*.sdf
+*.cachefile
