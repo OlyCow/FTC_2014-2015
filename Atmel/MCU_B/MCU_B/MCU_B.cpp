@@ -5,6 +5,7 @@
 // * ADC TIMER PRESCALER
 // * TIMER PRESCALER
 // * LED CYCLE TICKING (modded_time?)
+// * ANYTHING TO DO WITH `dt`
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
@@ -39,6 +40,8 @@ enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
 // Volatile variables shared between ISRs and main.
 volatile LedMode LED_states[LED_NUM]; // should equal `LED_OFF`
 volatile bool doPollIR = true;
+volatile bool isPressedDebugA = false;
+volatile bool isPressedDebugB = false;
 
 void initialize_io();
 void initialize_adc();
@@ -52,6 +55,7 @@ void LED_mux_set(LedId id, bool isOn);
 
 int main()
 {
+	int dt = 0; // microseconds, I believe.
 	short modded_time = 0;
 	const short LED_CYCLE_LENGTH = 12;
 	const bool LED_on_states[LED_MODE_NUM][LED_CYCLE_LENGTH] = {
@@ -70,7 +74,12 @@ int main()
 		LED_states[i] = LED_OFF;
 	}
 	int current_LED = 0;
-	volatile bool isOn = false; // for LED cycling
+	bool isOn = false; // for LED cycling
+	bool isPressedDebugA_prev = false;
+	bool isPressedDebugB_prev = false;
+	int debugA_bounce_timer = 0;
+	int debugB_bounce_timer = 0;
+	const int debounce_delay = 15 *1000; // in microseconds, so the first number is in milliseconds.
 
 	// Initialize "system"-wide timer (TODO: make this a class...)
 	uint64_t SYSTEM_TIME = 0; // in microseconds
@@ -82,25 +91,74 @@ int main()
 	initialize_adc();
 	initialize_spi();
 
+	setLED(LED_1, LED_BLINK); // All is well. :P
+
     while (true)
     {
 		// Update system timer. TODO: Make this a class.
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			dt = TCNT1;
 			SYSTEM_TIME += TCNT1;
 			TCNT1 = 0;
 		}
 		current_LED++;
 		current_LED %= LED_NUM;
-		
-		setLED(LED_1, LED_BLINK); // All is well. :P
 
 		// process gyro
 		// read temp
-		// read bump
+		// read bump (debounce?)
+
+		// Check the two pushbutton switches (PD0 & PD1). Remember,
+		// these both have pull-up resistors.
+		isPressedDebugA_prev = isPressedDebugA;
+		isPressedDebugB_prev = isPressedDebugB;
+		if ((PIND & (1<<PIND0)) != 0) {
+			isPressedDebugA = false;
+		} else {
+			isPressedDebugA = true;
+		}
+		if ((PIND & (1<<PIND1)) != 0) {
+			isPressedDebugB = false;
+		} else {
+			isPressedDebugB = true;
+		}
+		// Debounce!
+		if (isPressedDebugA == isPressedDebugA_prev) {
+			debugA_bounce_timer = 0; // this possibility is more common.
+		} else {
+			debugA_bounce_timer += dt;
+			if (debugA_bounce_timer < debounce_delay) {
+				isPressedDebugA = isPressedDebugA_prev;
+			} else {
+				debugA_bounce_timer = 0;
+				// TODO: ^Might not need to explicitly clear this (will  be cleared by next iteration?).
+			}
+		}
+		if (isPressedDebugB == isPressedDebugB_prev) {
+			debugB_bounce_timer = 0; // this possibility is more common.
+		} else {
+			debugB_bounce_timer += dt;
+			if (debugB_bounce_timer < debounce_delay) {
+				isPressedDebugB = isPressedDebugB_prev;
+			} else {
+				debugB_bounce_timer = 0;
+				// TODO: ^Might not need to explicitly clear this (will  be cleared by next iteration?).
+			}
+		}
+		if (isPressedDebugA) {
+			setLED(LED_2, LED_STEADY);
+		} else {
+			setLED(LED_2, LED_OFF);
+		}
+		if (isPressedDebugB) {
+			setLED(LED_3, LED_STEADY);
+		} else {
+			setLED(LED_3, LED_OFF);
+		}
 
 		// Read from the IR sensors.
 		if (doPollIR) {
-			;
+			; // do stuff
 		}
 
 		// Set LEDs according to their statuses.
