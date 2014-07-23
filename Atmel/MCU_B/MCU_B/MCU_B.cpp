@@ -53,7 +53,6 @@ void LED_mux_set(LedId id, bool isOn);
 int main()
 {
 	short modded_time = 0;
-	short modded_time_prev = 0;
 	const short LED_CYCLE_LENGTH = 12;
 	const bool LED_on_states[LED_MODE_NUM][LED_CYCLE_LENGTH] = {
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_OFF
@@ -70,6 +69,8 @@ int main()
 	for (int i=0; i<LED_NUM; ++i) {
 		LED_states[i] = LED_OFF;
 	}
+	int current_LED = 0;
+	volatile bool isOn = false; // for LED cycling
 
 	// Initialize "system"-wide timer (TODO: make this a class...)
 	uint64_t SYSTEM_TIME = 0; // in microseconds
@@ -88,6 +89,10 @@ int main()
 			SYSTEM_TIME += TCNT1;
 			TCNT1 = 0;
 		}
+		current_LED++;
+		current_LED %= LED_NUM;
+		
+		setLED(LED_1, LED_BLINK); // All is well. :P
 
 		// process gyro
 		// read temp
@@ -99,16 +104,10 @@ int main()
 		}
 
 		// Set LEDs according to their statuses.
-		if (SYSTEM_TIME)
 		modded_time = SYSTEM_TIME/100000UL; // each "tick" is 100ms; MAGIC_NUM!
 		modded_time %= LED_CYCLE_LENGTH;
-		if (modded_time != modded_time_prev) {
-			for (int i=0; i<LED_NUM; ++i) {
-				bool isOn = LED_on_states[LED_states[static_cast<LedId>(i)]][modded_time];
-				LED_mux_set(static_cast<LedId>(i), isOn);
-			}
-		}
-		modded_time_prev = modded_time;
+		isOn = LED_on_states[LED_states[current_LED]][modded_time];
+		LED_mux_set(static_cast<LedId>(current_LED), isOn);
     }
 }
 
@@ -203,26 +202,58 @@ void setLED(LedId id, LedMode mode)
 
 void LED_mux_set(LedId id, bool isOn)
 {
-	PORTC &= ~(0b1111 << PORTC3);
+	PORTC &= ~(1 << PORTC3);
+	PORTC &= ~(1 << PORTC2);
+	PORTC &= ~(1 << PORTC1);
+	PORTC &= ~(1 << PORTC0);
 	switch (id) {
+		// Hopefully this monstrosity gets optimized away. (TODO: Nope, says a simple size test.)
 		case LED_1 :
+			PORTC |= 0<<PORTC2;
+			PORTC |= 0<<PORTC1;
+			PORTC |= 0<<PORTC0;
 			break;
 		case LED_2 :
+			PORTC |= 1<<PORTC2;
+			PORTC |= 0<<PORTC1;
+			PORTC |= 0<<PORTC0;
 			break;
 		case LED_3 :
+			PORTC |= 0<<PORTC2;
+			PORTC |= 1<<PORTC1;
+			PORTC |= 0<<PORTC0;
 			break;
 		case LED_4 :
+			PORTC |= 1<<PORTC2;
+			PORTC |= 1<<PORTC1;
+			PORTC |= 0<<PORTC0;
 			break;
 		case LED_5 :
+			PORTC |= 0<<PORTC2;
+			PORTC |= 0<<PORTC1;
+			PORTC |= 1<<PORTC0;
 			break;
 		case LED_6 :
+			PORTC |= 1<<PORTC2;
+			PORTC |= 0<<PORTC1;
+			PORTC |= 1<<PORTC0;
 			break;
 		case LED_7 :
+			PORTC |= 0<<PORTC2;
+			PORTC |= 1<<PORTC1;
+			PORTC |= 1<<PORTC0;
 			break;
 		case LED_8 :
+			PORTC |= 1<<PORTC2;
+			PORTC |= 1<<PORTC1;
+			PORTC |= 1<<PORTC0;
+			break;
+		default :
+			// YOU HAVE MADE A GRAVE ERROR
 			break;
 	}
-	if (isOn) {
+	if (isOn != 0) {
 		PORTC |= 1<<PORTC3;
 	}
+	_delay_ms(1);
 }
