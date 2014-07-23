@@ -10,12 +10,6 @@
 #include <util/atomic.h>
 #include <util/twi.h>
 
-void initialize_io();
-void initialize_adc();
-void initialize_spi();
-
-void LED_mux_set(int id, bool isOn);
-
 enum LedId {
 	LED_1 = 0,
 	LED_2,
@@ -42,10 +36,24 @@ enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
 	LED_MODE_NUM
 };
 
+// Volatile variables shared between ISRs and main.
+volatile LedMode LED_states[LED_NUM]; // should equal `LED_OFF`
+volatile bool doPollIR = true;
+
+void initialize_io();
+void initialize_adc();
+void initialize_spi();
+
+void setLED(LedId id, LedMode mode);
+
+void LED_mux_set(LedId id, bool isOn);
+
 
 
 int main()
 {
+	short modded_time = 0;
+	short modded_time_prev = 0;
 	const short LED_CYCLE_LENGTH = 12;
 	const bool LED_on_states[LED_MODE_NUM][LED_CYCLE_LENGTH] = {
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_OFF
@@ -59,11 +67,9 @@ int main()
 		{0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1}, // LED_DOUBLE_FLICKER
 		{0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1}  // LED_TRIPLE_FLICKER
 	};
-	volatile LedMode LED_states[LED_NUM]; // quickly init this with a for loop
 	for (int i=0; i<LED_NUM; ++i) {
 		LED_states[i] = LED_OFF;
 	}
-	volatile bool doPollIR = true;
 
 	// Initialize "system"-wide timer (TODO: make this a class...)
 	uint64_t SYSTEM_TIME = 0; // in microseconds
@@ -73,6 +79,7 @@ int main()
 	// Initialize peripherals (everything other than timers :P )
 	initialize_io();
 	initialize_adc();
+	initialize_spi();
 
     while (true)
     {
@@ -92,12 +99,16 @@ int main()
 		}
 
 		// Set LEDs according to their statuses.
-		short modded_time = SYSTEM_TIME/100000UL; // each "tick" is 100ms; MAGIC_NUM!
+		if (SYSTEM_TIME)
+		modded_time = SYSTEM_TIME/100000UL; // each "tick" is 100ms; MAGIC_NUM!
 		modded_time %= LED_CYCLE_LENGTH;
-		for (int i=0; i<LED_NUM; ++i) {
-			bool isOn = LED_on_states[LED_states[i]][modded_time];
-			LED_mux_set(i, isOn);
+		if (modded_time != modded_time_prev) {
+			for (int i=0; i<LED_NUM; ++i) {
+				bool isOn = LED_on_states[LED_states[static_cast<LedId>(i)]][modded_time];
+				LED_mux_set(static_cast<LedId>(i), isOn);
+			}
 		}
+		modded_time_prev = modded_time;
     }
 }
 
@@ -175,7 +186,22 @@ void initialize_adc()
 	// each conversion takes 13 ADC clock cycles, except for initial one (takes 25)
 }
 
-void LED_mux_set(int id, bool isOn)
+void initialize_spi()
+{
+	SPCR |= 1<<SPIE; // Enable SPI interrupts
+	SPCR |= 0<<DORD; // MSB transmitted first
+	SPCR |= 0<<MSTR; // slave mode
+	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
+	SPCR |= 1<<SPE; // Enable SPI
+	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
+}
+
+void setLED(LedId id, LedMode mode)
+{
+	LED_states[id] = mode; // Really tempted to cast to and from const here, but whatever.
+}
+
+void LED_mux_set(LedId id, bool isOn)
 {
 	PORTC &= ~(0b1111 << PORTC3);
 	switch (id) {
