@@ -4,20 +4,77 @@
 #include <util/delay.h>
 #include <util/twi.h>
 
+void initialize_timer();
 void initialize_io();
+void initialize_adc();
+void initialize_spi();
+
+void LED_mux_set(int id);
 
 int main()
 {
-	// TODO: Do initialization here.
+	// Make *sure* to update `LED_on_states` when this is updated!
+	enum LedMode
+	{
+		LED_OFF = 0,
+		LED_STEADY,
+		LED_FLASH,
+		LED_STROBE,
+		LED_BLINK,
+		LED_DOUBLE_BLINK,
+		LED_TRIPLE_BLINK,
+		LED_FLICKER,
+		LED_DOUBLE_FLICKER,
+		LED_TRIPLE_FLICKER,
+		LED_MODE_NUM
+	};
+	// MAGIC_NUM (12)
+	const bool LED_on_states[LED_MODE_NUM][12] = {
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_OFF
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, // LED_STEADY
+		{1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0}, // LED_FLASH
+		{1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0}, // LED_STROBE
+		{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_BLINK
+		{1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_DOUBLE_BLINK
+		{1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0}, // LED_TRIPLE_BLINK
+		{0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, // LED_FLICKER
+		{0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1}, // LED_DOUBLE_FLICKER
+		{0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1}  // LED_TRIPLE_FLICKER
+	};
+	enum LedId {
+		LED_1 = 0,
+		LED_2,
+		LED_3,
+		LED_4,
+		LED_5,
+		LED_6,
+		LED_7,
+		LED_8,
+		LED_NUM
+	};
+	LedMode LED_states[LED_NUM]; // quickly init this with a for loop
+	for (int i=0; i<LED_NUM; ++i) {
+		LED_states[i] = LED_OFF;
+	}
+
 	initialize_io();
-	
+	initialize_adc();
+
     while (true)
     {
 		// process gyro
 		// read temp
 		// read bump
 		// read IR <- depending on mode!
-		// do LEDs
+
+		// Do LED stuffs.
+		short modded_time = 0/1000; // not sure at all
+		modded_time %= 12; // MAGIC_NUM (12)
+		for (int i=0; i<LED_NUM; ++i) {
+			LED_mux_set(i);
+			bool isOn = LED_on_states[LED_states[i]][modded_time];
+			// write to LED_COM
+		}
     }
 }
 
@@ -84,4 +141,32 @@ void initialize_io()
 		0<<PORTD5 |
 		0<<PORTD6 |
 		0<<PORTD7 ;
+}
+
+void initialize_adc()
+{
+	;
+}
+
+void LED_mux_set(int id)
+{
+	PORTC &= ~(0b111 << PORTC2);
+	switch (id) {
+		case LED_1 :
+			break;
+		case LED_2 :
+			break;
+		case LED_3 :
+			break;
+		case LED_4 :
+			break;
+		case LED_5 :
+			break;
+		case LED_6 :
+			break;
+		case LED_7 :
+			break;
+		case LED_8 :
+			break;
+	}
 }
