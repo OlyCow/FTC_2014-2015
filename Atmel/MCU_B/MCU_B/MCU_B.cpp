@@ -1,35 +1,53 @@
 // copyright, license, all that fun stuff
 #include <avr/io.h>
 #define F_CPU 1000000UL
+// WARNING: If you change F_CPU, you must also change:
+// * ADC TIMER PRESCALER
+// * TIMER PRESCALER
+// * LED CYCLE TICKING (modded_time?)
 #include <util/delay.h>
+#include <avr/interrupt.h>
+#include <util/atomic.h>
 #include <util/twi.h>
 
-void initialize_timer();
 void initialize_io();
 void initialize_adc();
 void initialize_spi();
 
-void LED_mux_set(int id);
+void LED_mux_set(int id, bool isOn);
+
+enum LedId {
+	LED_1 = 0,
+	LED_2,
+	LED_3,
+	LED_4,
+	LED_5,
+	LED_6,
+	LED_7,
+	LED_8,
+	LED_NUM
+};
+enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
+{
+	LED_OFF = 0,
+	LED_STEADY,
+	LED_FLASH,
+	LED_STROBE,
+	LED_BLINK,
+	LED_DOUBLE_BLINK,
+	LED_TRIPLE_BLINK,
+	LED_FLICKER,
+	LED_DOUBLE_FLICKER,
+	LED_TRIPLE_FLICKER,
+	LED_MODE_NUM
+};
+
+
 
 int main()
 {
-	// Make *sure* to update `LED_on_states` when this is updated!
-	enum LedMode
-	{
-		LED_OFF = 0,
-		LED_STEADY,
-		LED_FLASH,
-		LED_STROBE,
-		LED_BLINK,
-		LED_DOUBLE_BLINK,
-		LED_TRIPLE_BLINK,
-		LED_FLICKER,
-		LED_DOUBLE_FLICKER,
-		LED_TRIPLE_FLICKER,
-		LED_MODE_NUM
-	};
-	// MAGIC_NUM (12)
-	const bool LED_on_states[LED_MODE_NUM][12] = {
+	const short LED_CYCLE_LENGTH = 12;
+	const bool LED_on_states[LED_MODE_NUM][LED_CYCLE_LENGTH] = {
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_OFF
 		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, // LED_STEADY
 		{1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0}, // LED_FLASH
@@ -41,39 +59,44 @@ int main()
 		{0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1}, // LED_DOUBLE_FLICKER
 		{0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1}  // LED_TRIPLE_FLICKER
 	};
-	enum LedId {
-		LED_1 = 0,
-		LED_2,
-		LED_3,
-		LED_4,
-		LED_5,
-		LED_6,
-		LED_7,
-		LED_8,
-		LED_NUM
-	};
-	LedMode LED_states[LED_NUM]; // quickly init this with a for loop
+	volatile LedMode LED_states[LED_NUM]; // quickly init this with a for loop
 	for (int i=0; i<LED_NUM; ++i) {
 		LED_states[i] = LED_OFF;
 	}
+	volatile bool doPollIR = true;
 
+	// Initialize "system"-wide timer (TODO: make this a class...)
+	uint64_t SYSTEM_TIME = 0; // in microseconds
+	// TCCR1A, TCCR1B, and TCCR1C default to 0
+	TCCR1B |= 1<<CS10 | 0<<CS11 | 0<<CS12; // prescaler of 1 (timer clock = system clock)
+
+	// Initialize peripherals (everything other than timers :P )
 	initialize_io();
 	initialize_adc();
 
     while (true)
     {
+		// Update system timer. TODO: Make this a class.
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			SYSTEM_TIME += TCNT1;
+			TCNT1 = 0;
+		}
+
 		// process gyro
 		// read temp
 		// read bump
-		// read IR <- depending on mode!
 
-		// Do LED stuffs.
-		short modded_time = 0/1000; // not sure at all
-		modded_time %= 12; // MAGIC_NUM (12)
+		// Read from the IR sensors.
+		if (doPollIR) {
+			;
+		}
+
+		// Set LEDs according to their statuses.
+		short modded_time = SYSTEM_TIME/100000UL; // each "tick" is 100ms; MAGIC_NUM!
+		modded_time %= LED_CYCLE_LENGTH;
 		for (int i=0; i<LED_NUM; ++i) {
-			LED_mux_set(i);
 			bool isOn = LED_on_states[LED_states[i]][modded_time];
-			// write to LED_COM
+			LED_mux_set(i, isOn);
 		}
     }
 }
@@ -145,12 +168,16 @@ void initialize_io()
 
 void initialize_adc()
 {
-	;
+	// ADCL, ADCH, ADMUX, ADCSRA, and ADCSRB all default to 0.
+	ADMUX |= 1<<REFS0 | 0<<REFS1; // set voltage reference: "AVCC with external capacitor at AREF pin"--datasheet
+	ADCSRA |= 1<<ADPS0 | 1<<ADPS1 | 0<<ADPS2; // ADC prescaler = 8: if F_CPU is 1MHz, then ADC clock is 125kHz (within 50~200kHz)
+	ADCSRA |= 1<<ADEN; // enable ADC
+	// each conversion takes 13 ADC clock cycles, except for initial one (takes 25)
 }
 
-void LED_mux_set(int id)
+void LED_mux_set(int id, bool isOn)
 {
-	PORTC &= ~(0b111 << PORTC2);
+	PORTC &= ~(0b1111 << PORTC3);
 	switch (id) {
 		case LED_1 :
 			break;
@@ -168,5 +195,8 @@ void LED_mux_set(int id)
 			break;
 		case LED_8 :
 			break;
+	}
+	if (isOn) {
+		PORTC |= 1<<PORTC3;
 	}
 }
