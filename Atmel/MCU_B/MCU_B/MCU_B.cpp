@@ -11,16 +11,16 @@
 #include <util/atomic.h>
 #include <util/twi.h>
 
-enum LedId {
-	LED_1 = 0,
-	LED_2,
-	LED_3,
-	LED_4,
-	LED_5,
-	LED_6,
-	LED_7,
-	LED_8,
-	LED_NUM
+enum MuxLine {
+	MUX_1 = 0,
+	MUX_2,
+	MUX_3,
+	MUX_4,
+	MUX_5,
+	MUX_6,
+	MUX_7,
+	MUX_8,
+	MUX_NUM
 };
 enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
 {
@@ -38,18 +38,22 @@ enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
 };
 
 // Volatile variables shared between ISRs and main.
-volatile LedMode LED_states[LED_NUM]; // should equal `LED_OFF`
+volatile LedMode LED_states[MUX_NUM]; // remember to initialize to `LED_OFF`.
 volatile bool doPollIR = true;
 volatile bool isPressedDebugA = false;
 volatile bool isPressedDebugB = false;
+volatile bool isOverheat[MUX_NUM]; // remember to initialize to `false`.
+volatile uint8_t IR[MUX_NUM]; // remember to initialize to `0`.
 
 void initialize_io();
 void initialize_adc();
 void initialize_spi();
 
-void setLED(LedId id, LedMode mode);
+void setLED(MuxLine line, LedMode mode);
 
-void LED_mux_set(LedId id, bool isOn);
+void LED_mux_set(MuxLine line, bool isOn);
+void temp_mux_set(MuxLine line);
+void IR_mux_set(MuxLine line);
 
 
 
@@ -58,6 +62,7 @@ int main()
 	int dt = 0; // microseconds, I believe.
 	short modded_time = 0;
 	const short LED_CYCLE_LENGTH = 12;
+	const short OVERHEAT_THRESHOLD = 200; // TODO: No clue what this number should be... consult datasheets
 	const bool LED_on_states[LED_MODE_NUM][LED_CYCLE_LENGTH] = {
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_OFF
 		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, // LED_STEADY
@@ -70,10 +75,12 @@ int main()
 		{0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1}, // LED_DOUBLE_FLICKER
 		{0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1}  // LED_TRIPLE_FLICKER
 	};
-	for (int i=0; i<LED_NUM; ++i) {
+	for (int i=0; i<MUX_NUM; ++i) {
 		LED_states[i] = LED_OFF;
+		isOverheat[i] = false;
+		IR[i] = 0;
 	}
-	int current_LED = 0;
+	int current_MUX = MUX_1;
 	bool isOn = false; // for LED cycling
 	bool isPressedDebugA_prev = false;
 	bool isPressedDebugB_prev = false;
@@ -91,7 +98,7 @@ int main()
 	initialize_adc();
 	initialize_spi();
 
-	setLED(LED_1, LED_BLINK); // All is well. :P
+	setLED(MUX_1, LED_BLINK); // All is well. :P
 
     while (true)
     {
@@ -101,11 +108,18 @@ int main()
 			SYSTEM_TIME += TCNT1;
 			TCNT1 = 0;
 		}
-		current_LED++;
-		current_LED %= LED_NUM;
+		current_MUX++;
+		current_MUX %= MUX_NUM;
 
 		// process gyro
+
 		// read temp
+			// set temp MUX line
+			// set ADC MUX line
+			// start conversion
+			// wait for conversion to finish
+			// update variable(s)
+
 		// read bump (debounce?)
 
 		// Check the two pushbutton switches (PD0 & PD1). Remember,
@@ -142,30 +156,49 @@ int main()
 				isPressedDebugB = isPressedDebugB_prev;
 			} else {
 				debugB_bounce_timer = 0;
-				// TODO: ^Might not need to explicitly clear this (will  be cleared by next iteration?).
+				// TODO: ^Might not need to explicitly clear this (will be cleared by next iteration?).
 			}
 		}
 		if (isPressedDebugA) {
-			setLED(LED_2, LED_STEADY);
+			setLED(MUX_2, LED_STEADY);
 		} else {
-			setLED(LED_2, LED_OFF);
+			setLED(MUX_2, LED_OFF);
 		}
 		if (isPressedDebugB) {
-			setLED(LED_3, LED_STEADY);
+			setLED(MUX_3, LED_STEADY);
 		} else {
-			setLED(LED_3, LED_OFF);
+			setLED(MUX_3, LED_OFF);
 		}
 
 		// Read from the IR sensors.
 		if (doPollIR) {
-			; // do stuff
+			// set IR MUX line
+			IR_mux_set(static_cast<MuxLine>(current_MUX));
+
+			// Set ADC MUX line (ADC7 for IR).
+			ADMUX &= ~(0b1111 << MUX0); // clear bits MUX3:0
+			ADMUX |= 1<<MUX0;
+			ADMUX |= 1<<MUX1;
+			ADMUX |= 1<<MUX2;
+			//ADMUX |= 0<<MUX3; // We've set bits MUX3..0 to 0b0111 (ADC7).
+
+			// start conversion
+			// TODO: Do we need a delay here?
+			ADCSRA |= 1<<ADSC;
+
+			// wait for conversion to finish
+			while ((ADCSRA & 1<<ADSC) != 0) {;} // do nothing
+			// ADSC is set to `0` when the conversion finishes.
+
+			// update variable(s)
+			IR[current_MUX] = ADCH;
 		}
 
 		// Set LEDs according to their statuses.
 		modded_time = SYSTEM_TIME/100000UL; // each "tick" is 100ms; MAGIC_NUM!
 		modded_time %= LED_CYCLE_LENGTH;
-		isOn = LED_on_states[LED_states[current_LED]][modded_time];
-		LED_mux_set(static_cast<LedId>(current_LED), isOn);
+		isOn = LED_on_states[LED_states[current_MUX]][modded_time];
+		LED_mux_set(static_cast<MuxLine>(current_MUX), isOn);
     }
 }
 
@@ -174,6 +207,7 @@ void initialize_io()
 	// Set up I/O port directions with the DDRx registers. 1=out, 0=in.
 	// These can be changed later in the program (and some sensors need
 	// to do this, e.g. ultrasonic sensors).
+	// ADC6 reads from the temp mux, ADC7 reads from the IR mux.
 	DDRB =
 		1<<DDB0 | // BUMP_SEL_A
 		1<<DDB1 | // BUMP_SEL_B
@@ -237,10 +271,19 @@ void initialize_io()
 void initialize_adc()
 {
 	// ADCL, ADCH, ADMUX, ADCSRA, and ADCSRB all default to 0.
-	ADMUX |= 1<<REFS0 | 0<<REFS1; // set voltage reference: "AVCC with external capacitor at AREF pin"--datasheet
-	ADCSRA |= 1<<ADPS0 | 1<<ADPS1 | 0<<ADPS2; // ADC prescaler = 8: if F_CPU is 1MHz, then ADC clock is 125kHz (within 50~200kHz)
-	ADCSRA |= 1<<ADEN; // enable ADC
-	// each conversion takes 13 ADC clock cycles, except for initial one (takes 25)
+	// Each conversion takes 13 ADC clock cycles, except for the initial one (takes 25).
+
+	// set voltage reference: "AVCC with external capacitor at AREF pin"--datasheet
+	ADMUX |= 1<<REFS0 | 0<<REFS1;
+
+	// Left-adjust the ADC result (we don't need 10-bit accuracy).
+	ADMUX |= 1<<ADLAR;
+
+	// ADC prescaler = 4: if F_CPU is 1MHz, then ADC clock is 250kHz (above 50~200kHz, but it should be accurate enough)
+	ADCSRA |= 0<<ADPS0 | 1<<ADPS1 | 0<<ADPS2;
+
+	// enable ADC
+	ADCSRA |= 1<<ADEN;
 }
 
 void initialize_spi()
@@ -253,55 +296,55 @@ void initialize_spi()
 	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
 }
 
-void setLED(LedId id, LedMode mode)
+void setLED(MuxLine line, LedMode mode)
 {
-	LED_states[id] = mode; // Really tempted to cast to and from const here, but whatever.
+	LED_states[line] = mode; // Really tempted to cast to and from const here, but whatever.
 }
 
-void LED_mux_set(LedId id, bool isOn)
+void LED_mux_set(MuxLine line, bool isOn)
 {
 	PORTC &= ~(1 << PORTC3);
 	PORTC &= ~(1 << PORTC2);
 	PORTC &= ~(1 << PORTC1);
 	PORTC &= ~(1 << PORTC0);
-	switch (id) {
+	switch (line) {
 		// Hopefully this monstrosity gets optimized away. (TODO: Nope, says a simple size test.)
-		case LED_1 :
-			PORTC |= 0<<PORTC2;
-			PORTC |= 0<<PORTC1;
-			PORTC |= 0<<PORTC0;
+		case MUX_1 :
+			// PORTC |= 0<<PORTC2;
+			// PORTC |= 0<<PORTC1;
+			// PORTC |= 0<<PORTC0;
 			break;
-		case LED_2 :
+		case MUX_2 :
 			PORTC |= 1<<PORTC2;
-			PORTC |= 0<<PORTC1;
-			PORTC |= 0<<PORTC0;
+			// PORTC |= 0<<PORTC1;
+			// PORTC |= 0<<PORTC0;
 			break;
-		case LED_3 :
-			PORTC |= 0<<PORTC2;
+		case MUX_3 :
+			// PORTC |= 0<<PORTC2;
 			PORTC |= 1<<PORTC1;
-			PORTC |= 0<<PORTC0;
+			// PORTC |= 0<<PORTC0;
 			break;
-		case LED_4 :
+		case MUX_4 :
 			PORTC |= 1<<PORTC2;
 			PORTC |= 1<<PORTC1;
-			PORTC |= 0<<PORTC0;
+			// PORTC |= 0<<PORTC0;
 			break;
-		case LED_5 :
-			PORTC |= 0<<PORTC2;
-			PORTC |= 0<<PORTC1;
+		case MUX_5 :
+			// PORTC |= 0<<PORTC2;
+			// PORTC |= 0<<PORTC1;
 			PORTC |= 1<<PORTC0;
 			break;
-		case LED_6 :
+		case MUX_6 :
 			PORTC |= 1<<PORTC2;
-			PORTC |= 0<<PORTC1;
+			// PORTC |= 0<<PORTC1;
 			PORTC |= 1<<PORTC0;
 			break;
-		case LED_7 :
-			PORTC |= 0<<PORTC2;
+		case MUX_7 :
+			// PORTC |= 0<<PORTC2;
 			PORTC |= 1<<PORTC1;
 			PORTC |= 1<<PORTC0;
 			break;
-		case LED_8 :
+		case MUX_8 :
 			PORTC |= 1<<PORTC2;
 			PORTC |= 1<<PORTC1;
 			PORTC |= 1<<PORTC0;
@@ -313,5 +356,105 @@ void LED_mux_set(LedId id, bool isOn)
 	if (isOn != 0) {
 		PORTC |= 1<<PORTC3;
 	}
-	_delay_ms(1);
+	//_delay_ms(1); // NOTE: Only enable if the loop doesn't have other delay sources (e.g. ADC).
+}
+
+void temp_mux_set(MuxLine line)
+{
+	switch (line) {
+		// Hopefully this monstrosity gets optimized away. (TODO: Nope, says a simple size test.)
+		case MUX_1 :
+			// PORTD |= 0<<PORTD5;
+			// PORTD |= 0<<PORTD6;
+			// PORTD |= 0<<PORTD7;
+			break;
+		case MUX_2 :
+			PORTD |= 1<<PORTD5;
+			// PORTD |= 0<<PORTD6;
+			// PORTD |= 0<<PORTD7;
+			break;
+		case MUX_3 :
+			// PORTD |= 0<<PORTD5;
+			PORTD |= 1<<PORTD6;
+			// PORTD |= 0<<PORTD7;
+			break;
+		case MUX_4 :
+			PORTD |= 1<<PORTD5;
+			PORTD |= 1<<PORTD6;
+			// PORTD |= 0<<PORTD7;
+			break;
+		case MUX_5 :
+			// PORTD |= 0<<PORTD5;
+			// PORTD |= 0<<PORTD6;
+			PORTD |= 1<<PORTD7;
+			break;
+		case MUX_6 :
+			PORTD |= 1<<PORTD5;
+			// PORTD |= 0<<PORTD6;
+			PORTD |= 1<<PORTD7;
+			break;
+		case MUX_7 :
+			// PORTD |= 0<<PORTD5;
+			PORTD |= 1<<PORTD6;
+			PORTD |= 1<<PORTD7;
+			break;
+		case MUX_8 :
+			PORTD |= 1<<PORTD5;
+			PORTD |= 1<<PORTD6;
+			PORTD |= 1<<PORTD7;
+			break;
+		default :
+			// YOU HAVE MADE A GRAVE ERROR
+			break;
+	}
+}
+
+void IR_mux_set(MuxLine line)
+{
+	switch (line) {
+		// Hopefully this monstrosity gets optimized away. (TODO: Nope, says a simple size test.)
+		case MUX_1 :
+			// PORTD |= 0<<PORTD2;
+			// PORTD |= 0<<PORTD3;
+			// PORTD |= 0<<PORTD4;
+			break;
+		case MUX_2 :
+			PORTD |= 1<<PORTD2;
+			// PORTD |= 0<<PORTD3;
+			// PORTD |= 0<<PORTD4;
+			break;
+		case MUX_3 :
+			// PORTD |= 0<<PORTD2;
+			PORTD |= 1<<PORTD3;
+			// PORTD |= 0<<PORTD4;
+			break;
+		case MUX_4 :
+			PORTD |= 1<<PORTD2;
+			PORTD |= 1<<PORTD3;
+			// PORTD |= 0<<PORTD4;
+			break;
+		case MUX_5 :
+			// PORTD |= 0<<PORTD2;
+			// PORTD |= 0<<PORTD3;
+			PORTD |= 1<<PORTD4;
+			break;
+		case MUX_6 :
+			PORTD |= 1<<PORTD2;
+			// PORTD |= 0<<PORTD3;
+			PORTD |= 1<<PORTD4;
+			break;
+		case MUX_7 :
+			// PORTD |= 0<<PORTD2;
+			PORTD |= 1<<PORTD3;
+			PORTD |= 1<<PORTD4;
+			break;
+		case MUX_8 :
+			PORTD |= 1<<PORTD2;
+			PORTD |= 1<<PORTD3;
+			PORTD |= 1<<PORTD4;
+			break;
+		default :
+			// YOU HAVE MADE A GRAVE ERROR
+			break;
+	}
 }
