@@ -44,6 +44,7 @@ volatile bool isPressedDebugA = false;
 volatile bool isPressedDebugB = false;
 volatile bool isOverheat[MUX_NUM]; // remember to initialize to `false`.
 volatile uint8_t IR[MUX_NUM]; // remember to initialize to `0`.
+volatile bool isClosed[MUX_NUM]; // remember to initialize to `false`.
 
 void initialize_io();
 void initialize_adc();
@@ -52,6 +53,7 @@ void initialize_spi();
 void setLED(MuxLine line, LedMode mode);
 
 void LED_mux_set(MuxLine line, bool isOn);
+void bump_mux_set(MuxLine line);
 void temp_mux_set(MuxLine line);
 void IR_mux_set(MuxLine line);
 
@@ -75,18 +77,23 @@ int main()
 		{0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1}, // LED_DOUBLE_FLICKER
 		{0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1}  // LED_TRIPLE_FLICKER
 	};
-	for (int i=0; i<MUX_NUM; ++i) {
-		LED_states[i] = LED_OFF;
-		isOverheat[i] = false;
-		IR[i] = 0;
-	}
 	int current_MUX = MUX_1;
 	bool isOn = false; // for LED cycling
 	bool isPressedDebugA_prev = false;
 	bool isPressedDebugB_prev = false;
+	bool isClosed_prev[MUX_NUM];
 	int debugA_bounce_timer = 0;
 	int debugB_bounce_timer = 0;
+	int isClosed_bounce_timer[MUX_NUM];
 	const int debounce_delay = 15 *1000; // in microseconds, so the first number is in milliseconds.
+	for (int i=0; i<MUX_NUM; ++i) {
+		LED_states[i] = LED_OFF;
+		isOverheat[i] = false;
+		IR[i] = 0;
+		isClosed[i] = false;
+		isClosed_prev[i] = false;
+		isClosed_bounce_timer[i] = 0;
+	}
 
 	// Initialize "system"-wide timer (TODO: make this a class...)
 	uint64_t SYSTEM_TIME = 0; // in microseconds
@@ -133,9 +140,34 @@ int main()
 		// ADSC is set to `0` when the conversion finishes.
 
 		// update variable(s)
-		isOverheat[current_MUX] = ADCH>OVERHEAT_THRESHOLD;\
+		isOverheat[current_MUX] = ADCH>OVERHEAT_THRESHOLD;
 
-		// read bump (debounce?)
+		// read bump
+		for (int i=0; i<MUX_NUM; ++i) {
+			// Set the appropriate mux line.
+			bump_mux_set(static_cast<MuxLine>(i));
+
+			// Read.
+			isClosed_prev[i] = isClosed[i];
+			if ((PINB & (1<<PINB7)) != 0) { // The line has a pull-up resistor.
+				isClosed[i] = false;
+			} else {
+				isClosed[i] = true;
+			} // TODO: Atomic stuff (`isClosed[]` needs to be buffered).
+
+			// Debounce.
+			if (isClosed[i] == isClosed_prev[i]) {
+				isClosed_bounce_timer[i] = 0;
+			} else {
+				isClosed_bounce_timer[i] += dt;
+				if (isClosed_bounce_timer[i] < debounce_delay) {
+					isClosed[i] = isClosed_prev[i];
+				} else {
+					isClosed_bounce_timer[i] = 0;
+				}
+				// TODO: ^Might not need to explicitly clear this (will  be cleared by next iteration?).
+			}
+		}
 
 		// Check the two pushbutton switches (PD0 & PD1). Remember,
 		// these both have pull-up resistors.
@@ -372,6 +404,59 @@ void LED_mux_set(MuxLine line, bool isOn)
 		PORTC |= 1<<PORTC3;
 	}
 	//_delay_ms(1); // NOTE: Only enable if the loop doesn't have other delay sources (e.g. ADC).
+}
+
+void bump_mux_set(MuxLine line)
+{
+	PORTB &= ~(1 << PORTB0);
+	PORTB &= ~(1 << PORTB1);
+	PORTB &= ~(1 << PORTB6);
+	switch (line) {
+		// Hopefully this monstrosity gets optimized away. (TODO: Nope, says a simple size test.)
+		case MUX_1 :
+			// PORTB |= 0<<PORTB0;
+			// PORTB |= 0<<PORTB1;
+			// PORTB |= 0<<PORTB6;
+			break;
+		case MUX_2 :
+			PORTB |= 1<<PORTB0;
+			// PORTB |= 0<<PORTB1;
+			// PORTB |= 0<<PORTB6;
+			break;
+		case MUX_3 :
+			// PORTB |= 0<<PORTB0;
+			PORTB |= 1<<PORTB1;
+			// PORTB |= 0<<PORTB6;
+			break;
+		case MUX_4 :
+			PORTB |= 1<<PORTB0;
+			PORTB |= 1<<PORTB1;
+			// PORTB |= 0<<PORTB6;
+			break;
+		case MUX_5 :
+			// PORTB |= 0<<PORTB0;
+			// PORTB |= 0<<PORTB1;
+			PORTB |= 1<<PORTB6;
+			break;
+		case MUX_6 :
+			PORTB |= 1<<PORTB0;
+			// PORTB |= 0<<PORTB1;
+			PORTB |= 1<<PORTB6;
+			break;
+		case MUX_7 :
+			// PORTB |= 0<<PORTB0;
+			PORTB |= 1<<PORTB1;
+			PORTB |= 1<<PORTB6;
+			break;
+		case MUX_8 :
+			PORTB |= 1<<PORTB0;
+			PORTB |= 1<<PORTB1;
+			PORTB |= 1<<PORTB6;
+			break;
+		default :
+			// YOU HAVE MADE A GRAVE ERROR
+			break;
+	}
 }
 
 void temp_mux_set(MuxLine line)
