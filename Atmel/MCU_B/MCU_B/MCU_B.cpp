@@ -114,11 +114,26 @@ int main()
 		// process gyro
 
 		// read temp
-			// set temp MUX line
-			// set ADC MUX line
-			// start conversion
-			// wait for conversion to finish
-			// update variable(s)
+		// set temp MUX line
+		temp_mux_set(static_cast<MuxLine>(current_MUX));
+
+		// set ADC MUX line (ADC6)
+		ADMUX &= ~(0b1111 << MUX0); // clear bits MUX3:0
+		//ADMUX |= 0<<MUX0;
+		ADMUX |= 1<<MUX1;
+		ADMUX |= 1<<MUX2;
+		//ADMUX |= 0<<MUX3; // We've set bits MUX3..0 to 0b0110 (ADC6).
+
+		// start conversion
+		// TODO: Do we need a delay here?
+		ADCSRA |= 1<<ADSC;
+
+		// wait for conversion to finish
+		while ((ADCSRA & 1<<ADSC) != 0) {;} // do nothing
+		// ADSC is set to `0` when the conversion finishes.
+
+		// update variable(s)
+		isOverheat[current_MUX] = ADCH>OVERHEAT_THRESHOLD;\
 
 		// read bump (debounce?)
 
@@ -361,6 +376,9 @@ void LED_mux_set(MuxLine line, bool isOn)
 
 void temp_mux_set(MuxLine line)
 {
+	PORTD &= ~(1 << PORTD5);
+	PORTD &= ~(1 << PORTD6);
+	PORTD &= ~(1 << PORTD7);
 	switch (line) {
 		// Hopefully this monstrosity gets optimized away. (TODO: Nope, says a simple size test.)
 		case MUX_1 :
@@ -411,6 +429,9 @@ void temp_mux_set(MuxLine line)
 
 void IR_mux_set(MuxLine line)
 {
+	PORTD &= ~(1 << PORTD2);
+	PORTD &= ~(1 << PORTD3);
+	PORTD &= ~(1 << PORTD4);
 	switch (line) {
 		// Hopefully this monstrosity gets optimized away. (TODO: Nope, says a simple size test.)
 		case MUX_1 :
