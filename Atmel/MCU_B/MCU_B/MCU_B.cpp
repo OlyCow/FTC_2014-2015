@@ -44,7 +44,8 @@ volatile bool isPressedDebugA = false;
 volatile bool isPressedDebugB = false;
 volatile bool isOverheat[MUX_NUM]; // remember to initialize to `false`.
 volatile uint8_t IR[MUX_NUM]; // remember to initialize to `0`.
-volatile bool isClosed[MUX_NUM]; // remember to initialize to `false`.
+bool isClosed[MUX_NUM]; // remember to initialize to `false`.
+volatile bool t_isClosed[MUX_NUM]; // remember to initialize to `false`.
 
 void initialize_io();
 void initialize_adc();
@@ -64,7 +65,7 @@ int main()
 	int dt = 0; // microseconds, I believe.
 	short modded_time = 0;
 	const short LED_CYCLE_LENGTH = 12;
-	const short OVERHEAT_THRESHOLD = 200; // TODO: No clue what this number should be... consult datasheets
+	const short OVERHEAT_THRESHOLD = 200; // TODO: complete guess; consult datasheets
 	const bool LED_on_states[LED_MODE_NUM][LED_CYCLE_LENGTH] = {
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_OFF
 		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, // LED_STEADY
@@ -93,6 +94,7 @@ int main()
 		isClosed[i] = false;
 		isClosed_prev[i] = false;
 		isClosed_bounce_timer[i] = 0;
+		t_isClosed[i] = false;
 	}
 
 	// Initialize "system"-wide timer (TODO: make this a class...)
@@ -153,7 +155,7 @@ int main()
 				isClosed[i] = false;
 			} else {
 				isClosed[i] = true;
-			} // TODO: Atomic stuff (`isClosed[]` needs to be buffered).
+			}
 
 			// Debounce.
 			if (isClosed[i] == isClosed_prev[i]) {
@@ -165,8 +167,12 @@ int main()
 				} else {
 					isClosed_bounce_timer[i] = 0;
 				}
-				// TODO: ^Might not need to explicitly clear this (will  be cleared by next iteration?).
+				// TODO: ^Might not need to explicitly clear this (will be cleared by next iteration?).
 			}
+
+			// This needs to be buffered to ensure correct readings if an
+			// interrupt occurs while debouncing.
+			t_isClosed[i] = isClosed[i];
 		}
 
 		// Check the two pushbutton switches (PD0 & PD1). Remember,
