@@ -1,6 +1,9 @@
 // copyright, license, all that fun stuff
+#include <math.h>
 #include <avr/io.h>
+#ifndef F_CPU
 #define F_CPU 1000000UL
+#endif // F_CPU
 // WARNING: If you change F_CPU, you must also change:
 // * ADC TIMER PRESCALER
 // * TIMER PRESCALER
@@ -69,6 +72,9 @@ int main()
 	short modded_time = 0;
 	const short LED_CYCLE_LENGTH = 12;
 	const short OVERHEAT_THRESHOLD = 200; // TODO: complete guess; consult datasheets
+	const int DEBOUNCE_DELAY = 15 *1000; // in usec, so the coefficient is in msec.
+	const double BIT_TO_GYRO = 500.0/32768.0; // Also in MPU-6050 Register Map "Gyroscope Measurements".
+	const double USEC_TO_SEC = 1.0/1000000.0;
 	const bool LED_on_states[LED_MODE_NUM][LED_CYCLE_LENGTH] = {
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_OFF
 		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, // LED_STEADY
@@ -90,7 +96,23 @@ int main()
 	int debugA_bounce_timer = 0;
 	int debugB_bounce_timer = 0;
 	int isClosed_bounce_timer[MUX_NUM];
-	const int debounce_delay = 15 *1000; // in microseconds, so the first number is in milliseconds.
+	uint8_t		buffer_L = 0,
+				buffer_H = 0;
+	uint16_t	vel_x_raw = 0,
+				vel_y_raw = 0,
+				vel_z_raw = 0;
+	int			vel_x = 0,
+				vel_y = 0,
+				vel_z = 0;
+	int			vel_x_prev = 0,
+				vel_y_prev = 0,
+				vel_z_prev = 0;
+	int			vel_x_offset = 0,
+				vel_y_offset = 0,
+				vel_z_offset = 0;
+	double		rot_x = 0.0,
+				rot_y = 0.0,
+				rot_z = 0.0;
 	for (int i=0; i<MUX_NUM; ++i) {
 		LED_states[i] = LED_OFF;
 		isOverheat[i] = false;
@@ -114,11 +136,49 @@ int main()
 	// Initialize IMU.
 	i2c_init();
 	MPU::initialize();
+	MPU::write(MPU6050_ADDRESS, MPU6050_RA_PWR_MGMT_1, 0x03);
+	MPU::write(MPU6050_ADDRESS, MPU6050_RA_PWR_MGMT_2, 0x00);
+	MPU::write(MPU6050_ADDRESS, MPU6050_RA_CONFIG, 0x01); // NOTE: "could be a very bad idea"--anon.
+	MPU::write(MPU6050_ADDRESS, MPU6050_RA_GYRO_CONFIG, 0x08); // +/- 500 deg/sec
+	MPU::write(MPU6050_ADDRESS, MPU6050_RA_ACCEL_CONFIG, 0x00);
+
+	// Calibrate IMU.
+	for (int i=0; i<10; ++i) {
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_L, buffer_L);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_H, buffer_H);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_L, buffer_L);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_H, buffer_H);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
+		_delay_us(100);
+	}
+	const int I_MAX = 25;
+	long double vel_x_total = 0.0;
+	long double vel_y_total = 0.0;
+	long double vel_z_total = 0.0;
+	for (int i=0; i<I_MAX; ++i) {
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_L, buffer_L);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_H, buffer_H);
+		vel_x_raw = (buffer_H<<8) + buffer_L;
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_L, buffer_L);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_H, buffer_H);
+		vel_y_raw = (buffer_H<<8) + buffer_L;
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
+		vel_z_raw = (buffer_H<<8) + buffer_L;
+		vel_x_total += MPU::convert_complement(vel_x_raw);
+		vel_y_total += MPU::convert_complement(vel_y_raw);
+		vel_z_total += MPU::convert_complement(vel_z_raw);
+	}
+	vel_x_offset = vel_x_total / static_cast<double>(I_MAX);
+	vel_y_offset = vel_y_total / static_cast<double>(I_MAX);
+	vel_z_offset = vel_z_total / static_cast<double>(I_MAX);
 
 	setLED(MUX_1, LED_BLINK); // All is well. :P
-
 	if (MPU::test()==true) {
-		setLED(MUX_8, LED_FLASH);
+		setLED(MUX_8, LED_DOUBLE_BLINK);
+	} else {
+		setLED(MUX_8, LED_BLINK);
 	}
 
     while (true)
@@ -133,6 +193,57 @@ int main()
 		current_MUX %= MUX_NUM;
 
 		// process gyro
+		vel_x_prev = vel_x;
+		vel_y_prev = vel_y;
+		vel_z_prev = vel_z;
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_L, buffer_L);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_H, buffer_H);
+		vel_x_raw = (buffer_H<<8) + buffer_L;
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_L, buffer_L);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_H, buffer_H);
+		vel_y_raw = (buffer_H<<8) + buffer_L;
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
+		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
+		vel_z_raw = (buffer_H<<8) + buffer_L;
+		vel_x = MPU::convert_complement(vel_x_raw) - vel_x_offset;
+		vel_y = MPU::convert_complement(vel_y_raw) - vel_y_offset;
+		vel_z = MPU::convert_complement(vel_z_raw) - vel_z_offset;
+		if (fabs(vel_x) < 100) {
+			vel_x = 0;
+		}
+		if (fabs(vel_y) < 100) {
+			vel_y = 0;
+		}
+		if (fabs(vel_z) < 100) {
+			vel_z = 0;
+		}
+		
+		double rect_x = static_cast<double>(vel_x) + static_cast<double>(vel_x_prev);
+		double rect_y = static_cast<double>(vel_y) + static_cast<double>(vel_y_prev);
+		double rect_z = static_cast<double>(vel_z) + static_cast<double>(vel_z_prev);
+		rect_x /= 2.0;
+		rect_y /= 2.0;
+		rect_z /= 2.0;
+		const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt);
+		rect_x *= AREA_CONVERSION_CONST;
+		rect_y *= AREA_CONVERSION_CONST;
+		rect_z *= AREA_CONVERSION_CONST;
+		rot_x += rect_x;
+		rot_y += rect_y;
+		rot_z += rect_z;
+		rot_x = fmod(rot_x, 360.0);
+		rot_y = fmod(rot_y, 360.0);
+		rot_z = fmod(rot_z, 360.0);
+		if (rot_z < 0.0) {
+			rot_z += 360.0; // Limit to positive numbers.
+			// ^NOTE: Breaks down if one iteration changes `rot_z` more than 360 deg.
+		}
+
+		if (fabs(rot_z-0.0) < 0.5) {
+			setLED(MUX_7, LED_STEADY);
+		} else {
+			setLED(MUX_7, LED_OFF);
+		}
 
 		// read temp
 		// set temp MUX line
@@ -154,7 +265,7 @@ int main()
 		// ADSC is set to `0` when the conversion finishes.
 
 		// update variable(s)
-		isOverheat[current_MUX] = ADCH>OVERHEAT_THRESHOLD;
+		isOverheat[current_MUX] = ADCH > OVERHEAT_THRESHOLD;
 
 		// read bump
 		for (int i=0; i<MUX_NUM; ++i) {
@@ -174,7 +285,7 @@ int main()
 				isClosed_bounce_timer[i] = 0;
 			} else {
 				isClosed_bounce_timer[i] += dt;
-				if (isClosed_bounce_timer[i] < debounce_delay) {
+				if (isClosed_bounce_timer[i] < DEBOUNCE_DELAY) {
 					isClosed[i] = isClosed_prev[i];
 				} else {
 					isClosed_bounce_timer[i] = 0;
@@ -206,7 +317,7 @@ int main()
 			debugA_bounce_timer = 0; // this possibility is more common.
 		} else {
 			debugA_bounce_timer += dt;
-			if (debugA_bounce_timer < debounce_delay) {
+			if (debugA_bounce_timer < DEBOUNCE_DELAY) {
 				isPressedDebugA = isPressedDebugA_prev;
 			} else {
 				debugA_bounce_timer = 0;
@@ -217,7 +328,7 @@ int main()
 			debugB_bounce_timer = 0; // this possibility is more common.
 		} else {
 			debugB_bounce_timer += dt;
-			if (debugB_bounce_timer < debounce_delay) {
+			if (debugB_bounce_timer < DEBOUNCE_DELAY) {
 				isPressedDebugB = isPressedDebugB_prev;
 			} else {
 				debugB_bounce_timer = 0;

@@ -20,7 +20,7 @@
 // We've defined F_CPU elsewhere earlier.
 
 /* I2C clock in Hz */
-#define SCL_CLOCK  400000UL // Needs to be 1/16th of slave CPU clock; MOU6050 can handle 400kHz
+#define SCL_CLOCK  62500L // Needs to be 1/16th of slave CPU clock; MOU6050 can handle 400kHz
 
 
 /*************************************************************************
@@ -30,7 +30,7 @@ void i2c_init(void)
 {
   /* initialize TWI clock: 400 kHz clock, TWPS = 0 => prescalar = 1 */
   
-  TWSR = 0;							/* no prescalar */
+  TWSR = 0;							/* no prescaler */
   TWBR = ((F_CPU/SCL_CLOCK)-16)/2;	/* must be > 10 for stable operation */
 
 }/* i2c_init */
@@ -50,7 +50,7 @@ unsigned char i2c_start(unsigned char address)
 	// wait until transmission completed
 	while(!(TWCR & (1<<TWINT)));
 
-	// check value of TWI Status Register. Mask prescalar bits.
+	// check value of TWI Status Register. Mask prescaler bits.
 	twst = TW_STATUS & 0xF8;
 	if ( (twst != TW_START) && (twst != TW_REP_START)) return 1;
 
@@ -61,7 +61,7 @@ unsigned char i2c_start(unsigned char address)
 	// wail until transmission completed and ACK/NACK has been received
 	while(!(TWCR & (1<<TWINT)));
 
-	// check value of TWI Status Register. Mask prescalar bits.
+	// check value of TWI Status Register. Mask prescaler bits.
 	twst = TW_STATUS & 0xF8;
 	if ( (twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK) ) return 1;
 
@@ -89,7 +89,7 @@ void i2c_start_wait(unsigned char address)
     	// wait until transmission completed
     	while(!(TWCR & (1<<TWINT)));
     
-    	// check value of TWI Status Register. Mask prescalar bits.
+    	// check value of TWI Status Register. Mask prescaler bits.
     	twst = TW_STATUS & 0xF8;
     	if ( (twst != TW_START) && (twst != TW_REP_START)) continue;
     
@@ -100,7 +100,7 @@ void i2c_start_wait(unsigned char address)
     	// wail until transmission completed
     	while(!(TWCR & (1<<TWINT)));
     
-    	// check value of TWI Status Register. Mask prescalar bits.
+    	// check value of TWI Status Register. Mask prescaler bits.
     	twst = TW_STATUS & 0xF8;
     	if ( (twst == TW_MT_SLA_NACK )||(twst ==TW_MR_DATA_NACK) ) 
     	{    	    
@@ -166,7 +166,7 @@ unsigned char i2c_write( unsigned char data )
 	// wait until transmission completed
 	while(!(TWCR & (1<<TWINT)));
 
-	// check value of TWI Status Register. Mask prescalar bits
+	// check value of TWI Status Register. Mask prescaler bits
 	twst = TW_STATUS & 0xF8;
 	if( twst != TW_MT_DATA_ACK) return 1;
 	return 0;
