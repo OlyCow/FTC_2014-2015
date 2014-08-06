@@ -174,11 +174,10 @@ int main()
 	vel_y_offset = vel_y_total / static_cast<double>(I_MAX);
 	vel_z_offset = vel_z_total / static_cast<double>(I_MAX);
 
-	setLED(MUX_1, LED_BLINK); // All is well. :P
 	if (MPU::test()==true) {
-		setLED(MUX_8, LED_DOUBLE_BLINK);
+		setLED(MUX_1, LED_DOUBLE_BLINK);
 	} else {
-		setLED(MUX_8, LED_BLINK);
+		setLED(MUX_1, LED_BLINK); // if it blinks at all we've entered the loop.
 	}
 
     while (true)
@@ -208,13 +207,13 @@ int main()
 		vel_x = MPU::convert_complement(vel_x_raw) - vel_x_offset;
 		vel_y = MPU::convert_complement(vel_y_raw) - vel_y_offset;
 		vel_z = MPU::convert_complement(vel_z_raw) - vel_z_offset;
-		if (fabs(vel_x) < 100) {
+		if (fabs(vel_x) < 5) {
 			vel_x = 0;
 		}
-		if (fabs(vel_y) < 100) {
+		if (fabs(vel_y) < 5) {
 			vel_y = 0;
 		}
-		if (fabs(vel_z) < 100) {
+		if (fabs(vel_z) < 5) {
 			vel_z = 0;
 		}
 		
@@ -231,18 +230,24 @@ int main()
 		rot_x += rect_x;
 		rot_y += rect_y;
 		rot_z += rect_z;
-		rot_x = fmod(rot_x, 360.0);
-		rot_y = fmod(rot_y, 360.0);
-		rot_z = fmod(rot_z, 360.0);
-		if (rot_z < 0.0) {
-			rot_z += 360.0; // Limit to positive numbers.
-			// ^NOTE: Breaks down if one iteration changes `rot_z` more than 360 deg.
-		}
+		rot_x = fmod(rot_x, 180.0);
+		rot_y = fmod(rot_y, 180.0);
+		rot_z = fmod(rot_z, 180.0);
 
 		if (fabs(rot_z-0.0) < 0.5) {
-			setLED(MUX_7, LED_STEADY);
+			setLED(MUX_5, LED_STEADY);
 		} else {
-			setLED(MUX_7, LED_OFF);
+			setLED(MUX_5, LED_OFF);
+		}
+		if (rot_z > 0.5) {
+			setLED(MUX_4, LED_STEADY);
+		} else {
+			setLED(MUX_4, LED_OFF);
+		}
+		if (rot_z < -0.5) {
+			setLED(MUX_6, LED_STEADY);
+		} else {
+			setLED(MUX_6, LED_OFF);
 		}
 
 		// read temp
