@@ -1,6 +1,6 @@
 // Basic acquiring and processing of the data fetched from the MPU-6050.
 // A lot of stuff is taken from Jeff Rowberg's library. <jeff@rowberg.net>
-// For more documentation (and I mean *more*), see his website or repo.
+// See his website or repo for (a lot) more documentation.
 #ifndef MPU6050_H
 #define MPU6050_H
 

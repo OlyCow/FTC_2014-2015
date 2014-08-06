@@ -11,6 +11,10 @@
 #include <util/atomic.h>
 #include <util/twi.h>
 
+#include "../../lib/i2cmaster.h"
+//#include "../../lib/I2C.h" // Not sure if this works yet. :P
+#include "../../lib/MPU6050.h"
+
 enum MuxLine {
 	MUX_1 = 0,
 	MUX_2,
@@ -44,7 +48,6 @@ volatile bool isPressedDebugA = false;
 volatile bool isPressedDebugB = false;
 volatile bool isOverheat[MUX_NUM]; // remember to initialize to `false`.
 volatile uint8_t IR[MUX_NUM]; // remember to initialize to `0`.
-bool isClosed[MUX_NUM]; // remember to initialize to `false`.
 volatile bool t_isClosed[MUX_NUM]; // remember to initialize to `false`.
 
 void initialize_io();
@@ -80,6 +83,7 @@ int main()
 	};
 	int current_MUX = MUX_1;
 	bool isOn = false; // for LED cycling
+	bool isClosed[MUX_NUM]; // remember to initialize to `false`.
 	bool isPressedDebugA_prev = false;
 	bool isPressedDebugB_prev = false;
 	bool isClosed_prev[MUX_NUM];
@@ -107,7 +111,15 @@ int main()
 	initialize_adc();
 	initialize_spi();
 
+	// Initialize IMU.
+	i2c_init();
+	MPU::initialize();
+
 	setLED(MUX_1, LED_BLINK); // All is well. :P
+
+	if (MPU::test()==true) {
+		setLED(MUX_8, LED_FLASH);
+	}
 
     while (true)
     {
@@ -409,7 +421,7 @@ void LED_mux_set(MuxLine line, bool isOn)
 	if (isOn != 0) {
 		PORTC |= 1<<PORTC3;
 	}
-	//_delay_ms(1); // NOTE: Only enable if the loop doesn't have other delay sources (e.g. ADC).
+	_delay_us(100); // NOTE: Only enable if the loop doesn't have other delay sources (e.g. ADC).
 }
 
 void bump_mux_set(MuxLine line)

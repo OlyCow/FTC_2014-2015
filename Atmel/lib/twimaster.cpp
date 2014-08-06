@@ -14,11 +14,13 @@
 
 /* define CPU frequency in Mhz here if not defined in Makefile */
 #ifndef F_CPU
-#define F_CPU 4000000UL
+#define F_CPU 1000000UL
+//#define F_CPU 4000000UL
 #endif
+// We've defined F_CPU elsewhere earlier.
 
 /* I2C clock in Hz */
-#define SCL_CLOCK  100000L
+#define SCL_CLOCK  400000UL // Needs to be 1/16th of slave CPU clock; MOU6050 can handle 400kHz
 
 
 /*************************************************************************
@@ -26,7 +28,7 @@
 *************************************************************************/
 void i2c_init(void)
 {
-  /* initialize TWI clock: 100 kHz clock, TWPS = 0 => prescalar = 1 */
+  /* initialize TWI clock: 400 kHz clock, TWPS = 0 => prescalar = 1 */
   
   TWSR = 0;							/* no prescalar */
   TWBR = ((F_CPU/SCL_CLOCK)-16)/2;	/* must be > 10 for stable operation */
