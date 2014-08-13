@@ -13,6 +13,7 @@
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 #include <util/twi.h>
+#include <avr/eeprom.h>
 
 #include "../../lib/i2cmaster.h"
 //#include "../../lib/I2C.h" // Not sure if this works yet. :P
@@ -68,6 +69,7 @@ void IR_mux_set(MuxLine line);
 
 int main()
 {
+	uint8_t* eeprom_pointer = reinterpret_cast<uint8_t*>(0x01);
 	int dt = 0; // microseconds, I believe.
 	short modded_time = 0;
 	const short LED_CYCLE_LENGTH = 12;
@@ -149,7 +151,11 @@ int main()
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_L, buffer_L);
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_H, buffer_H);
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
+		eeprom_write_byte(eeprom_pointer, buffer_L);
+		++eeprom_pointer;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
+		eeprom_write_byte(eeprom_pointer, buffer_H);
+		++eeprom_pointer;
 		_delay_us(100);
 	}
 	const int I_MAX = 25;
@@ -164,7 +170,11 @@ int main()
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_H, buffer_H);
 		vel_y_raw = (buffer_H<<8) + buffer_L;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
+		eeprom_write_byte(eeprom_pointer, buffer_L);
+		++eeprom_pointer;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
+		eeprom_write_byte(eeprom_pointer, buffer_H);
+		++eeprom_pointer;
 		vel_z_raw = (buffer_H<<8) + buffer_L;
 		vel_x_total += MPU::convert_complement(vel_x_raw);
 		vel_y_total += MPU::convert_complement(vel_y_raw);
