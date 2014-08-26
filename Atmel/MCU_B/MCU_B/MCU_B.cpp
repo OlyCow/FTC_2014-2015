@@ -151,11 +151,11 @@ int main()
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_L, buffer_L);
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_H, buffer_H);
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
-		eeprom_write_byte(eeprom_pointer, buffer_L);
-		++eeprom_pointer;
+		//eeprom_write_byte(eeprom_pointer, buffer_L);
+		//++eeprom_pointer;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
-		eeprom_write_byte(eeprom_pointer, buffer_H);
-		++eeprom_pointer;
+		//eeprom_write_byte(eeprom_pointer, buffer_H);
+		//++eeprom_pointer;
 		_delay_us(100);
 	}
 	const int I_MAX = 50;
@@ -170,11 +170,11 @@ int main()
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_H, buffer_H);
 		vel_y_raw = (buffer_H<<8) + buffer_L;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
-		eeprom_write_byte(eeprom_pointer, buffer_L);
-		++eeprom_pointer;
+		//eeprom_write_byte(eeprom_pointer, buffer_L);
+		//++eeprom_pointer;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
-		eeprom_write_byte(eeprom_pointer, buffer_H);
-		++eeprom_pointer;
+		//eeprom_write_byte(eeprom_pointer, buffer_H);
+		//++eeprom_pointer;
 		vel_z_raw = (buffer_H<<8) + buffer_L;
 		vel_x_total += MPU::convert_complement(vel_x_raw);
 		vel_y_total += MPU::convert_complement(vel_y_raw);
@@ -190,6 +190,8 @@ int main()
 		setLED(MUX_1, LED_BLINK); // if it blinks at all we've entered the loop.
 	}
 
+	int loop_counter = 0; // Keeps track of loop iterations.
+
     while (true)
     {
 		// Update system timer. TODO: Make this a class.
@@ -201,10 +203,16 @@ int main()
 		current_MUX++;
 		current_MUX %= MUX_NUM;
 
+		if (loop_counter < 100) {
+			eeprom_write_byte(eeprom_pointer, dt);
+			++eeprom_pointer;
+			++loop_counter;
+		}
+
 		// process gyro
-		vel_x_prev = vel_x;
-		vel_y_prev = vel_y;
-		vel_z_prev = vel_z;
+		//vel_x_prev = vel_x;
+		//vel_y_prev = vel_y;
+		//vel_z_prev = vel_z;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_L, buffer_L);
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_H, buffer_H);
 		vel_x_raw = (buffer_H<<8) + buffer_L;
@@ -214,35 +222,35 @@ int main()
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
 		vel_z_raw = (buffer_H<<8) + buffer_L;
-		vel_x = MPU::convert_complement(vel_x_raw) - vel_x_offset;
-		vel_y = MPU::convert_complement(vel_y_raw) - vel_y_offset;
-		vel_z = MPU::convert_complement(vel_z_raw) - vel_z_offset;
-		if (fabs(vel_x) < 5) {
-			vel_x = 0;
-		}
-		if (fabs(vel_y) < 5) {
-			vel_y = 0;
-		}
-		if (fabs(vel_z) < 5) {
-			vel_z = 0;
-		}
-		
-		double rect_x = static_cast<double>(vel_x) + static_cast<double>(vel_x_prev);
-		double rect_y = static_cast<double>(vel_y) + static_cast<double>(vel_y_prev);
-		double rect_z = static_cast<double>(vel_z) + static_cast<double>(vel_z_prev);
-		rect_x /= 2.0;
-		rect_y /= 2.0;
-		rect_z /= 2.0;
-		const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt);
-		rect_x *= AREA_CONVERSION_CONST;
-		rect_y *= AREA_CONVERSION_CONST;
-		rect_z *= AREA_CONVERSION_CONST;
-		rot_x += rect_x;
-		rot_y += rect_y;
-		rot_z += rect_z;
-		rot_x = fmod(rot_x, 180.0);
-		rot_y = fmod(rot_y, 180.0);
-		rot_z = fmod(rot_z, 180.0);
+		//vel_x = MPU::convert_complement(vel_x_raw) - vel_x_offset;
+		//vel_y = MPU::convert_complement(vel_y_raw) - vel_y_offset;
+		//vel_z = MPU::convert_complement(vel_z_raw) - vel_z_offset;
+		//if (fabs(vel_x) < 5) {
+			//vel_x = 0;
+		//}
+		//if (fabs(vel_y) < 5) {
+			//vel_y = 0;
+		//}
+		//if (fabs(vel_z) < 5) {
+			//vel_z = 0;
+		//}
+		//
+		//double rect_x = static_cast<double>(vel_x) + static_cast<double>(vel_x_prev);
+		//double rect_y = static_cast<double>(vel_y) + static_cast<double>(vel_y_prev);
+		//double rect_z = static_cast<double>(vel_z) + static_cast<double>(vel_z_prev);
+		//rect_x /= 2.0;
+		//rect_y /= 2.0;
+		//rect_z /= 2.0;
+		//const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt);
+		//rect_x *= AREA_CONVERSION_CONST;
+		//rect_y *= AREA_CONVERSION_CONST;
+		//rect_z *= AREA_CONVERSION_CONST;
+		//rot_x += rect_x;
+		//rot_y += rect_y;
+		//rot_z += rect_z;
+		//rot_x = fmod(rot_x, 180.0);
+		//rot_y = fmod(rot_y, 180.0);
+		//rot_z = fmod(rot_z, 180.0);
 
 		if (fabs(rot_z-0.0) < 0.5) {
 			setLED(MUX_5, LED_STEADY);
