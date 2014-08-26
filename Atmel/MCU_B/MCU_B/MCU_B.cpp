@@ -158,7 +158,7 @@ int main()
 		++eeprom_pointer;
 		_delay_us(100);
 	}
-	const int I_MAX = 25;
+	const int I_MAX = 50;
 	long double vel_x_total = 0.0;
 	long double vel_y_total = 0.0;
 	long double vel_z_total = 0.0;
