@@ -2,7 +2,7 @@
 #include <math.h>
 #include <avr/io.h>
 #ifndef F_CPU
-#define F_CPU 1000000UL
+#define F_CPU 8000000UL
 #endif // F_CPU
 // WARNING: If you change F_CPU, you must also change:
 // * ADC TIMER PRESCALER
@@ -69,8 +69,8 @@ void IR_mux_set(MuxLine line);
 
 int main()
 {
-	uint8_t* eeprom_pointer = reinterpret_cast<uint8_t*>(0x01);
-	int dt = 0; // microseconds, I believe.
+	uint8_t* eeprom_pointer = reinterpret_cast<uint8_t*>(0x00);
+	unsigned int dt = 0; // microseconds, I believe.
 	short modded_time = 0;
 	const short LED_CYCLE_LENGTH = 12;
 	const short OVERHEAT_THRESHOLD = 200; // TODO: complete guess; consult datasheets
@@ -123,6 +123,23 @@ int main()
 		isClosed_prev[i] = false;
 		isClosed_bounce_timer[i] = 0;
 		t_isClosed[i] = false;
+	}
+
+	// Delay the clock frequency change to ensure re-programmability.
+	// The argument for the delay may be completely off because at this
+	// point in the program the specified `F_CPU` does not match the
+	// actual clock's frequency.
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		//CLKPR = 1 << CLKPCE; // "only updated when [... the other bits are] written to zero"
+		//CLKPR &= ~(1<<CLKPS0);
+		//CLKPR &= ~(1<<CLKPS1);
+		//CLKPR &= ~(1<<CLKPS2);
+		//CLKPR &= ~(1<<CLKPS3);
+		//// ^ (0b0000) Corresponds to a division factor of 1.
+
+		// Someone else's way of doing it.
+		CLKPR = 0x80;
+		CLKPR = 0x00;
 	}
 
 	// Initialize "system"-wide timer (TODO: make this a class...)
@@ -204,15 +221,19 @@ int main()
 		current_MUX %= MUX_NUM;
 
 		if (loop_counter < 100) {
-			eeprom_write_byte(eeprom_pointer, dt);
+			uint8_t dt_low = static_cast<uint8_t>(dt % 256);
+			uint8_t dt_high = static_cast<uint16_t>(dt-dt_low) >> 8;
+			eeprom_write_byte(eeprom_pointer, dt_low);
+			++eeprom_pointer;
+			eeprom_write_byte(eeprom_pointer, dt_high);
 			++eeprom_pointer;
 			++loop_counter;
 		}
 
 		// process gyro
-		//vel_x_prev = vel_x;
-		//vel_y_prev = vel_y;
-		//vel_z_prev = vel_z;
+		vel_x_prev = vel_x;
+		vel_y_prev = vel_y;
+		vel_z_prev = vel_z;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_L, buffer_L);
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_H, buffer_H);
 		vel_x_raw = (buffer_H<<8) + buffer_L;
@@ -222,35 +243,35 @@ int main()
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
 		vel_z_raw = (buffer_H<<8) + buffer_L;
-		//vel_x = MPU::convert_complement(vel_x_raw) - vel_x_offset;
-		//vel_y = MPU::convert_complement(vel_y_raw) - vel_y_offset;
-		//vel_z = MPU::convert_complement(vel_z_raw) - vel_z_offset;
-		//if (fabs(vel_x) < 5) {
-			//vel_x = 0;
-		//}
-		//if (fabs(vel_y) < 5) {
-			//vel_y = 0;
-		//}
-		//if (fabs(vel_z) < 5) {
-			//vel_z = 0;
-		//}
-		//
-		//double rect_x = static_cast<double>(vel_x) + static_cast<double>(vel_x_prev);
-		//double rect_y = static_cast<double>(vel_y) + static_cast<double>(vel_y_prev);
-		//double rect_z = static_cast<double>(vel_z) + static_cast<double>(vel_z_prev);
-		//rect_x /= 2.0;
-		//rect_y /= 2.0;
-		//rect_z /= 2.0;
-		//const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt);
-		//rect_x *= AREA_CONVERSION_CONST;
-		//rect_y *= AREA_CONVERSION_CONST;
-		//rect_z *= AREA_CONVERSION_CONST;
-		//rot_x += rect_x;
-		//rot_y += rect_y;
-		//rot_z += rect_z;
-		//rot_x = fmod(rot_x, 180.0);
-		//rot_y = fmod(rot_y, 180.0);
-		//rot_z = fmod(rot_z, 180.0);
+		vel_x = MPU::convert_complement(vel_x_raw) - vel_x_offset;
+		vel_y = MPU::convert_complement(vel_y_raw) - vel_y_offset;
+		vel_z = MPU::convert_complement(vel_z_raw) - vel_z_offset;
+		if (fabs(vel_x) < 5) {
+			vel_x = 0;
+		}
+		if (fabs(vel_y) < 5) {
+			vel_y = 0;
+		}
+		if (fabs(vel_z) < 5) {
+			vel_z = 0;
+		}
+		
+		double rect_x = static_cast<double>(vel_x) + static_cast<double>(vel_x_prev);
+		double rect_y = static_cast<double>(vel_y) + static_cast<double>(vel_y_prev);
+		double rect_z = static_cast<double>(vel_z) + static_cast<double>(vel_z_prev);
+		rect_x /= 2.0;
+		rect_y /= 2.0;
+		rect_z /= 2.0;
+		const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt) *0.125;
+		rect_x *= AREA_CONVERSION_CONST;
+		rect_y *= AREA_CONVERSION_CONST;
+		rect_z *= AREA_CONVERSION_CONST;
+		rot_x += rect_x;
+		rot_y += rect_y;
+		rot_z += rect_z;
+		rot_x = fmod(rot_x, 180.0);
+		rot_y = fmod(rot_y, 180.0);
+		rot_z = fmod(rot_z, 180.0);
 
 		if (fabs(rot_z-0.0) < 0.5) {
 			setLED(MUX_5, LED_STEADY);
@@ -394,7 +415,7 @@ int main()
 		}
 
 		// Set LEDs according to their statuses.
-		modded_time = SYSTEM_TIME/100000UL; // each "tick" is 100ms; MAGIC_NUM!
+		modded_time = SYSTEM_TIME/800000UL; // each "tick" is 100ms; MAGIC_NUM!
 		modded_time %= LED_CYCLE_LENGTH;
 		isOn = LED_on_states[LED_states[current_MUX]][modded_time];
 		LED_mux_set(static_cast<MuxLine>(current_MUX), isOn);
@@ -478,8 +499,8 @@ void initialize_adc()
 	// Left-adjust the ADC result (we don't need 10-bit accuracy).
 	ADMUX |= 1<<ADLAR;
 
-	// ADC prescaler = 4: if F_CPU is 1MHz, then ADC clock is 250kHz (above 50~200kHz, but it should be accurate enough)
-	ADCSRA |= 0<<ADPS0 | 1<<ADPS1 | 0<<ADPS2;
+	// ADC prescaler = 32: if F_CPU is 8MHz, then ADC clock is 250kHz (above 50~200kHz, but it should be accurate enough)
+	ADCSRA |= 1<<ADPS0 | 0<<ADPS1 | 1<<ADPS2;
 
 	// enable ADC
 	ADCSRA |= 1<<ADEN;
@@ -555,7 +576,7 @@ void LED_mux_set(MuxLine line, bool isOn)
 	if (isOn != 0) {
 		PORTC |= 1<<PORTC3;
 	}
-	_delay_us(100); // NOTE: Only enable if the loop doesn't have other delay sources (e.g. ADC).
+	//_delay_us(100); // NOTE: Only enable if the loop doesn't have other delay sources (e.g. ADC).
 }
 
 void bump_mux_set(MuxLine line)

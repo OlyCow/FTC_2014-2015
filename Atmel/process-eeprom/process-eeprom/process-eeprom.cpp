@@ -16,26 +16,27 @@ int main()
 	bool continue_running = false; // Make this work when I feel like it :P
 	
 	cout << "This program processes raw EEPROM data gathered from\n";
-	cout << "an ATmega328(P) (in the appropriate format).\n";
-	cout << "\nPlease enter the name of the input file:\n\t--";
+	cout << "an ATmega328(P) (in the appropriate format).\n\n";
+	cout << "Please enter the name of the input file:\n\t-- ";
 	string filename_input = "input";
 	cin >> filename_input;
 	filename_input.append(".dat");
-	cout << "\nPlease enter the name of the output file:\n\t--";
+	cout << "Please enter the name of the output file:\n\t-- ";
 	string filename_output = "output";
 	cin >> filename_output;
 	filename_output.append(".csv");
+	cout << endl;
 
 	bool DOUBLE_BYTE = false;
 	char confirm = 'N';
-	cout << "\nIs the data in units of two (2) bytes each? [Y/N] ";
+	cout << "Is the data in units of two (2) bytes each? [Y/N] ";
 	cin >> confirm;
 	if (confirm == 'Y' || confirm == 'y') {
 		DOUBLE_BYTE = true;
 	}
 	bool CONVERT_COMPLEMENT = false;
 	if (DOUBLE_BYTE) {
-		cout << "\nIs the data in 2's complement format? [Y/N] ";
+		cout << "Is the data in 2's complement format? [Y/N] ";
 		cin >> confirm;
 		if (confirm == 'Y' || confirm == 'y') {
 			CONVERT_COMPLEMENT = true;

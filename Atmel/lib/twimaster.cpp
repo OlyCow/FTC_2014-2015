@@ -14,13 +14,12 @@
 
 /* define CPU frequency in Mhz here if not defined in Makefile */
 #ifndef F_CPU
-#define F_CPU 1000000UL
-//#define F_CPU 4000000UL
+#define F_CPU 8000000UL
 #endif
 // We've defined F_CPU elsewhere earlier.
 
 /* I2C clock in Hz */
-#define SCL_CLOCK  62500L // Needs to be 1/16th of slave CPU clock; MOU6050 can handle 400kHz
+#define SCL_CLOCK  200000UL // Needs to be 1/16th of slave CPU clock; MPU6050 can handle 400kHz
 
 
 /*************************************************************************
