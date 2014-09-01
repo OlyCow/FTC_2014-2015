@@ -45,14 +45,27 @@ enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
 	LED_MODE_NUM
 };
 
-// Volatile variables shared between ISRs and main.
+// Control variables.
 volatile LedMode LED_states[MUX_NUM]; // remember to initialize to `LED_OFF`.
 volatile bool doPollIR = true;
-volatile bool isPressedDebugA = false;
-volatile bool isPressedDebugB = false;
-volatile bool isOverheat[MUX_NUM]; // remember to initialize to `false`.
 volatile uint8_t IR[MUX_NUM]; // remember to initialize to `0`.
-volatile bool t_isClosed[MUX_NUM]; // remember to initialize to `false`.
+
+// Data variables.
+volatile uint8_t t_isPressedDebugA	= 0x00;	// 1 bit (1 = true) //
+volatile uint8_t t_isPressedDebugB	= 0x00;	// 1 bit (1 = true) //
+volatile uint8_t t_XY_low			= 0x00;	// 8 bits
+volatile uint8_t t_XY_high			= 0x00;	// 7 bits
+volatile uint8_t t_Z_low			= 0x00;	// 8 bits
+volatile uint8_t t_Z_high			= 0x00;	// 1 bit
+volatile uint8_t t_bump_map			= 0x00;	// 8 bits //
+volatile uint8_t t_overheat_alert	= 0x00; // 1 bit
+volatile uint8_t t_overheat_map		= 0x00; // 8 bits
+volatile uint8_t t_IR_alert			= 0x00; // 1 bit
+volatile uint8_t t_IR[MUX_NUM]		= {0,0,0,0,0,0,0,0}; // 7 bits each, 0~100
+// volatile uint8_t t_light_map_A		= 0x00;	// 8 bits
+// volatile uint8_t t_light_map_B		= 0x00;	// 8 bits
+// volatile uint8_t t_light_A[MUX_NUM]	= {0,0,0,0,0,0,0,0};	// 4 bits each
+// volatile uint8_t t_light_B[MUX_NUM]	= {0,0,0,0,0,0,0,0};	// 4 bits each
 
 void initialize_io();
 void initialize_adc();
@@ -64,6 +77,8 @@ void LED_mux_set(MuxLine line, bool isOn);
 void bump_mux_set(MuxLine line);
 void temp_mux_set(MuxLine line);
 void IR_mux_set(MuxLine line);
+
+uint8_t clean_bool(bool input);
 
 
 
@@ -91,13 +106,17 @@ int main()
 	};
 	int current_MUX = MUX_1;
 	bool isOn = false; // for LED cycling
-	bool isClosed[MUX_NUM]; // remember to initialize to `false`.
+	bool isBumpClosed[MUX_NUM]; // remember to initialize to `false`.
+	bool isPressedDebugA = false;
+	bool isPressedDebugB = false;
 	bool isPressedDebugA_prev = false;
 	bool isPressedDebugB_prev = false;
-	bool isClosed_prev[MUX_NUM];
+	bool isBumpClosed_prev[MUX_NUM];
 	int debugA_bounce_timer = 0;
 	int debugB_bounce_timer = 0;
-	int isClosed_bounce_timer[MUX_NUM];
+	int isBumpClosed_bounce_timer[MUX_NUM];
+	bool isOverheat[MUX_NUM]; // remember to initialize to `false`.
+	uint8_t bump_map_buf = 0x00;
 	uint8_t		buffer_L = 0,
 				buffer_H = 0;
 	uint16_t	vel_x_raw = 0,
@@ -119,10 +138,9 @@ int main()
 		LED_states[i] = LED_OFF;
 		isOverheat[i] = false;
 		IR[i] = 0;
-		isClosed[i] = false;
-		isClosed_prev[i] = false;
-		isClosed_bounce_timer[i] = 0;
-		t_isClosed[i] = false;
+		isBumpClosed[i] = false;
+		isBumpClosed_prev[i] = false;
+		isBumpClosed_bounce_timer[i] = 0;
 	}
 
 	// Delay the clock frequency change to ensure re-programmability.
@@ -317,30 +335,34 @@ int main()
 			bump_mux_set(static_cast<MuxLine>(i));
 
 			// Read.
-			isClosed_prev[i] = isClosed[i];
+			isBumpClosed_prev[i] = isBumpClosed[i];
 			if ((PINB & (1<<PINB7)) != 0) { // The line has a pull-up resistor.
-				isClosed[i] = false;
+				isBumpClosed[i] = false;
 			} else {
-				isClosed[i] = true;
+				isBumpClosed[i] = true;
 			}
 
 			// Debounce.
-			if (isClosed[i] == isClosed_prev[i]) {
-				isClosed_bounce_timer[i] = 0;
+			if (isBumpClosed[i] == isBumpClosed_prev[i]) {
+				isBumpClosed_bounce_timer[i] = 0;
 			} else {
-				isClosed_bounce_timer[i] += dt;
-				if (isClosed_bounce_timer[i] < DEBOUNCE_DELAY) {
-					isClosed[i] = isClosed_prev[i];
+				isBumpClosed_bounce_timer[i] += dt;
+				if (isBumpClosed_bounce_timer[i] < DEBOUNCE_DELAY) {
+					isBumpClosed[i] = isBumpClosed_prev[i];
 				} else {
-					isClosed_bounce_timer[i] = 0;
+					isBumpClosed_bounce_timer[i] = 0;
 				}
 				// TODO: ^Might not need to explicitly clear this (will be cleared by next iteration?).
 			}
-
-			// This needs to be buffered to ensure correct readings if an
-			// interrupt occurs while debouncing.
-			t_isClosed[i] = isClosed[i];
 		}
+		// Write array to single byte.
+		bump_map_buf = 0x00; // clear buffer byte first
+		for (int i=MUX_NUM-1; i>=0; --i) {
+			bump_map_buf |= clean_bool(isBumpClosed[i]) << i;
+		}
+		// This needs to be buffered to ensure correct readings if an
+		// interrupt occurs while debouncing.
+		t_bump_map = bump_map_buf;
 
 		// Check the two pushbutton switches (PD0 & PD1). Remember,
 		// these both have pull-up resistors.
@@ -379,6 +401,9 @@ int main()
 				// TODO: ^Might not need to explicitly clear this (will be cleared by next iteration?).
 			}
 		}
+		// These two are buffered.
+		t_isPressedDebugA = clean_bool(isPressedDebugA);
+		t_isPressedDebugB = clean_bool(isPressedDebugB);
 		if (isPressedDebugA) {
 			setLED(MUX_2, LED_STEADY);
 		} else {
@@ -736,4 +761,9 @@ void IR_mux_set(MuxLine line)
 			// YOU HAVE MADE A GRAVE ERROR
 			break;
 	}
+}
+
+uint8_t clean_bool(bool input)
+{
+	return (input ? 1 : 0);
 }
