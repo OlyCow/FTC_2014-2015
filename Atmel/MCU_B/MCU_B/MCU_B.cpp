@@ -78,6 +78,7 @@ void temp_mux_set(MuxLine line);
 void IR_mux_set(MuxLine line);
 
 uint8_t clean_bool(bool input);
+double trim(double input, double limit);
 
 
 
@@ -288,16 +289,38 @@ int main()
 		rect_x /= 2.0;
 		rect_y /= 2.0;
 		rect_z /= 2.0;
-		const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt) *0.125;
+		const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt) *0.125; // 1/8 because 1MHz -> 8MHz
 		rect_x *= AREA_CONVERSION_CONST;
 		rect_y *= AREA_CONVERSION_CONST;
 		rect_z *= AREA_CONVERSION_CONST;
 		rot_x += rect_x;
 		rot_y += rect_y;
 		rot_z += rect_z;
-		rot_x = fmod(rot_x, 180.0);
+		rot_x = fmod(rot_x, 180.0); // TODO: eliminate overflow possibility
 		rot_y = fmod(rot_y, 180.0);
 		rot_z = fmod(rot_z, 180.0);
+
+		// packing data for transmission
+		int X_buf = static_cast<int>(round(rot_x));
+		int Y_buf = static_cast<int>(round(rot_y));
+		X_buf = trim(X_buf, 90);
+		Y_buf = trim(Y_buf, 90);
+		X_buf += 90.0;
+		Y_buf += 90.0;
+		uint16_t XY_buf = static_cast<uint16_t>(round(X_buf + Y_buf*180.0));
+		uint8_t XY_low_buf = static_cast<uint8_t>(XY_buf%256);
+		uint8_t XY_high_buf = static_cast<uint8_t>((XY_buf-XY_low_buf)>>8);
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			t_XY_low = XY_low_buf;
+			t_XY_high = XY_high_buf;
+		}
+		int Z_buf = static_cast<int>(round(rot_z));
+		uint8_t Z_low_buf = static_cast<uint8_t>(Z_buf%256);
+		uint8_t Z_high_buf = static_cast<uint8_t>((Z_buf-Z_low_buf)>>8);
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			t_Z_low = Z_low_buf;
+			t_Z_high = Z_high_buf;
+		}
 
 		if (fabs(rot_z-0.0) < 0.5) {
 			setLED(MUX_5, LED_STEADY);
@@ -809,4 +832,15 @@ void IR_mux_set(MuxLine line)
 uint8_t clean_bool(bool input)
 {
 	return (input ? 1 : 0);
+}
+
+double trim(double input, double limit)
+{
+	double output = input;
+	if (input > limit) {
+		output = limit;
+	} else if (input < -limit) {
+		output = -limit;
+	}
+	return output;
 }
