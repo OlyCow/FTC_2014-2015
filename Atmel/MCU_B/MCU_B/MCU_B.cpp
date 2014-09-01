@@ -66,10 +66,16 @@ volatile uint8_t t_IR[MUX_NUM]		= {0,0,0,0,0,0,0,0}; // 7 bits each, 0~100
 // volatile uint8_t t_light_A[MUX_NUM]	= {0,0,0,0,0,0,0,0};	// 4 bits each
 // volatile uint8_t t_light_B[MUX_NUM]	= {0,0,0,0,0,0,0,0};	// 4 bits each
 
+// Constants.
+const double BIT_TO_GYRO = 500.0/32768.0; // Also in MPU-6050 Register Map "Gyroscope Measurements".
+// TODO: POSSIBLE SOURCE OF ERROR
+const double USEC_TO_SEC = 1.0/1000000.0;
+
 void initialize_io();
 void initialize_adc();
 void initialize_spi();
 
+double update_rot(double rot, int vel, int vel_prev, int dt);
 void setLED(MuxLine line, LedMode mode);
 
 void LED_mux_set(MuxLine line, bool isOn);
@@ -90,8 +96,6 @@ int main()
 	const short LED_CYCLE_LENGTH = 12;
 	const short OVERHEAT_THRESHOLD = 200; // TODO: complete guess; consult datasheets
 	const int DEBOUNCE_DELAY = 15 *1000; // in usec, so the coefficient is in msec.
-	const double BIT_TO_GYRO = 500.0/32768.0; // Also in MPU-6050 Register Map "Gyroscope Measurements". // TODO: POSSIBLE ERROR
-	const double USEC_TO_SEC = 1.0/1000000.0;
 	const double BYTE_TO_PERCENT = 100.0/256.0;
 	const int IR_THRESHOLD = 15; // TODO: Complete guess, as usual
 	const bool LED_on_states[LED_MODE_NUM][LED_CYCLE_LENGTH] = {
@@ -273,32 +277,10 @@ int main()
 		vel_x = MPU::convert_complement(vel_x_raw) - vel_x_offset;
 		vel_y = MPU::convert_complement(vel_y_raw) - vel_y_offset;
 		vel_z = MPU::convert_complement(vel_z_raw) - vel_z_offset;
-		if (fabs(vel_x) < 5) {
-			vel_x = 0;
-		}
-		if (fabs(vel_y) < 5) {
-			vel_y = 0;
-		}
-		if (fabs(vel_z) < 5) {
-			vel_z = 0;
-		}
 		
-		double rect_x = static_cast<double>(vel_x) + static_cast<double>(vel_x_prev);
-		double rect_y = static_cast<double>(vel_y) + static_cast<double>(vel_y_prev);
-		double rect_z = static_cast<double>(vel_z) + static_cast<double>(vel_z_prev);
-		rect_x /= 2.0;
-		rect_y /= 2.0;
-		rect_z /= 2.0;
-		const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt) *0.125; // 1/8 because 1MHz -> 8MHz
-		rect_x *= AREA_CONVERSION_CONST;
-		rect_y *= AREA_CONVERSION_CONST;
-		rect_z *= AREA_CONVERSION_CONST;
-		rot_x += rect_x;
-		rot_y += rect_y;
-		rot_z += rect_z;
-		rot_x = fmod(rot_x, 180.0); // TODO: eliminate overflow possibility
-		rot_y = fmod(rot_y, 180.0);
-		rot_z = fmod(rot_z, 180.0);
+		rot_x = update_rot(rot_x, vel_x, vel_x_prev, dt);
+		rot_y = update_rot(rot_y, vel_y, vel_y_prev, dt);
+		rot_z = update_rot(rot_z, vel_z, vel_z_prev, dt);
 
 		// packing data for transmission
 		int X_buf = static_cast<int>(round(rot_x));
@@ -605,6 +587,29 @@ void initialize_spi()
 	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
 	SPCR |= 1<<SPE; // Enable SPI
 	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
+}
+
+double update_rot(double rot, int vel, int vel_prev, int dt)
+{
+	double output = rot;
+
+	// MAGIC_NUM
+	if (fabs(vel) < 5) {
+		vel = 0;
+	}
+	double rect = static_cast<double>(vel) + static_cast<double>(vel_prev);
+	rect /= 2.0;
+	const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt) *0.125; // 1/8 because 1MHz -> 8MHz
+	rect *= AREA_CONVERSION_CONST;
+	output += rect;
+	output = fmod(rot, 360.0);
+	output += 360.0;
+	output = fmod(rot, 360.0);
+	if (output > 180.0) {
+		output -= 360.0;
+	}
+
+	return output;
 }
 
 void setLED(MuxLine line, LedMode mode)
