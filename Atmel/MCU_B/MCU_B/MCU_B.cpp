@@ -2,7 +2,7 @@
 #include <math.h>
 #include <avr/io.h>
 #ifndef F_CPU
-#define F_CPU 1000000UL
+#define F_CPU 8000000UL
 #endif // F_CPU
 // WARNING: If you change F_CPU, you must also change:
 // * ADC TIMER PRESCALER
@@ -13,6 +13,7 @@
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 #include <util/twi.h>
+#include <avr/eeprom.h>
 
 #include "../../lib/i2cmaster.h"
 //#include "../../lib/I2C.h" // Not sure if this works yet. :P
@@ -44,19 +45,37 @@ enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
 	LED_MODE_NUM
 };
 
-// Volatile variables shared between ISRs and main.
+// Control variables.
 volatile LedMode LED_states[MUX_NUM]; // remember to initialize to `LED_OFF`.
 volatile bool doPollIR = true;
-volatile bool isPressedDebugA = false;
-volatile bool isPressedDebugB = false;
-volatile bool isOverheat[MUX_NUM]; // remember to initialize to `false`.
-volatile uint8_t IR[MUX_NUM]; // remember to initialize to `0`.
-volatile bool t_isClosed[MUX_NUM]; // remember to initialize to `false`.
+
+// Data variables.
+volatile uint8_t t_isPressedDebugA	= 0x00;	// 1 bit (1 = true)
+volatile uint8_t t_isPressedDebugB	= 0x00;	// 1 bit (1 = true)
+volatile uint8_t t_XY_low			= 0x00;	// 8 bits
+volatile uint8_t t_XY_high			= 0x00;	// 7 bits
+volatile uint8_t t_Z_low			= 0x00;	// 8 bits
+volatile uint8_t t_Z_high			= 0x00;	// 1 bit
+volatile uint8_t t_bump_map			= 0x00;	// 8 bits
+volatile uint8_t t_overheat_alert	= 0x00; // 1 bit
+volatile uint8_t t_overheat_map		= 0x00; // 8 bits
+volatile uint8_t t_IR_alert			= 0x00; // 1 bit
+volatile uint8_t t_IR[MUX_NUM]		= {0,0,0,0,0,0,0,0}; // 7 bits each, 0~100
+// volatile uint8_t t_light_map_A		= 0x00;	// 8 bits
+// volatile uint8_t t_light_map_B		= 0x00;	// 8 bits
+// volatile uint8_t t_light_A[MUX_NUM]	= {0,0,0,0,0,0,0,0};	// 4 bits each
+// volatile uint8_t t_light_B[MUX_NUM]	= {0,0,0,0,0,0,0,0};	// 4 bits each
+
+// Constants.
+const double BIT_TO_GYRO = 500.0/32768.0; // Also in MPU-6050 Register Map "Gyroscope Measurements".
+// TODO: POSSIBLE SOURCE OF ERROR
+const double USEC_TO_SEC = 1.0/1000000.0;
 
 void initialize_io();
 void initialize_adc();
 void initialize_spi();
 
+double update_rot(double rot, int vel, int vel_prev, int dt);
 void setLED(MuxLine line, LedMode mode);
 
 void LED_mux_set(MuxLine line, bool isOn);
@@ -64,17 +83,21 @@ void bump_mux_set(MuxLine line);
 void temp_mux_set(MuxLine line);
 void IR_mux_set(MuxLine line);
 
+uint8_t clean_bool(bool input);
+double trim(double input, double limit);
+
 
 
 int main()
 {
-	int dt = 0; // microseconds, I believe.
+	uint8_t* eeprom_pointer = reinterpret_cast<uint8_t*>(0x00);
+	unsigned int dt = 0; // microseconds, I believe.
 	short modded_time = 0;
 	const short LED_CYCLE_LENGTH = 12;
 	const short OVERHEAT_THRESHOLD = 200; // TODO: complete guess; consult datasheets
 	const int DEBOUNCE_DELAY = 15 *1000; // in usec, so the coefficient is in msec.
-	const double BIT_TO_GYRO = 500.0/32768.0; // Also in MPU-6050 Register Map "Gyroscope Measurements".
-	const double USEC_TO_SEC = 1.0/1000000.0;
+	const double BYTE_TO_PERCENT = 100.0/256.0;
+	const int IR_THRESHOLD = 15; // TODO: Complete guess, as usual
 	const bool LED_on_states[LED_MODE_NUM][LED_CYCLE_LENGTH] = {
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_OFF
 		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, // LED_STEADY
@@ -89,13 +112,21 @@ int main()
 	};
 	int current_MUX = MUX_1;
 	bool isOn = false; // for LED cycling
-	bool isClosed[MUX_NUM]; // remember to initialize to `false`.
+	bool isBumpClosed[MUX_NUM]; // remember to initialize to `false`.
+	bool isPressedDebugA = false;
+	bool isPressedDebugB = false;
 	bool isPressedDebugA_prev = false;
 	bool isPressedDebugB_prev = false;
-	bool isClosed_prev[MUX_NUM];
+	bool isBumpClosed_prev[MUX_NUM];
 	int debugA_bounce_timer = 0;
 	int debugB_bounce_timer = 0;
-	int isClosed_bounce_timer[MUX_NUM];
+	int isBumpClosed_bounce_timer[MUX_NUM];
+	bool isOverheat[MUX_NUM]; // remember to initialize to `false`.
+	uint8_t isOverheatMap = 0x00;
+	uint8_t isOverheatAlert = 0x00; // 1 = true
+	uint8_t bump_map_buf = 0x00;
+	unsigned int IR[MUX_NUM]; // remember to initialize to `0`.
+	bool alertIR = false;
 	uint8_t		buffer_L = 0,
 				buffer_H = 0;
 	uint16_t	vel_x_raw = 0,
@@ -117,10 +148,29 @@ int main()
 		LED_states[i] = LED_OFF;
 		isOverheat[i] = false;
 		IR[i] = 0;
-		isClosed[i] = false;
-		isClosed_prev[i] = false;
-		isClosed_bounce_timer[i] = 0;
-		t_isClosed[i] = false;
+		isBumpClosed[i] = false;
+		isBumpClosed_prev[i] = false;
+		isBumpClosed_bounce_timer[i] = 0;
+	}
+
+	// Delay the clock frequency change to ensure re-programmability.
+	// The argument for the delay may be completely off because at this
+	// point in the program the specified `F_CPU` does not match the
+	// actual clock's frequency.
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		// Delay!
+		_delay_ms(100);
+
+		//CLKPR = 1 << CLKPCE; // "only updated when [... the other bits are] written to zero"
+		//CLKPR &= ~(1<<CLKPS0);
+		//CLKPR &= ~(1<<CLKPS1);
+		//CLKPR &= ~(1<<CLKPS2);
+		//CLKPR &= ~(1<<CLKPS3);
+		//// ^ (0b0000) Corresponds to a division factor of 1.
+
+		// Someone else's way of doing it.
+		CLKPR = 0x80;
+		CLKPR = 0x00;
 	}
 
 	// Initialize "system"-wide timer (TODO: make this a class...)
@@ -149,10 +199,14 @@ int main()
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_L, buffer_L);
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_H, buffer_H);
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
+		//eeprom_write_byte(eeprom_pointer, buffer_L);
+		//++eeprom_pointer;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
+		//eeprom_write_byte(eeprom_pointer, buffer_H);
+		//++eeprom_pointer;
 		_delay_us(100);
 	}
-	const int I_MAX = 25;
+	const int I_MAX = 50;
 	long double vel_x_total = 0.0;
 	long double vel_y_total = 0.0;
 	long double vel_z_total = 0.0;
@@ -164,7 +218,11 @@ int main()
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_YOUT_H, buffer_H);
 		vel_y_raw = (buffer_H<<8) + buffer_L;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, buffer_L);
+		//eeprom_write_byte(eeprom_pointer, buffer_L);
+		//++eeprom_pointer;
 		MPU::read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_H, buffer_H);
+		//eeprom_write_byte(eeprom_pointer, buffer_H);
+		//++eeprom_pointer;
 		vel_z_raw = (buffer_H<<8) + buffer_L;
 		vel_x_total += MPU::convert_complement(vel_x_raw);
 		vel_y_total += MPU::convert_complement(vel_y_raw);
@@ -174,12 +232,13 @@ int main()
 	vel_y_offset = vel_y_total / static_cast<double>(I_MAX);
 	vel_z_offset = vel_z_total / static_cast<double>(I_MAX);
 
-	setLED(MUX_1, LED_BLINK); // All is well. :P
 	if (MPU::test()==true) {
-		setLED(MUX_8, LED_DOUBLE_BLINK);
+		setLED(MUX_1, LED_DOUBLE_BLINK);
 	} else {
-		setLED(MUX_8, LED_BLINK);
+		setLED(MUX_1, LED_BLINK); // if it blinks at all we've entered the loop.
 	}
+
+	int loop_counter = 0; // Keeps track of loop iterations.
 
     while (true)
     {
@@ -191,6 +250,16 @@ int main()
 		}
 		current_MUX++;
 		current_MUX %= MUX_NUM;
+
+		if (loop_counter < 100) {
+			uint8_t dt_low = static_cast<uint8_t>(dt % 256);
+			uint8_t dt_high = static_cast<uint16_t>(dt-dt_low) >> 8;
+			eeprom_write_byte(eeprom_pointer, dt_low);
+			++eeprom_pointer;
+			eeprom_write_byte(eeprom_pointer, dt_high);
+			++eeprom_pointer;
+			++loop_counter;
+		}
 
 		// process gyro
 		vel_x_prev = vel_x;
@@ -208,41 +277,47 @@ int main()
 		vel_x = MPU::convert_complement(vel_x_raw) - vel_x_offset;
 		vel_y = MPU::convert_complement(vel_y_raw) - vel_y_offset;
 		vel_z = MPU::convert_complement(vel_z_raw) - vel_z_offset;
-		if (fabs(vel_x) < 100) {
-			vel_x = 0;
-		}
-		if (fabs(vel_y) < 100) {
-			vel_y = 0;
-		}
-		if (fabs(vel_z) < 100) {
-			vel_z = 0;
-		}
 		
-		double rect_x = static_cast<double>(vel_x) + static_cast<double>(vel_x_prev);
-		double rect_y = static_cast<double>(vel_y) + static_cast<double>(vel_y_prev);
-		double rect_z = static_cast<double>(vel_z) + static_cast<double>(vel_z_prev);
-		rect_x /= 2.0;
-		rect_y /= 2.0;
-		rect_z /= 2.0;
-		const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt);
-		rect_x *= AREA_CONVERSION_CONST;
-		rect_y *= AREA_CONVERSION_CONST;
-		rect_z *= AREA_CONVERSION_CONST;
-		rot_x += rect_x;
-		rot_y += rect_y;
-		rot_z += rect_z;
-		rot_x = fmod(rot_x, 360.0);
-		rot_y = fmod(rot_y, 360.0);
-		rot_z = fmod(rot_z, 360.0);
-		if (rot_z < 0.0) {
-			rot_z += 360.0; // Limit to positive numbers.
-			// ^NOTE: Breaks down if one iteration changes `rot_z` more than 360 deg.
+		rot_x = update_rot(rot_x, vel_x, vel_x_prev, dt);
+		rot_y = update_rot(rot_y, vel_y, vel_y_prev, dt);
+		rot_z = update_rot(rot_z, vel_z, vel_z_prev, dt);
+
+		// packing data for transmission
+		int X_buf = static_cast<int>(round(rot_x));
+		int Y_buf = static_cast<int>(round(rot_y));
+		X_buf = trim(X_buf, 90);
+		Y_buf = trim(Y_buf, 90);
+		X_buf += 90.0;
+		Y_buf += 90.0;
+		uint16_t XY_buf = static_cast<uint16_t>(round(X_buf + Y_buf*180.0));
+		uint8_t XY_low_buf = static_cast<uint8_t>(XY_buf%256);
+		uint8_t XY_high_buf = static_cast<uint8_t>((XY_buf-XY_low_buf)>>8);
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			t_XY_low = XY_low_buf;
+			t_XY_high = XY_high_buf;
+		}
+		int Z_buf = static_cast<int>(round(rot_z));
+		uint8_t Z_low_buf = static_cast<uint8_t>(Z_buf%256);
+		uint8_t Z_high_buf = static_cast<uint8_t>((Z_buf-Z_low_buf)>>8);
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			t_Z_low = Z_low_buf;
+			t_Z_high = Z_high_buf;
 		}
 
 		if (fabs(rot_z-0.0) < 0.5) {
-			setLED(MUX_7, LED_STEADY);
+			setLED(MUX_5, LED_STEADY);
 		} else {
-			setLED(MUX_7, LED_OFF);
+			setLED(MUX_5, LED_OFF);
+		}
+		if (rot_z > 0.5) {
+			setLED(MUX_4, LED_STEADY);
+		} else {
+			setLED(MUX_4, LED_OFF);
+		}
+		if (rot_z < -0.5) {
+			setLED(MUX_6, LED_STEADY);
+		} else {
+			setLED(MUX_6, LED_OFF);
 		}
 
 		// read temp
@@ -264,8 +339,26 @@ int main()
 		while ((ADCSRA & 1<<ADSC) != 0) {;} // do nothing
 		// ADSC is set to `0` when the conversion finishes.
 
-		// update variable(s)
+		// update variables
 		isOverheat[current_MUX] = ADCH > OVERHEAT_THRESHOLD;
+		if (current_MUX == MUX_1) {
+			isOverheatAlert = 0x00;
+		}
+		if (isOverheat[current_MUX] == true) {
+			isOverheatAlert = 0x01;
+		}
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			t_overheat_alert = isOverheatAlert;
+		}
+		if (current_MUX == MUX_8) {
+			isOverheatMap = 0x00;
+			for (int i=MUX_NUM-1; i>=0; --i) {
+				isOverheatMap |= clean_bool(isOverheat[i]) << i;
+			}
+			ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+				t_overheat_map = isOverheatMap;
+			}
+		}
 
 		// read bump
 		for (int i=0; i<MUX_NUM; ++i) {
@@ -273,29 +366,35 @@ int main()
 			bump_mux_set(static_cast<MuxLine>(i));
 
 			// Read.
-			isClosed_prev[i] = isClosed[i];
+			isBumpClosed_prev[i] = isBumpClosed[i];
 			if ((PINB & (1<<PINB7)) != 0) { // The line has a pull-up resistor.
-				isClosed[i] = false;
+				isBumpClosed[i] = false;
 			} else {
-				isClosed[i] = true;
+				isBumpClosed[i] = true;
 			}
 
 			// Debounce.
-			if (isClosed[i] == isClosed_prev[i]) {
-				isClosed_bounce_timer[i] = 0;
+			if (isBumpClosed[i] == isBumpClosed_prev[i]) {
+				isBumpClosed_bounce_timer[i] = 0;
 			} else {
-				isClosed_bounce_timer[i] += dt;
-				if (isClosed_bounce_timer[i] < DEBOUNCE_DELAY) {
-					isClosed[i] = isClosed_prev[i];
+				isBumpClosed_bounce_timer[i] += dt;
+				if (isBumpClosed_bounce_timer[i] < DEBOUNCE_DELAY) {
+					isBumpClosed[i] = isBumpClosed_prev[i];
 				} else {
-					isClosed_bounce_timer[i] = 0;
+					isBumpClosed_bounce_timer[i] = 0;
 				}
 				// TODO: ^Might not need to explicitly clear this (will be cleared by next iteration?).
 			}
-
-			// This needs to be buffered to ensure correct readings if an
-			// interrupt occurs while debouncing.
-			t_isClosed[i] = isClosed[i];
+		}
+		// Write array to single byte.
+		bump_map_buf = 0x00; // clear buffer byte first
+		for (int i=MUX_NUM-1; i>=0; --i) {
+			bump_map_buf |= clean_bool(isBumpClosed[i]) << i;
+		}
+		// This needs to be buffered to ensure correct readings if an
+		// interrupt occurs while debouncing.
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			t_bump_map = bump_map_buf;
 		}
 
 		// Check the two pushbutton switches (PD0 & PD1). Remember,
@@ -335,6 +434,11 @@ int main()
 				// TODO: ^Might not need to explicitly clear this (will be cleared by next iteration?).
 			}
 		}
+		// These two are buffered.
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			t_isPressedDebugA = clean_bool(isPressedDebugA);
+			t_isPressedDebugB = clean_bool(isPressedDebugB);
+		}
 		if (isPressedDebugA) {
 			setLED(MUX_2, LED_STEADY);
 		} else {
@@ -366,12 +470,25 @@ int main()
 			while ((ADCSRA & 1<<ADSC) != 0) {;} // do nothing
 			// ADSC is set to `0` when the conversion finishes.
 
-			// update variable(s)
+			// update variables
 			IR[current_MUX] = ADCH;
+			IR[current_MUX] = static_cast<unsigned int>(round(IR[current_MUX] * BYTE_TO_PERCENT));
+			ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+				t_IR[current_MUX] = IR[current_MUX];
+			}
+			if (current_MUX == MUX_1) {
+				alertIR = false; // just clearing this variable
+			}
+			if (IR[current_MUX] > IR_THRESHOLD) {
+				alertIR = true;
+			}
+			ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+				t_IR_alert = clean_bool(alertIR);
+			}
 		}
 
 		// Set LEDs according to their statuses.
-		modded_time = SYSTEM_TIME/100000UL; // each "tick" is 100ms; MAGIC_NUM!
+		modded_time = SYSTEM_TIME/800000UL; // each "tick" is 100ms; MAGIC_NUM!
 		modded_time %= LED_CYCLE_LENGTH;
 		isOn = LED_on_states[LED_states[current_MUX]][modded_time];
 		LED_mux_set(static_cast<MuxLine>(current_MUX), isOn);
@@ -455,8 +572,8 @@ void initialize_adc()
 	// Left-adjust the ADC result (we don't need 10-bit accuracy).
 	ADMUX |= 1<<ADLAR;
 
-	// ADC prescaler = 4: if F_CPU is 1MHz, then ADC clock is 250kHz (above 50~200kHz, but it should be accurate enough)
-	ADCSRA |= 0<<ADPS0 | 1<<ADPS1 | 0<<ADPS2;
+	// ADC prescaler = 32: if F_CPU is 8MHz, then ADC clock is 250kHz (above 50~200kHz, but it should be accurate enough)
+	ADCSRA |= 1<<ADPS0 | 0<<ADPS1 | 1<<ADPS2;
 
 	// enable ADC
 	ADCSRA |= 1<<ADEN;
@@ -470,6 +587,29 @@ void initialize_spi()
 	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
 	SPCR |= 1<<SPE; // Enable SPI
 	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
+}
+
+double update_rot(double rot, int vel, int vel_prev, int dt)
+{
+	double output = rot;
+
+	// MAGIC_NUM
+	if (fabs(vel) < 5) {
+		vel = 0;
+	}
+	double rect = static_cast<double>(vel) + static_cast<double>(vel_prev);
+	rect /= 2.0;
+	const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt) *0.125; // 1/8 because 1MHz -> 8MHz
+	rect *= AREA_CONVERSION_CONST;
+	output += rect;
+	output = fmod(rot, 360.0);
+	output += 360.0;
+	output = fmod(rot, 360.0);
+	if (output > 180.0) {
+		output -= 360.0;
+	}
+
+	return output;
 }
 
 void setLED(MuxLine line, LedMode mode)
@@ -532,7 +672,7 @@ void LED_mux_set(MuxLine line, bool isOn)
 	if (isOn != 0) {
 		PORTC |= 1<<PORTC3;
 	}
-	_delay_us(100); // NOTE: Only enable if the loop doesn't have other delay sources (e.g. ADC).
+	//_delay_us(100); // NOTE: Only enable if the loop doesn't have other delay sources (e.g. ADC).
 }
 
 void bump_mux_set(MuxLine line)
@@ -692,4 +832,20 @@ void IR_mux_set(MuxLine line)
 			// YOU HAVE MADE A GRAVE ERROR
 			break;
 	}
+}
+
+uint8_t clean_bool(bool input)
+{
+	return (input ? 1 : 0);
+}
+
+double trim(double input, double limit)
+{
+	double output = input;
+	if (input > limit) {
+		output = limit;
+	} else if (input < -limit) {
+		output = -limit;
+	}
+	return output;
 }
