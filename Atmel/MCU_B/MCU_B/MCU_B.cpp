@@ -48,16 +48,15 @@ enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
 // Control variables.
 volatile LedMode LED_states[MUX_NUM]; // remember to initialize to `LED_OFF`.
 volatile bool doPollIR = true;
-volatile uint8_t IR[MUX_NUM]; // remember to initialize to `0`.
 
 // Data variables.
-volatile uint8_t t_isPressedDebugA	= 0x00;	// 1 bit (1 = true) //
-volatile uint8_t t_isPressedDebugB	= 0x00;	// 1 bit (1 = true) //
+volatile uint8_t t_isPressedDebugA	= 0x00;	// 1 bit (1 = true)
+volatile uint8_t t_isPressedDebugB	= 0x00;	// 1 bit (1 = true)
 volatile uint8_t t_XY_low			= 0x00;	// 8 bits
 volatile uint8_t t_XY_high			= 0x00;	// 7 bits
 volatile uint8_t t_Z_low			= 0x00;	// 8 bits
 volatile uint8_t t_Z_high			= 0x00;	// 1 bit
-volatile uint8_t t_bump_map			= 0x00;	// 8 bits //
+volatile uint8_t t_bump_map			= 0x00;	// 8 bits
 volatile uint8_t t_overheat_alert	= 0x00; // 1 bit
 volatile uint8_t t_overheat_map		= 0x00; // 8 bits
 volatile uint8_t t_IR_alert			= 0x00; // 1 bit
@@ -90,8 +89,10 @@ int main()
 	const short LED_CYCLE_LENGTH = 12;
 	const short OVERHEAT_THRESHOLD = 200; // TODO: complete guess; consult datasheets
 	const int DEBOUNCE_DELAY = 15 *1000; // in usec, so the coefficient is in msec.
-	const double BIT_TO_GYRO = 500.0/32768.0; // Also in MPU-6050 Register Map "Gyroscope Measurements".
+	const double BIT_TO_GYRO = 500.0/32768.0; // Also in MPU-6050 Register Map "Gyroscope Measurements". // TODO: POSSIBLE ERROR
 	const double USEC_TO_SEC = 1.0/1000000.0;
+	const double BYTE_TO_PERCENT = 100.0/256.0;
+	const int IR_THRESHOLD = 15; // TODO: Complete guess, as usual
 	const bool LED_on_states[LED_MODE_NUM][LED_CYCLE_LENGTH] = {
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LED_OFF
 		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, // LED_STEADY
@@ -116,7 +117,11 @@ int main()
 	int debugB_bounce_timer = 0;
 	int isBumpClosed_bounce_timer[MUX_NUM];
 	bool isOverheat[MUX_NUM]; // remember to initialize to `false`.
+	uint8_t isOverheatMap = 0x00;
+	uint8_t isOverheatAlert = 0x00; // 1 = true
 	uint8_t bump_map_buf = 0x00;
+	unsigned int IR[MUX_NUM]; // remember to initialize to `0`.
+	bool alertIR = false;
 	uint8_t		buffer_L = 0,
 				buffer_H = 0;
 	uint16_t	vel_x_raw = 0,
@@ -148,6 +153,9 @@ int main()
 	// point in the program the specified `F_CPU` does not match the
 	// actual clock's frequency.
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		// Delay!
+		_delay_ms(100);
+
 		//CLKPR = 1 << CLKPCE; // "only updated when [... the other bits are] written to zero"
 		//CLKPR &= ~(1<<CLKPS0);
 		//CLKPR &= ~(1<<CLKPS1);
@@ -326,8 +334,26 @@ int main()
 		while ((ADCSRA & 1<<ADSC) != 0) {;} // do nothing
 		// ADSC is set to `0` when the conversion finishes.
 
-		// update variable(s)
+		// update variables
 		isOverheat[current_MUX] = ADCH > OVERHEAT_THRESHOLD;
+		if (current_MUX == MUX_1) {
+			isOverheatAlert = 0x00;
+		}
+		if (isOverheat[current_MUX] == true) {
+			isOverheatAlert = 0x01;
+		}
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			t_overheat_alert = isOverheatAlert;
+		}
+		if (current_MUX == MUX_8) {
+			isOverheatMap = 0x00;
+			for (int i=MUX_NUM-1; i>=0; --i) {
+				isOverheatMap |= clean_bool(isOverheat[i]) << i;
+			}
+			ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+				t_overheat_map = isOverheatMap;
+			}
+		}
 
 		// read bump
 		for (int i=0; i<MUX_NUM; ++i) {
@@ -362,7 +388,9 @@ int main()
 		}
 		// This needs to be buffered to ensure correct readings if an
 		// interrupt occurs while debouncing.
-		t_bump_map = bump_map_buf;
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			t_bump_map = bump_map_buf;
+		}
 
 		// Check the two pushbutton switches (PD0 & PD1). Remember,
 		// these both have pull-up resistors.
@@ -402,8 +430,10 @@ int main()
 			}
 		}
 		// These two are buffered.
-		t_isPressedDebugA = clean_bool(isPressedDebugA);
-		t_isPressedDebugB = clean_bool(isPressedDebugB);
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			t_isPressedDebugA = clean_bool(isPressedDebugA);
+			t_isPressedDebugB = clean_bool(isPressedDebugB);
+		}
 		if (isPressedDebugA) {
 			setLED(MUX_2, LED_STEADY);
 		} else {
@@ -435,8 +465,21 @@ int main()
 			while ((ADCSRA & 1<<ADSC) != 0) {;} // do nothing
 			// ADSC is set to `0` when the conversion finishes.
 
-			// update variable(s)
+			// update variables
 			IR[current_MUX] = ADCH;
+			IR[current_MUX] = static_cast<unsigned int>(round(IR[current_MUX] * BYTE_TO_PERCENT));
+			ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+				t_IR[current_MUX] = IR[current_MUX];
+			}
+			if (current_MUX == MUX_1) {
+				alertIR = false; // just clearing this variable
+			}
+			if (IR[current_MUX] > IR_THRESHOLD) {
+				alertIR = true;
+			}
+			ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+				t_IR_alert = clean_bool(alertIR);
+			}
 		}
 
 		// Set LEDs according to their statuses.
