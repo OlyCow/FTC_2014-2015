@@ -1,3 +1,5 @@
+// copyright, license, all that fun stuff
+#include <inttypes.h>
 #include <math.h>
 #include <avr/io.h>
 #ifndef F_CPU
@@ -27,6 +29,12 @@ enum MuxLine {
 	MUX_NUM
 };
 
+enum MCU{
+	MCU_B = MUX_1,
+	MCU_C = MUX_2,
+	MCU_NUM
+};
+
 void initialize_io();
 void initialize_spi();
 
@@ -41,9 +49,10 @@ int main()
 	
 	int RGB_counter = 0;
 	int LED_counter = 0;
-	int LED_R = 0x04;
-	int LED_G = 0x04;
-	int LED_B = 0x04;
+	int LED_R = 0x01;
+	int LED_G = 0x01;
+	int LED_B = 0x01;
+	const int CYCLE_SIZE = 16;
 
 	bool isReadySPI = false;
 	bool isCommResetting = false;
@@ -56,7 +65,7 @@ int main()
 	//// actual clock's frequency.
 	//ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	//	// Delay!
-	//	_delay_ms(100);
+		_delay_ms(100);
 	//
 	//	//CLKPR = 1 << CLKPCE; // "only updated when [... the other bits are] written to zero"
 	//	//CLKPR &= ~(1<<CLKPS0);
@@ -72,7 +81,7 @@ int main()
 
 	// Check if other MCUs are ready to go.
 
-	sei(); // ready to go.
+	//sei(); // ready to go.
 	isReadySPI = true;
 
 	while (true) {
@@ -80,10 +89,30 @@ int main()
 		RGB_counter %= 3;
 		if (RGB_counter == 0) {
 			++LED_counter;
-			LED_counter %= 128;
+			LED_counter %= CYCLE_SIZE;
 		}
 
 		// ask for stuff, update registers
+		set_SPI_mux(MUX_1);
+		uint8_t read_byte = 0x00;
+		uint8_t Z_low = 0;
+		uint8_t Z_high = 0;
+		uint16_t Z = 0;
+		SPDR = SPI_REQ_Z_LOW;
+		_delay_us(100);
+		read_byte = SPDR;
+		Z_low = read_byte;
+		SPDR = SPI_REQ_Z_HIGH;
+		_delay_us(100);
+		read_byte = SPDR;
+		Z_high = read_byte;
+		Z = Z_low + (Z_high<<8);
+		Z %= 360;
+		if (Z==0) {
+			isCommTransmitting = true;
+		} else {
+			isCommTransmitting = false;
+		}
 
 		// LED stuffs
 		PORTC |= 0b111<<PC0;
@@ -112,12 +141,12 @@ int main()
 		}
 		if (isCommResetting) {
 			PORTC |= 1<<PC4;
-			} else {
+		} else {
 			PORTC &= ~(1<<PC4);
 		}
 		if (isCommTransmitting) {
 			PORTC |= 1<<PC5;
-			} else {
+		} else {
 			PORTC &= ~(1<<PC5);
 		}
 

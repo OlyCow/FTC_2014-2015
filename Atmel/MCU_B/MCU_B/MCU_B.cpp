@@ -1,4 +1,5 @@
 // copyright, license, all that fun stuff
+#include <inttypes.h>
 #include <math.h>
 #include <avr/io.h>
 #ifndef F_CPU
@@ -256,17 +257,18 @@ int main()
 		current_MUX++;
 		current_MUX %= MUX_NUM;
 
-		if (loop_counter < 100) {
-			unsigned int buffer = dt % 256;
-			uint8_t dt_low = static_cast<uint8_t>(buffer);
-			buffer = (dt - dt_low) >> 8;
-			uint8_t dt_high = static_cast<uint8_t>(buffer) >> 8;
-			eeprom_write_byte(eeprom_pointer, dt_low);
-			++eeprom_pointer;
-			eeprom_write_byte(eeprom_pointer, dt_high);
-			++eeprom_pointer;
-			++loop_counter;
-		}
+		// Only enable to test timing.
+		//if (loop_counter < 100) {
+			//unsigned int buffer = dt % 256;
+			//uint8_t dt_low = static_cast<uint8_t>(buffer);
+			//buffer = (dt - dt_low) >> 8;
+			//uint8_t dt_high = static_cast<uint8_t>(buffer) >> 8;
+			//eeprom_write_byte(eeprom_pointer, dt_low);
+			//++eeprom_pointer;
+			//eeprom_write_byte(eeprom_pointer, dt_high);
+			//++eeprom_pointer;
+			//++loop_counter;
+		//}
 
 		// process gyro
 		if (doResetGyro) {
@@ -300,9 +302,9 @@ int main()
 		int Y_buf = static_cast<int>(round(rot_y));
 		X_buf = trim(X_buf, 90);
 		Y_buf = trim(Y_buf, 90);
-		X_buf += 90.0;
-		Y_buf += 90.0;
-		uint16_t XY_buf = static_cast<uint16_t>(round(X_buf + Y_buf*180.0));
+		X_buf += 90;
+		Y_buf += 90;
+		uint16_t XY_buf = static_cast<uint16_t>(round(X_buf + Y_buf*180));
 		uint8_t XY_low_buf = static_cast<uint8_t>(XY_buf%256);
 		uint8_t XY_high_buf = static_cast<uint8_t>((XY_buf-XY_low_buf)>>8);
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -310,6 +312,7 @@ int main()
 			t_XY_high = XY_high_buf;
 		}
 		int Z_buf = static_cast<int>(round(rot_z));
+		Z_buf += 180;
 		uint8_t Z_low_buf = static_cast<uint8_t>(Z_buf%256);
 		uint8_t Z_high_buf = static_cast<uint8_t>((Z_buf-Z_low_buf)>>8);
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
