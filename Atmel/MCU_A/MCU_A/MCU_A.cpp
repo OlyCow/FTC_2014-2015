@@ -15,8 +15,22 @@
 
 #include "../../lib/SPI-codes.h"
 
+enum MuxLine {
+	MUX_1 = 0,
+	MUX_2,
+	MUX_3,
+	MUX_4,
+	MUX_5,
+	MUX_6,
+	MUX_7,
+	MUX_8,
+	MUX_NUM
+};
+
 void initialize_io();
 void initialize_spi();
+
+void set_SPI_mux(MuxLine line);
 
 
 
@@ -27,9 +41,13 @@ int main()
 	
 	int RGB_counter = 0;
 	int LED_counter = 0;
-	int LED_R = 222/4;
-	int LED_G = 108/4;
-	int LED_B = 173/4;
+	int LED_R = 0x04;
+	int LED_G = 0x04;
+	int LED_B = 0x04;
+
+	bool isReadySPI = false;
+	bool isCommResetting = false;
+	bool isCommTransmitting = false;
 
 	// Doesn't work on an ATmega8.
 	//// Delay the clock frequency change to ensure re-programmability.
@@ -52,6 +70,11 @@ int main()
 	//	CLKPR = 0x00;
 	//}
 
+	// Check if other MCUs are ready to go.
+
+	sei(); // ready to go.
+	isReadySPI = true;
+
 	while (true) {
 		++RGB_counter;
 		RGB_counter %= 3;
@@ -60,6 +83,9 @@ int main()
 			LED_counter %= 128;
 		}
 
+		// ask for stuff, update registers
+
+		// LED stuffs
 		PORTC |= 0b111<<PC0;
 		switch (RGB_counter) {
 			case 0 :
@@ -79,7 +105,23 @@ int main()
 				break;
 		}
 
-		_delay_us(10);
+		if (isReadySPI) {
+			PORTC |= 1<<PC3;
+		} else {
+			PORTC &= ~(1<<PC3);
+		}
+		if (isCommResetting) {
+			PORTC |= 1<<PC4;
+			} else {
+			PORTC &= ~(1<<PC4);
+		}
+		if (isCommTransmitting) {
+			PORTC |= 1<<PC5;
+			} else {
+			PORTC &= ~(1<<PC5);
+		}
+
+		_delay_us(10); // Only enable this delay if there aren't other delay sources.
 	}
 }
 
@@ -156,4 +198,68 @@ void initialize_spi()
 	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
 	SPCR |= 1<<SPE; // Enable SPI
 	// SPR0, SPR1, and SPI2X all default to 0 (f/4).
+}
+
+void set_SPI_mux(MuxLine line)
+{
+	PORTB &= ~(1 << PB0);
+	PORTB &= ~(1 << PB1);
+	PORTB &= ~(1 << PB6);
+	PORTB &= ~(1 << PB7);
+	switch (line) {
+		// Hopefully this monstrosity gets optimized away. (TODO: Nope, says a simple size test.)
+		case MUX_1 :
+			PORTB |= 0<<PB0;
+			PORTB |= 0<<PB1;
+			PORTB |= 0<<PB6;
+			PORTB |= 0<<PB7;
+			break;
+		case MUX_2 :
+			PORTB |= 1<<PB0;
+			PORTB |= 0<<PB1;
+			PORTB |= 0<<PB6;
+			PORTB |= 0<<PB7;
+			break;
+		case MUX_3 :
+			PORTB |= 0<<PB0;
+			PORTB |= 1<<PB1;
+			PORTB |= 0<<PB6;
+			PORTB |= 0<<PB7;
+			break;
+		case MUX_4 :
+			PORTB |= 1<<PB0;
+			PORTB |= 1<<PB1;
+			PORTB |= 0<<PB6;
+			PORTB |= 0<<PB7;
+			break;
+		case MUX_5 :
+			PORTB |= 0<<PB0;
+			PORTB |= 0<<PB1;
+			PORTB |= 1<<PB6;
+			PORTB |= 0<<PB7;
+			break;
+		case MUX_6 :
+			PORTB |= 1<<PB0;
+			PORTB |= 0<<PB1;
+			PORTB |= 1<<PB6;
+			PORTB |= 0<<PB7;
+			break;
+		case MUX_7 :
+			PORTB |= 0<<PB0;
+			PORTB |= 1<<PB1;
+			PORTB |= 1<<PB6;
+			PORTB |= 0<<PB7;
+			break;
+		case MUX_8 :
+			PORTB |= 1<<PB0;
+			PORTB |= 1<<PB1;
+			PORTB |= 1<<PB6;
+			PORTB |= 0<<PB7;
+			break;
+		default :
+			// YOU HAVE MADE A GRAVE ERROR
+			break;
+	}
+
+	PORTB &= ~(1<<PB2); // `SS always is active low
 }
