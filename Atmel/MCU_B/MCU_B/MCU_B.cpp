@@ -18,6 +18,7 @@
 #include "../../lib/i2cmaster.h"
 //#include "../../lib/I2C.h" // Not sure if this works yet. :P
 #include "../../lib/MPU6050.h"
+#include "../../lib/SPI-codes.h"
 
 enum MuxLine {
 	MUX_1 = 0,
@@ -48,6 +49,7 @@ enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
 // Control variables.
 volatile LedMode LED_states[MUX_NUM]; // remember to initialize to `LED_OFF`.
 volatile bool doPollIR = true;
+volatile bool isReady = false;
 
 // Data variables.
 volatile uint8_t t_isPressedDebugA	= 0x00;	// 1 bit (1 = true)
@@ -239,6 +241,8 @@ int main()
 	}
 
 	int loop_counter = 0; // Keeps track of loop iterations.
+	isReady = true;
+	sei(); // yay finally
 
     while (true)
     {
@@ -493,6 +497,37 @@ int main()
 		isOn = LED_on_states[LED_states[current_MUX]][modded_time];
 		LED_mux_set(static_cast<MuxLine>(current_MUX), isOn);
     }
+}
+
+ISR(SPI_STC_vect)
+{
+	uint8_t read_byte = SPDR;
+	uint8_t write_byte = SPI_FILLER;
+
+	switch(read_byte) {
+		case SPI_SET_IR_ON :
+			doPollIR = true;
+			write_byte = SPI_ACK;
+			break;
+		case SPI_SET_IR_OFF :
+			doPollIR = false;
+			write_byte = SPI_ACK;
+			break;
+		case SPI_REQ_ACK :
+			write_byte = SPI_ACK;
+			break;
+		case SPI_REQ_DEBUG_A :
+			write_byte = t_isPressedDebugA;
+			break;
+		case SPI_REQ_DEBUG_B :
+			write_byte = t_isPressedDebugB;
+			break;
+		default :
+			write_byte = SPI_ERROR;
+			break;
+	}
+
+	SPDR = write_byte;
 }
 
 void initialize_io()
