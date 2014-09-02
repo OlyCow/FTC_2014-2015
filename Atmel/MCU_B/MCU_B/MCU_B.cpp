@@ -50,6 +50,7 @@ enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
 volatile LedMode LED_states[MUX_NUM]; // remember to initialize to `LED_OFF`.
 volatile bool doPollIR = true;
 volatile bool isReady = false;
+volatile bool doResetGyro = false;
 
 // Data variables.
 volatile uint8_t t_isPressedDebugA	= 0x00;	// 1 bit (1 = true)
@@ -256,8 +257,10 @@ int main()
 		current_MUX %= MUX_NUM;
 
 		if (loop_counter < 100) {
-			uint8_t dt_low = static_cast<uint8_t>(dt % 256);
-			uint8_t dt_high = static_cast<uint16_t>(dt-dt_low) >> 8;
+			unsigned int buffer = dt % 256;
+			uint8_t dt_low = static_cast<uint8_t>(buffer);
+			buffer = (dt - dt_low) >> 8;
+			uint8_t dt_high = static_cast<uint8_t>(buffer) >> 8;
 			eeprom_write_byte(eeprom_pointer, dt_low);
 			++eeprom_pointer;
 			eeprom_write_byte(eeprom_pointer, dt_high);
@@ -266,6 +269,12 @@ int main()
 		}
 
 		// process gyro
+		if (doResetGyro) {
+			rot_x = 0.0;
+			rot_y = 0.0;
+			rot_z = 0.0;
+			doResetGyro = false;
+		}
 		vel_x_prev = vel_x;
 		vel_y_prev = vel_y;
 		vel_z_prev = vel_z;
@@ -506,7 +515,8 @@ ISR(SPI_STC_vect)
 
 	switch(read_byte) {
 		case SPI_RESET_MCU :
-			// TODO
+			// TODO: watchdog stuff?
+			// remember to clear flags to avoid infinite reset looping
 			write_byte = SPI_ACK;
 			break;
 		case SPI_CHANGE_LED :
@@ -514,7 +524,7 @@ ISR(SPI_STC_vect)
 			write_byte = SPI_ACK;
 			break;
 		case SPI_CLEAR_GYRO :
-			// TODO
+			doResetGyro = true;
 			write_byte = SPI_ACK;
 			break;
 		case SPI_SET_IR_ON :
