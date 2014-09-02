@@ -37,8 +37,7 @@
         </dependencies>
       </framework-data>
     </AsfFrameworkConfig>
-    <avrtool>
-    </avrtool>
+    <avrtool>com.atmel.avrdbg.tool.simulator</avrtool>
     <com_atmel_avrdbg_tool_simulator>
       <ToolOptions xmlns="">
         <InterfaceProperties>
@@ -139,6 +138,10 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\lib\SPI-codes.h">
+      <SubType>compile</SubType>
+      <Link>SPI-codes.h</Link>
+    </Compile>
     <Compile Include="MCU_A.cpp">
       <SubType>compile</SubType>
     </Compile>
