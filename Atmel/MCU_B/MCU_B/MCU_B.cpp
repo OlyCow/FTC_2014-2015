@@ -79,7 +79,7 @@ void initialize_io();
 void initialize_adc();
 void initialize_spi();
 
-double update_rot(double rot, int vel, int vel_prev, int dt);
+double update_rot(double rot, int vel, int vel_prev, double conversion_const);
 void setLED(MuxLine line, LedMode mode);
 
 void LED_mux_set(MuxLine line, bool isOn);
@@ -293,9 +293,12 @@ int main()
 		vel_y = MPU::convert_complement(vel_y_raw) - vel_y_offset;
 		vel_z = MPU::convert_complement(vel_z_raw) - vel_z_offset;
 		
-		rot_x = update_rot(rot_x, vel_x, vel_x_prev, dt);
-		rot_y = update_rot(rot_y, vel_y, vel_y_prev, dt);
-		rot_z = update_rot(rot_z, vel_z, vel_z_prev, dt);
+		double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt) *0.125 *16;
+		// `[...] *0.125` because 1MHz -> 8MHz
+
+		rot_x = update_rot(rot_x, vel_x, vel_x_prev, AREA_CONVERSION_CONST);
+		rot_y = update_rot(rot_y, vel_y, vel_y_prev, AREA_CONVERSION_CONST);
+		rot_z = update_rot(rot_z, vel_z, vel_z_prev, AREA_CONVERSION_CONST);
 
 		// packing data for transmission
 		int X_buf = static_cast<int>(round(rot_x));
@@ -520,27 +523,27 @@ ISR(SPI_STC_vect)
 		case SPI_RESET_MCU :
 			// TODO: watchdog stuff?
 			// remember to clear flags to avoid infinite reset looping
-			write_byte = SPI_ACK;
+			write_byte = SPI_ACK_READY;
 			break;
 		case SPI_CHANGE_LED :
 			// TODO
-			write_byte = SPI_ACK;
+			write_byte = SPI_ACK_READY;
 			break;
 		case SPI_CLEAR_GYRO :
 			doResetGyro = true;
-			write_byte = SPI_ACK;
+			write_byte = SPI_ACK_READY;
 			break;
 		case SPI_SET_IR_ON :
 			doPollIR = true;
-			write_byte = SPI_ACK;
+			write_byte = SPI_ACK_READY;
 			break;
 		case SPI_SET_IR_OFF :
 			doPollIR = false;
-			write_byte = SPI_ACK;
+			write_byte = SPI_ACK_READY;
 			break;
 
-		case SPI_REQ_ACK :
-			write_byte = SPI_ACK;
+		case SPI_REQ_CONFIRM :
+			write_byte = SPI_ACK_READY;
 			break;
 		case SPI_REQ_DEBUG_A :
 			write_byte = t_isPressedDebugA;
@@ -699,7 +702,7 @@ void initialize_spi()
 	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
 }
 
-double update_rot(double rot, int vel, int vel_prev, int dt)
+double update_rot(double rot, int vel, int vel_prev, double conversion_const)
 {
 	double output = rot;
 
@@ -709,9 +712,16 @@ double update_rot(double rot, int vel, int vel_prev, int dt)
 	}
 	double rect = static_cast<double>(vel) + static_cast<double>(vel_prev);
 	rect /= 2.0;
-	const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt) *0.125; // 1/8 because 1MHz -> 8MHz
-	rect *= AREA_CONVERSION_CONST;
+	rect *= conversion_const;
 	output += rect;
+
+	if (fabs(round(output)) == 0) {
+		setLED(MUX_7, LED_STEADY);
+	} else {
+		setLED(MUX_7, LED_OFF);
+	}
+
+	//output = fmod(rot, 180.0);
 	output = fmod(rot, 360.0);
 	output += 360.0;
 	output = fmod(rot, 360.0);

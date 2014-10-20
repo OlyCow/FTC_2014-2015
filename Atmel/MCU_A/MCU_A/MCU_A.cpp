@@ -80,9 +80,17 @@ int main()
 	//}
 
 	// Check if other MCUs are ready to go.
+	while (!isReadySPI) {
+		set_SPI_mux(MUX_1);
+		SPDR = SPI_REQ_CONFIRM;
+		_delay_us(100);
+		uint8_t read_byte = SPDR;
+		if (read_byte == SPI_ACK_READY) {
+			isReadySPI = true;
+		}
+	}
 
 	//sei(); // ready to go.
-	isReadySPI = true;
 
 	while (true) {
 		++RGB_counter;
