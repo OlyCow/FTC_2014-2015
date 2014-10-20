@@ -58,6 +58,18 @@ int main()
 	bool isCommResetting = false;
 	bool isCommTransmitting = false;
 
+	// Data variables.
+	volatile uint8_t t_isPressedDebugA	= 0x00;	// 1 bit (1 = true)
+	volatile uint8_t t_isPressedDebugB	= 0x00;	// 1 bit (1 = true)
+	volatile uint8_t t_XY_low			= 0x00;	// 8 bits
+	volatile uint8_t t_XY_high			= 0x00;	// 7 bits
+	volatile uint8_t t_Z_low			= 0x00;	// 8 bits
+	volatile uint8_t t_Z_high			= 0x00;	// 1 bit
+	volatile uint8_t t_bump_map			= 0x00;	// 8 bits
+	volatile uint8_t t_overheat_alert	= 0x00; // 1 bit
+	volatile uint8_t t_overheat_map		= 0x00; // 8 bits
+	volatile uint8_t t_IR_alert			= 0x00; // 1 bit
+
 	// Doesn't work on an ATmega8.
 	//// Delay the clock frequency change to ensure re-programmability.
 	//// The argument for the delay may be completely off because at this
@@ -111,24 +123,39 @@ int main()
 		// ask for stuff, update registers
 		set_SPI_mux(MUX_1);
 		_delay_us(100);
-		uint8_t read_byte = 0x00;
-		uint8_t Z_low = 0;
-		uint8_t Z_high = 0;
-		uint16_t Z = 0;
+		SPDR = SPI_REQ_DEBUG_B;
+		_delay_us(100); // FILLER // Y DIS NECESSARY
+		SPDR = SPI_REQ_DEBUG_A;
+		_delay_us(100);
+		t_isPressedDebugA = SPDR;
+		SPDR = SPI_REQ_DEBUG_B;
+		_delay_us(100);
+		t_isPressedDebugB = SPDR;
 		SPDR = SPI_REQ_Z_LOW;
 		_delay_us(100);
-		read_byte = SPDR;
-		Z_low = read_byte;
+		t_Z_low = SPDR;
 		SPDR = SPI_REQ_Z_HIGH;
 		_delay_us(100);
-		read_byte = SPDR;
-		Z_high = read_byte;
-		Z = Z_low + (Z_high<<8);
-		Z %= 360;
-		if (Z==0) {
-			isCommTransmitting = true;
+		t_Z_high = SPDR;
+		SPDR = SPI_REQ_XY_LOW;
+		_delay_us(100);
+		t_XY_low = SPDR;
+		SPDR = SPI_REQ_XY_HIGH;
+		_delay_us(100);
+		t_XY_high = SPDR;
+
+		set_SPI_mux(MUX_2);
+		_delay_us(100);
+
+		if (t_isPressedDebugA == 0) {
+			LED_G = 0x01;
 		} else {
-			isCommTransmitting = false;
+			LED_G = 0x00;
+		}
+		if (t_isPressedDebugB == 0) {
+			LED_B = 0x01;
+		} else {
+			LED_B = 0x00;
 		}
 
 		// LED stuffs
