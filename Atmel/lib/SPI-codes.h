@@ -5,7 +5,7 @@
 const uint8_t SPI_FILLER		= 0x00;
 const uint8_t SPI_ERROR			= 0x01;
 const uint8_t SPI_REQ_CONFIRM	= 0x02;
-const uint8_t SPI_ACK_READY		= 0x03;
+const uint8_t SPI_ACK_READY		= 0x05; // too easy to randomly get just one single bit (TODO?)
 const uint8_t SPI_ACK_DATA_REQ	= 0x04;
 
 // MCU_B control codes.

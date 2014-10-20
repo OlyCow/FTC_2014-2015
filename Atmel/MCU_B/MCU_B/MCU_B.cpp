@@ -520,8 +520,12 @@ ISR(SPI_STC_vect)
 	uint8_t write_byte = SPI_FILLER;
 
 	switch(read_byte) {
+		case SPI_FILLER :
+			write_byte = SPI_ACK_READY;
+			break;
 		case SPI_RESET_MCU :
 			// TODO: watchdog stuff?
+			// apparently that's the correct way to reset
 			// remember to clear flags to avoid infinite reset looping
 			write_byte = SPI_ACK_READY;
 			break;
@@ -707,7 +711,7 @@ double update_rot(double rot, int vel, int vel_prev, double conversion_const)
 	double output = rot;
 
 	// MAGIC_NUM
-	if (fabs(vel) < 5) {
+	if (fabs(vel) < 10) {
 		vel = 0;
 	}
 	double rect = static_cast<double>(vel) + static_cast<double>(vel_prev);
@@ -715,16 +719,9 @@ double update_rot(double rot, int vel, int vel_prev, double conversion_const)
 	rect *= conversion_const;
 	output += rect;
 
-	if (fabs(round(output)) == 0) {
-		setLED(MUX_7, LED_STEADY);
-	} else {
-		setLED(MUX_7, LED_OFF);
-	}
-
-	//output = fmod(rot, 180.0);
-	output = fmod(rot, 360.0);
+	output = fmod(output, 360.0);
 	output += 360.0;
-	output = fmod(rot, 360.0);
+	output = fmod(output, 360.0);
 	if (output > 180.0) {
 		output -= 360.0;
 	}

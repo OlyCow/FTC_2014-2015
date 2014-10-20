@@ -80,15 +80,23 @@ int main()
 	//}
 
 	// Check if other MCUs are ready to go.
+	int ready_counter = 0;
 	while (!isReadySPI) {
 		set_SPI_mux(MUX_1);
 		SPDR = SPI_REQ_CONFIRM;
 		_delay_us(100);
 		uint8_t read_byte = SPDR;
 		if (read_byte == SPI_ACK_READY) {
+			ready_counter++;
+		} else {
+			ready_counter = 0;
+		}
+		if (ready_counter > 200) {
 			isReadySPI = true;
 		}
+		_delay_us(50);
 	}
+	// TODO: Continually check for connectivity later.
 
 	//sei(); // ready to go.
 
@@ -102,6 +110,7 @@ int main()
 
 		// ask for stuff, update registers
 		set_SPI_mux(MUX_1);
+		_delay_us(100);
 		uint8_t read_byte = 0x00;
 		uint8_t Z_low = 0;
 		uint8_t Z_high = 0;
@@ -145,17 +154,17 @@ int main()
 		if (isReadySPI) {
 			PORTC |= 1<<PC3;
 		} else {
-			PORTC &= ~(1<<PC3);
+			PORTC &= ~(1<<PC3); // R
 		}
 		if (isCommResetting) {
 			PORTC |= 1<<PC4;
 		} else {
-			PORTC &= ~(1<<PC4);
+			PORTC &= ~(1<<PC4); // Y
 		}
 		if (isCommTransmitting) {
 			PORTC |= 1<<PC5;
 		} else {
-			PORTC &= ~(1<<PC5);
+			PORTC &= ~(1<<PC5); // G
 		}
 
 		_delay_us(10); // Only enable this delay if there aren't other delay sources.
