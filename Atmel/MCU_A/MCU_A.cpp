@@ -15,7 +15,7 @@
 #include <util/atomic.h>
 #include <avr/eeprom.h>
 
-#include "../../lib/SPI-codes.h"
+#include "../lib/SPI-codes.h"
 
 enum MuxLine {
 	MUX_1 = 0,
@@ -123,14 +123,19 @@ int main()
 		// ask for stuff, update registers
 		set_SPI_mux(MUX_1);
 		_delay_us(100);
-		SPDR = SPI_REQ_DEBUG_B;
-		_delay_us(100); // FILLER // Y DIS NECESSARY
+		//SPDR = SPI_REQ_DEBUG_B;
+		//while(!(SPSR&(1<<SPIF))) { ; } // FILLER // Y DIS NECESSARY // TODO
+
 		SPDR = SPI_REQ_DEBUG_A;
-		_delay_us(100);
+		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
 		t_isPressedDebugA = SPDR;
-		SPDR = SPI_REQ_DEBUG_B;
 		_delay_us(100);
+
+		SPDR = SPI_REQ_DEBUG_B;
+		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception complete
 		t_isPressedDebugB = SPDR;
+		_delay_us(100);
+
 		SPDR = SPI_REQ_Z_LOW;
 		_delay_us(100);
 		t_Z_low = SPDR;

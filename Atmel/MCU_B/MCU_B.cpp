@@ -16,10 +16,10 @@
 #include <util/twi.h>
 #include <avr/eeprom.h>
 
-#include "../../lib/i2cmaster.h"
-//#include "../../lib/I2C.h" // Not sure if this works yet. :P
-#include "../../lib/MPU6050.h"
-#include "../../lib/SPI-codes.h"
+#include "../lib/i2cmaster.h"
+//#include "../lib/I2C.h" // Not sure if this works yet. :P
+#include "../lib/MPU6050.h"
+#include "../lib/SPI-codes.h"
 
 enum MuxLine {
 	MUX_1 = 0,

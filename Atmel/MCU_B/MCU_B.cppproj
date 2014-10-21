@@ -139,31 +139,31 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\lib\I2C.cpp">
+    <Compile Include="..\lib\I2C.cpp">
       <SubType>compile</SubType>
       <Link>I2C.cpp</Link>
     </Compile>
-    <Compile Include="..\..\lib\I2C.h">
+    <Compile Include="..\lib\I2C.h">
       <SubType>compile</SubType>
       <Link>I2C.h</Link>
     </Compile>
-    <Compile Include="..\..\lib\i2cmaster.h">
+    <Compile Include="..\lib\i2cmaster.h">
       <SubType>compile</SubType>
       <Link>i2cmaster.h</Link>
     </Compile>
-    <Compile Include="..\..\lib\MPU6050.cpp">
+    <Compile Include="..\lib\MPU6050.cpp">
       <SubType>compile</SubType>
       <Link>MPU6050.cpp</Link>
     </Compile>
-    <Compile Include="..\..\lib\MPU6050.h">
+    <Compile Include="..\lib\MPU6050.h">
       <SubType>compile</SubType>
       <Link>MPU6050.h</Link>
     </Compile>
-    <Compile Include="..\..\lib\SPI-codes.h">
+    <Compile Include="..\lib\SPI-codes.h">
       <SubType>compile</SubType>
       <Link>SPI-codes.h</Link>
     </Compile>
-    <Compile Include="..\..\lib\twimaster.cpp">
+    <Compile Include="..\lib\twimaster.cpp">
       <SubType>compile</SubType>
       <Link>twimaster.cpp</Link>
     </Compile>

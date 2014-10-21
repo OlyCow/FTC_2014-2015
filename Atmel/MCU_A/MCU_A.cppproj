@@ -138,7 +138,7 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\lib\SPI-codes.h">
+    <Compile Include="..\lib\SPI-codes.h">
       <SubType>compile</SubType>
       <Link>SPI-codes.h</Link>
     </Compile>
