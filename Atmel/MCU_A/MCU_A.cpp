@@ -96,7 +96,7 @@ int main()
 	//}
 
 	// Check if other MCUs are ready to go.
-	// Continually check for connectivity later.
+	// TODO: Periodically check for connectivity later.
 	resync_spi();
 
 	//sei(); // ready to go.
@@ -114,40 +114,37 @@ int main()
 		_delay_us(MAGIC_MUX_SWITCH_DELAY);
 
 		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_CONFIRM;
+		SPDR = SPI_REQ_DEBUG_A;
 		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
-		//uint8_t reply = SPDR;
-		//if (reply != SPI_ACK_READY) {
-			//resync_spi();
-		//}
+		// this cycle is garbage (MISO-wise)
 				
 		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_DEBUG_A;
+		SPDR = SPI_REQ_DEBUG_B;
 		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
 		t_isPressedDebugA = SPDR;
 		
 		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_DEBUG_B;
+		SPDR = SPI_REQ_Z_LOW;
 		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
 		t_isPressedDebugB = SPDR;
 		
 		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_Z_LOW;
+		SPDR = SPI_REQ_Z_HIGH;
 		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
 		t_Z_low = SPDR;
 		
 		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_Z_HIGH;
+		SPDR = SPI_REQ_XY_LOW;
 		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
 		t_Z_high = SPDR;
 		
 		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_XY_LOW;
+		SPDR = SPI_REQ_XY_HIGH;
 		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
 		t_XY_low = SPDR;
 		
 		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_XY_HIGH;
+		SPDR = SPI_TRANSMIT_OVER;
 		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
 		t_XY_high = SPDR;
 
