@@ -2,6 +2,9 @@
 ## C/C++ ##
 ###########
 
+# Visual Studio specific
+*.suo
+
 # Compiled object files
 *.slo
 *.lo
