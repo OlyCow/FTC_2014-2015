@@ -50,7 +50,7 @@ int main()
 	initialize_spi();
 
 	const int MAGIC_SPI_TRANSMIT_DELAY = 12; // actually seems to be 10 but let's be safe here
-	const int MAGIC_MUX_SWITCH_DELAY = 50; // way to large but let's be generous
+	const int MAGIC_MUX_SWITCH_DELAY = 20; // way to large but let's be generous
 	
 	int RGB_counter = 0;
 	int LED_counter = 0;
@@ -62,17 +62,17 @@ int main()
 	bool isCommResetting = false;
 	bool isCommTransmitting = false;
 
-	// Data variables.
-	volatile uint8_t t_isPressedDebugA	= 0x00;	// 1 bit (1 = true)
-	volatile uint8_t t_isPressedDebugB	= 0x00;	// 1 bit (1 = true)
-	volatile uint8_t t_XY_low			= 0x00;	// 8 bits
-	volatile uint8_t t_XY_high			= 0x00;	// 7 bits
-	volatile uint8_t t_Z_low			= 0x00;	// 8 bits
-	volatile uint8_t t_Z_high			= 0x00;	// 1 bit
-	volatile uint8_t t_bump_map			= 0x00;	// 8 bits
-	volatile uint8_t t_overheat_alert	= 0x00; // 1 bit
-	volatile uint8_t t_overheat_map		= 0x00; // 8 bits
-	volatile uint8_t t_IR_alert			= 0x00; // 1 bit
+	// Data variables. (NOTE: Not sure if these should be "volatile".)
+	uint8_t t_isPressedDebugA	= 0x00;	// 1 bit (1 = true)
+	uint8_t t_isPressedDebugB	= 0x00;	// 1 bit (1 = true)
+	uint8_t t_XY_low			= 0x00;	// 8 bits
+	uint8_t t_XY_high			= 0x00;	// 7 bits
+	uint8_t t_Z_low				= 0x00;	// 8 bits
+	uint8_t t_Z_high			= 0x00;	// 1 bit
+	uint8_t t_bump_map			= 0x00;	// 8 bits
+	uint8_t t_overheat_alert	= 0x00; // 1 bit
+	uint8_t t_overheat_map		= 0x00; // 8 bits
+	uint8_t t_IR_alert			= 0x00; // 1 bit
 
 	// Doesn't work on an ATmega8.
 	//// Delay the clock frequency change to ensure re-programmability.
@@ -109,54 +109,48 @@ int main()
 			LED_counter %= CYCLE_SIZE;
 		}
 
+		auto req_data = [](uint8_t SPI_code) -> uint8_t
+		{
+			_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+			SPDR = SPI_code;
+			while ( !(SPSR & (1<<SPIF)) ) { ; } // wait for reception to complete
+			return SPDR;
+		};
+
 		// ask for stuff, update registers
 		set_SPI_mux(MUX_1);
 		_delay_us(MAGIC_MUX_SWITCH_DELAY);
+		//uint8_t check_link = req_data(SPI_REQ_DEBUG_A);
+		//if (check_link != SPI_ACK_READY) {
+			////resync_spi();
+		//}
+		//t_isPressedDebugA = req_data(SPI_REQ_DEBUG_B);
+		//t_isPressedDebugB = req_data(SPI_REQ_Z_LOW);
+		//t_Z_low = req_data(SPI_REQ_Z_HIGH);
+		//t_Z_high = req_data(SPI_REQ_XY_LOW);
+		//t_XY_low = req_data(SPI_REQ_XY_HIGH);
+		//t_XY_high = req_data(SPI_TRANSMIT_OVER);
 
-		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_DEBUG_A;
-		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
-		// this cycle is garbage (MISO-wise)
-				
-		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_DEBUG_B;
-		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
-		t_isPressedDebugA = SPDR;
-		
-		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_Z_LOW;
-		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
-		t_isPressedDebugB = SPDR;
-		
-		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_Z_HIGH;
-		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
-		t_Z_low = SPDR;
-		
-		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_XY_LOW;
-		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
-		t_Z_high = SPDR;
-		
-		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_XY_HIGH;
-		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
-		t_XY_low = SPDR;
-		
-		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_TRANSMIT_OVER;
-		while(!(SPSR&(1<<SPIF))) { ; } // wait for reception to complete
-		t_XY_high = SPDR;
+		uint8_t check_link = req_data(SPI_TRANSMIT_OVER);
+		t_isPressedDebugA = req_data(SPI_REQ_DEBUG_A);
+		t_isPressedDebugB = req_data(SPI_REQ_DEBUG_B);
+		//t_isPressedDebugB = req_data(SPI_TRANSMIT_OVER);
+		//t_Z_low = req_data(SPI_REQ_Z_LOW);
+		//t_Z_high = req_data(SPI_REQ_Z_HIGH);
+		//t_Z_high = req_data(SPI_REQ_XY_LOW);
+		//t_XY_low = req_data(SPI_REQ_XY_HIGH);
 
 		set_SPI_mux(MUX_2);
 		_delay_us(MAGIC_MUX_SWITCH_DELAY);
 
-		if (t_isPressedDebugA == 0) {
+		_delay_us(100); // pretend we do other stuff here
+
+		if (t_isPressedDebugA == 0x00) {
 			LED_G = 0x01;
 		} else {
 			LED_G = 0x00;
 		}
-		if (t_isPressedDebugB == 0) {
+		if (t_isPressedDebugB == 0x00) {
 			LED_B = 0x01;
 		} else {
 			LED_B = 0x00;
