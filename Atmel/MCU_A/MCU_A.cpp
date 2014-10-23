@@ -125,20 +125,13 @@ int main()
 			//resync_spi();
 		}
 		t_isPressedDebugA = req_data(SPI_REQ_DEBUG_B);
-		t_isPressedDebugB = req_data(SPI_REQ_Z_LOW);
-		t_Z_low = req_data(SPI_REQ_Z_HIGH);
-		t_Z_high = req_data(SPI_REQ_XY_LOW);
-		t_XY_low = req_data(SPI_REQ_XY_HIGH);
-		t_XY_high = req_data(SPI_TRANSMIT_OVER);
-
-		//uint8_t check_link = req_data(SPI_REQ_DEBUG_A);
-		//t_isPressedDebugA = req_data(SPI_TRANSMIT_OVER);
-		//t_isPressedDebugB = req_data(SPI_REQ_DEBUG_B);
-		//check_link = req_data(SPI_TRANSMIT_OVER);
-		//t_Z_low = req_data(SPI_REQ_Z_LOW);
-		//t_Z_high = req_data(SPI_REQ_Z_HIGH);
+		//t_isPressedDebugB = req_data(SPI_REQ_Z_LOW);
+		//t_Z_low = req_data(SPI_REQ_Z_HIGH);
 		//t_Z_high = req_data(SPI_REQ_XY_LOW);
 		//t_XY_low = req_data(SPI_REQ_XY_HIGH);
+		//t_XY_high = req_data(SPI_TRANSMIT_OVER);
+		t_isPressedDebugA = req_data(SPI_TRANSMIT_OVER);
+		t_isPressedDebugB = req_data(SPI_TRANSMIT_OVER);
 
 		set_SPI_mux(MUX_2);
 		_delay_us(MAGIC_MUX_SWITCH_DELAY);

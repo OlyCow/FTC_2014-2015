@@ -523,7 +523,7 @@ ISR(PCINT0_vect)
 
 	// SS' is active low.
 	while ((PINB & (1<<PINB2)) == 0) {
-
+	
 		SPDR = write_byte;
 		while ( !(SPSR & (1<<SPIF)) ) { ; } // wait for transfer to complete
 		uint8_t read_byte = SPDR;
@@ -542,7 +542,7 @@ ISR(PCINT0_vect)
 				write_byte = SPI_ACK_READY;
 				break;
 			case SPI_CHANGE_LED :
-				// TODO
+				// TODO (no clue how to implement)
 				write_byte = SPI_ACK_READY;
 				break;
 			case SPI_CLEAR_GYRO :
@@ -574,7 +574,6 @@ ISR(PCINT0_vect)
 				write_byte = t_XY_high;
 				break;
 			case SPI_REQ_Z_LOW :
-				setLED(MUX_7, LED_STEADY);
 				write_byte = t_Z_low;
 				break;
 			case SPI_REQ_Z_HIGH :
@@ -622,7 +621,7 @@ ISR(PCINT0_vect)
 				break;
 		}
 
-		//SPDR = write_byte;
+		//setLED(MUX_7, LED_STEADY);
 	}
 	// SPDR = SPI_ACK_READY; // SS' is high now so we're safe
 }
