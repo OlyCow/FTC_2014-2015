@@ -78,6 +78,7 @@ const double USEC_TO_SEC = 1.0/1000000.0;
 void initialize_io();
 void initialize_adc();
 void initialize_spi();
+void initialize_pcint();
 
 double update_rot(double rot, int vel, int vel_prev, double conversion_const);
 void setLED(MuxLine line, LedMode mode);
@@ -186,7 +187,7 @@ int main()
 	initialize_io();
 	initialize_adc();
 	initialize_spi();
-	SPDR = SPI_ACK_READY; // Means we're ready to receive data.
+	initialize_pcint();
 
 	// Initialize IMU.
 	i2c_init();
@@ -515,12 +516,17 @@ int main()
     }
 }
 
-ISR(SPI_STC_vect)
+ISR(PCINT0_vect)
 {
+	uint8_t read_byte = SPI_UNOWN;
+	uint8_t write_byte = SPI_ACK_READY;
+
 	// SS' is active low.
 	while ((PINB & (1<<PINB2)) == 0) {
+
+		SPDR = write_byte;
+		while ( !(SPSR & (1<<SPIF)) ) { ; } // wait for transfer to complete
 		uint8_t read_byte = SPDR;
-		uint8_t write_byte = SPI_FILLER;
 
 		switch(read_byte) {
 			case SPI_FILLER :
@@ -568,6 +574,7 @@ ISR(SPI_STC_vect)
 				write_byte = t_XY_high;
 				break;
 			case SPI_REQ_Z_LOW :
+				setLED(MUX_7, LED_STEADY);
 				write_byte = t_Z_low;
 				break;
 			case SPI_REQ_Z_HIGH :
@@ -615,11 +622,9 @@ ISR(SPI_STC_vect)
 				break;
 		}
 
-		SPDR = write_byte;
-		while ( !(SPSR & (1<<SPIF)) ) { ; } // wait for transfer to complete
-		// ^interrupts are turned off automatically inside an interrupt (default)
+		//SPDR = write_byte;
 	}
-	//SPDR = SPI_ACK_READY; // SS' is high now so we're safe
+	// SPDR = SPI_ACK_READY; // SS' is high now so we're safe
 }
 
 void initialize_io()
@@ -714,6 +719,15 @@ void initialize_spi()
 	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
 	SPCR |= 1<<SPE; // Enable SPI
 	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
+	
+	SPDR = SPI_ACK_READY; // Means we're ready to receive data.
+}
+
+void initialize_pcint()
+{
+	PCICR |= 1<<PCIE0; // Enable PCINT0 interrupts
+	PCMSK0 |= 1<<PCINT2; // Unmask PCINT2 ('SS / PB2)
+	// PCICR and PCMSK0 both default to 0.
 }
 
 double update_rot(double rot, int vel, int vel_prev, double conversion_const)
