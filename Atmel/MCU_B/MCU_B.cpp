@@ -1,4 +1,5 @@
 // copyright, license, all that fun stuff
+#include <inttypes.h>
 #include <math.h>
 #include <avr/io.h>
 #ifndef F_CPU
@@ -15,9 +16,10 @@
 #include <util/twi.h>
 #include <avr/eeprom.h>
 
-#include "../../lib/i2cmaster.h"
-//#include "../../lib/I2C.h" // Not sure if this works yet. :P
-#include "../../lib/MPU6050.h"
+#include "../lib/i2cmaster.h"
+//#include "../lib/I2C.h" // Not sure if this works yet. :P
+#include "../lib/MPU6050.h"
+#include "../lib/SPI-codes.h"
 
 enum MuxLine {
 	MUX_1 = 0,
@@ -48,6 +50,8 @@ enum LedMode // Make *sure* to update `LED_on_states` when this is updated!
 // Control variables.
 volatile LedMode LED_states[MUX_NUM]; // remember to initialize to `LED_OFF`.
 volatile bool doPollIR = true;
+volatile bool isReady = false;
+volatile bool doResetGyro = false;
 
 // Data variables.
 volatile uint8_t t_isPressedDebugA	= 0x00;	// 1 bit (1 = true)
@@ -71,11 +75,17 @@ const double BIT_TO_GYRO = 500.0/32768.0; // Also in MPU-6050 Register Map "Gyro
 // TODO: POSSIBLE SOURCE OF ERROR
 const double USEC_TO_SEC = 1.0/1000000.0;
 
+// SPI variables.
+volatile uint8_t byte_read = SPI_UNOWN;
+volatile uint8_t byte_write = SPI_UNOWN;
+
+// Functions.
 void initialize_io();
 void initialize_adc();
 void initialize_spi();
+void initialize_pcint();
 
-double update_rot(double rot, int vel, int vel_prev, int dt);
+double update_rot(double rot, int vel, int vel_prev, double conversion_const);
 void setLED(MuxLine line, LedMode mode);
 
 void LED_mux_set(MuxLine line, bool isOn);
@@ -182,6 +192,8 @@ int main()
 	initialize_io();
 	initialize_adc();
 	initialize_spi();
+	byte_write = SPI_ACK_READY;
+	initialize_pcint();
 
 	// Initialize IMU.
 	i2c_init();
@@ -239,6 +251,8 @@ int main()
 	}
 
 	int loop_counter = 0; // Keeps track of loop iterations.
+	isReady = true;
+	sei(); // yay finally
 
     while (true)
     {
@@ -251,17 +265,26 @@ int main()
 		current_MUX++;
 		current_MUX %= MUX_NUM;
 
-		if (loop_counter < 100) {
-			uint8_t dt_low = static_cast<uint8_t>(dt % 256);
-			uint8_t dt_high = static_cast<uint16_t>(dt-dt_low) >> 8;
-			eeprom_write_byte(eeprom_pointer, dt_low);
-			++eeprom_pointer;
-			eeprom_write_byte(eeprom_pointer, dt_high);
-			++eeprom_pointer;
-			++loop_counter;
-		}
+		// Only enable to test timing.
+		//if (loop_counter < 100) {
+			//unsigned int buffer = dt % 256;
+			//uint8_t dt_low = static_cast<uint8_t>(buffer);
+			//buffer = (dt - dt_low) >> 8;
+			//uint8_t dt_high = static_cast<uint8_t>(buffer) >> 8;
+			//eeprom_write_byte(eeprom_pointer, dt_low);
+			//++eeprom_pointer;
+			//eeprom_write_byte(eeprom_pointer, dt_high);
+			//++eeprom_pointer;
+			//++loop_counter;
+		//}
 
 		// process gyro
+		if (doResetGyro) {
+			rot_x = 0.0;
+			rot_y = 0.0;
+			rot_z = 0.0;
+			doResetGyro = false;
+		}
 		vel_x_prev = vel_x;
 		vel_y_prev = vel_y;
 		vel_z_prev = vel_z;
@@ -278,18 +301,21 @@ int main()
 		vel_y = MPU::convert_complement(vel_y_raw) - vel_y_offset;
 		vel_z = MPU::convert_complement(vel_z_raw) - vel_z_offset;
 		
-		rot_x = update_rot(rot_x, vel_x, vel_x_prev, dt);
-		rot_y = update_rot(rot_y, vel_y, vel_y_prev, dt);
-		rot_z = update_rot(rot_z, vel_z, vel_z_prev, dt);
+		double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt) *0.125 *16;
+		// `[...] *0.125` because 1MHz -> 8MHz
+
+		rot_x = update_rot(rot_x, vel_x, vel_x_prev, AREA_CONVERSION_CONST);
+		rot_y = update_rot(rot_y, vel_y, vel_y_prev, AREA_CONVERSION_CONST);
+		rot_z = update_rot(rot_z, vel_z, vel_z_prev, AREA_CONVERSION_CONST);
 
 		// packing data for transmission
 		int X_buf = static_cast<int>(round(rot_x));
 		int Y_buf = static_cast<int>(round(rot_y));
 		X_buf = trim(X_buf, 90);
 		Y_buf = trim(Y_buf, 90);
-		X_buf += 90.0;
-		Y_buf += 90.0;
-		uint16_t XY_buf = static_cast<uint16_t>(round(X_buf + Y_buf*180.0));
+		X_buf += 90;
+		Y_buf += 90;
+		uint16_t XY_buf = static_cast<uint16_t>(round(X_buf + Y_buf*180));
 		uint8_t XY_low_buf = static_cast<uint8_t>(XY_buf%256);
 		uint8_t XY_high_buf = static_cast<uint8_t>((XY_buf-XY_low_buf)>>8);
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -297,6 +323,7 @@ int main()
 			t_XY_high = XY_high_buf;
 		}
 		int Z_buf = static_cast<int>(round(rot_z));
+		Z_buf += 180;
 		uint8_t Z_low_buf = static_cast<uint8_t>(Z_buf%256);
 		uint8_t Z_high_buf = static_cast<uint8_t>((Z_buf-Z_low_buf)>>8);
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -495,6 +522,105 @@ int main()
     }
 }
 
+ISR(SPI_STC_vect)
+{
+	// NOTE: SPI_ACK_READY needs to be written to SPDR before this interrupt executes.
+	byte_read = SPDR;
+	switch(byte_read) {
+		case SPI_FILLER :
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_TRANSMIT_OVER :
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_RESET_MCU :
+			// TODO: watchdog stuff?
+			// apparently that's the correct way to reset
+			// remember to clear flags to avoid infinite reset looping
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_CHANGE_LED :
+			// TODO (no clue how to implement)
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_CLEAR_GYRO :
+			doResetGyro = true;
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_SET_IR_ON :
+			doPollIR = true;
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_SET_IR_OFF :
+			doPollIR = false;
+			byte_write = SPI_ACK_READY;
+			break;
+
+		case SPI_REQ_CONFIRM :
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_REQ_DEBUG_A :
+			byte_write = t_isPressedDebugA;
+			break;
+		case SPI_REQ_DEBUG_B :
+			byte_write = t_isPressedDebugB;
+			break;
+		case SPI_REQ_XY_LOW :
+			byte_write = t_XY_low;
+			break;
+		case SPI_REQ_XY_HIGH :
+			byte_write = t_XY_high;
+			break;
+		case SPI_REQ_Z_LOW :
+			byte_write = t_Z_low;
+			break;
+		case SPI_REQ_Z_HIGH :
+			byte_write = t_Z_high;
+			break;
+		case SPI_REQ_BUMP_MAP :
+			byte_write = t_bump_map;
+			break;
+		case SPI_REQ_OVERHEAT_ALERT :
+			byte_write = t_overheat_alert;
+			break;
+		case SPI_REQ_OVERHEAT_MAP :
+			byte_write = t_overheat_map;
+			break;
+		case SPI_REQ_IR_ALERT :
+			byte_write = t_IR_alert;
+			break;
+		case SPI_REQ_IR_1 :
+			byte_write = t_IR[MUX_1];
+			break;
+		case SPI_REQ_IR_2 :
+			byte_write = t_IR[MUX_2];
+			break;
+		case SPI_REQ_IR_3 :
+			byte_write = t_IR[MUX_3];
+			break;
+		case SPI_REQ_IR_4 :
+			byte_write = t_IR[MUX_4];
+			break;
+		case SPI_REQ_IR_5 :
+			byte_write = t_IR[MUX_5];
+			break;
+		case SPI_REQ_IR_6 :
+			byte_write = t_IR[MUX_6];
+			break;
+		case SPI_REQ_IR_7 :
+			byte_write = t_IR[MUX_7];
+			break;
+		case SPI_REQ_IR_8 :
+			byte_write = t_IR[MUX_8];
+			break;
+
+		default :
+			byte_write = SPI_ERROR;
+			break;
+	}
+	SPDR = byte_write;
+}
+
 void initialize_io()
 {
 	// Set up I/O port directions with the DDRx registers. 1=out, 0=in.
@@ -548,7 +674,7 @@ void initialize_io()
 		0<<PORTC3 |
 		0<<PORTC4 | // IMU has strong built-in pull-up
 		0<<PORTC5 | // IMU has strong built-in pull-up
-		0<<PORTC6 ; // TODO: figure out if this is necessary.
+		1<<PORTC6 ; // TODO: figure out if this is necessary.
 		// PORTC does NOT have a 7th bit.
 	PORTD =
 		1<<PORTD0 |
@@ -587,24 +713,33 @@ void initialize_spi()
 	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
 	SPCR |= 1<<SPE; // Enable SPI
 	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
+	
+	SPDR = SPI_ACK_READY; // Means we're ready to receive data.
 }
 
-double update_rot(double rot, int vel, int vel_prev, int dt)
+void initialize_pcint()
+{
+	//PCICR |= 1<<PCIE0; // Enable PCINT0 interrupts
+	//PCMSK0 |= 1<<PCINT2; // Unmask PCINT2 ('SS / PB2)
+	//// PCICR and PCMSK0 both default to 0.
+}
+
+double update_rot(double rot, int vel, int vel_prev, double conversion_const)
 {
 	double output = rot;
 
 	// MAGIC_NUM
-	if (fabs(vel) < 5) {
+	if (fabs(vel) < 10) {
 		vel = 0;
 	}
 	double rect = static_cast<double>(vel) + static_cast<double>(vel_prev);
 	rect /= 2.0;
-	const double AREA_CONVERSION_CONST = BIT_TO_GYRO *USEC_TO_SEC *static_cast<double>(dt) *0.125; // 1/8 because 1MHz -> 8MHz
-	rect *= AREA_CONVERSION_CONST;
+	rect *= conversion_const;
 	output += rect;
-	output = fmod(rot, 360.0);
+
+	output = fmod(output, 360.0);
 	output += 360.0;
-	output = fmod(rot, 360.0);
+	output = fmod(output, 360.0);
 	if (output > 180.0) {
 		output -= 360.0;
 	}

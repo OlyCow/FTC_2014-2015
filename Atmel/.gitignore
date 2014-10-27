@@ -18,7 +18,7 @@
 
 # User-specific files
 *.atsuo
-*.atsln
+#*.atsln #these should sync
 *.suo
 *.user
 *.sln.docstates

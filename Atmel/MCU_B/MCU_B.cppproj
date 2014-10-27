@@ -4,17 +4,17 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectVersion>6.2</ProjectVersion>
     <ToolchainName>com.Atmel.AVRGCC8.CPP</ToolchainName>
-    <ProjectGuid>{cd98fb65-5a31-47ad-83ac-04fa3a3c816d}</ProjectGuid>
-    <avrdevice>ATmega8</avrdevice>
+    <ProjectGuid>{635eb2f5-1d2a-4e68-adaf-e2b1a73ff04b}</ProjectGuid>
+    <avrdevice>ATmega328</avrdevice>
     <avrdeviceseries>none</avrdeviceseries>
     <OutputType>Executable</OutputType>
     <Language>CPP</Language>
     <OutputFileName>$(MSBuildProjectName)</OutputFileName>
     <OutputFileExtension>.elf</OutputFileExtension>
     <OutputDirectory>$(MSBuildProjectDirectory)\$(Configuration)</OutputDirectory>
-    <AssemblyName>MCU_A</AssemblyName>
-    <Name>MCU_A</Name>
-    <RootNamespace>MCU_A</RootNamespace>
+    <AssemblyName>MCU_B</AssemblyName>
+    <Name>MCU_B</Name>
+    <RootNamespace>MCU_B</RootNamespace>
     <ToolchainFlavour>Native</ToolchainFlavour>
     <KeepTimersRunning>true</KeepTimersRunning>
     <OverrideVtor>false</OverrideVtor>
@@ -37,8 +37,8 @@
         </dependencies>
       </framework-data>
     </AsfFrameworkConfig>
-    <avrtool>
-    </avrtool>
+    <preserveEEPROM>False</preserveEEPROM>
+    <avrtool>com.atmel.avrdbg.tool.simulator</avrtool>
     <com_atmel_avrdbg_tool_simulator>
       <ToolOptions xmlns="">
         <InterfaceProperties>
@@ -139,7 +139,35 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="MCU_A.cpp">
+    <Compile Include="..\lib\I2C.cpp">
+      <SubType>compile</SubType>
+      <Link>I2C.cpp</Link>
+    </Compile>
+    <Compile Include="..\lib\I2C.h">
+      <SubType>compile</SubType>
+      <Link>I2C.h</Link>
+    </Compile>
+    <Compile Include="..\lib\i2cmaster.h">
+      <SubType>compile</SubType>
+      <Link>i2cmaster.h</Link>
+    </Compile>
+    <Compile Include="..\lib\MPU6050.cpp">
+      <SubType>compile</SubType>
+      <Link>MPU6050.cpp</Link>
+    </Compile>
+    <Compile Include="..\lib\MPU6050.h">
+      <SubType>compile</SubType>
+      <Link>MPU6050.h</Link>
+    </Compile>
+    <Compile Include="..\lib\SPI-codes.h">
+      <SubType>compile</SubType>
+      <Link>SPI-codes.h</Link>
+    </Compile>
+    <Compile Include="..\lib\twimaster.cpp">
+      <SubType>compile</SubType>
+      <Link>twimaster.cpp</Link>
+    </Compile>
+    <Compile Include="MCU_B.cpp">
       <SubType>compile</SubType>
     </Compile>
   </ItemGroup>
