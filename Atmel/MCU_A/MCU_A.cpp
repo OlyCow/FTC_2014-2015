@@ -35,10 +35,10 @@ enum MCU{
 	MCU_NUM
 };
 
-void resync_spi(); // NOTE: BLOCKING!
+inline void resync_spi(); // NOTE: BLOCKING!
 
-void initialize_io();
-void initialize_spi();
+inline void initialize_io();
+inline void initialize_spi();
 
 void set_SPI_mux(MuxLine line);
 
@@ -101,6 +101,7 @@ int main()
 	resync_spi();
 	isReadySPI = true;
 	
+	// FOR SOME REASON THIS LINE BREAKS THINGS :(
 	//sei(); // ready to go.
 
 	while (true) {
@@ -124,47 +125,22 @@ int main()
 		set_SPI_mux(MUX_1);
 		_delay_us(MAGIC_MUX_SWITCH_DELAY);
 
-		PORTC |= 1<<PC5; // G
-
-		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_DEBUG_A;
-		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		while ( !(SPSR & (1<<SPIF)) ) { ; }
-		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		uint8_t check_byte = SPDR;
-		
-		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_REQ_DEBUG_B;
-		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		while ( !(SPSR & (1<<SPIF)) ) { ; }
-		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		t_isPressedDebugA = SPDR;
-		
-		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		SPDR = SPI_TRANSMIT_OVER;
-		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		while ( !(SPSR & (1<<SPIF)) ) { ; }
-		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
-		t_isPressedDebugB = SPDR;
-
-		PORTC |= 1<<PC4; // Y
-
-		//uint8_t check_link = req_data(SPI_REQ_DEBUG_A);
-		//if (check_link != SPI_ACK_READY) {
-			////resync_spi();
-		//}
-		//t_isPressedDebugA = req_data(SPI_REQ_DEBUG_B);
-		//t_isPressedDebugB = req_data(SPI_REQ_Z_LOW);
-		//t_Z_low = req_data(SPI_REQ_Z_HIGH);
-		//t_Z_high = req_data(SPI_REQ_XY_LOW);
-		//t_XY_low = req_data(SPI_REQ_XY_HIGH);
-		//t_XY_high = req_data(SPI_TRANSMIT_OVER);
+		uint8_t check_link = req_data(SPI_REQ_DEBUG_A);
+		if (check_link != SPI_ACK_READY) {
+			resync_spi();
+		}
+		t_isPressedDebugA = req_data(SPI_REQ_DEBUG_B);
+		t_isPressedDebugB = req_data(SPI_REQ_Z_LOW);
+		t_Z_low = req_data(SPI_REQ_Z_HIGH);
+		t_Z_high = req_data(SPI_REQ_XY_LOW);
+		t_XY_low = req_data(SPI_REQ_XY_HIGH);
+		t_XY_high = req_data(SPI_TRANSMIT_OVER);
 		
 		set_SPI_mux(MUX_2);
 		_delay_us(MAGIC_MUX_SWITCH_DELAY);
 
 		// NOTE: get rid of this
-		_delay_us(200); // pretend we do other stuff here
+		_delay_us(100); // pretend we do other stuff here
 
 		if (t_isPressedDebugA == 0x00) {
 			LED_G = 0x01;
@@ -213,13 +189,14 @@ int main()
 		//	PORTC &= ~(1<<PC5); // G
 		//}
 
-		//_delay_us(10); // Only enable this delay if there aren't other delay sources.
+		//// NOTE: Enable this delay if there aren't other delay sources.
+		//_delay_us(10);
 	}
 }
 
 void resync_spi()
 {
-	const int delay_const = 50; // usec
+	const int delay_const = 30; // usec
 	bool isSynced = false;
 	int ready_counter = 0;
 	
