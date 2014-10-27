@@ -101,8 +101,8 @@ int main()
 	resync_spi();
 	isReadySPI = true;
 	
-	// FOR SOME REASON THIS LINE BREAKS THINGS :(
-	//sei(); // ready to go.
+	// NOTE: FOR SOME REASON THIS LINE BREAKS THINGS :(
+	sei(); // ready to go.
 
 	while (true) {
 		++RGB_counter;
@@ -288,7 +288,8 @@ void initialize_io()
 
 void initialize_spi()
 {
-	SPCR |= 1<<SPIE; // Enable SPI interrupts
+	// NOTE: Enabling this seems to kill things.
+	//SPCR |= 1<<SPIE; // Enable SPI interrupts
 	SPCR |= 0<<DORD; // MSB transmitted first
 	SPCR |= 1<<MSTR; // master mode
 	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
