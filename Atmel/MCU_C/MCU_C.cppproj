@@ -118,6 +118,10 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\lib\SPI-codes.h">
+      <SubType>compile</SubType>
+      <Link>SPI-codes.h</Link>
+    </Compile>
     <Compile Include="MCU_C.cpp">
       <SubType>compile</SubType>
     </Compile>
