@@ -59,6 +59,7 @@ int main()
 	int LED_B = 0x01;
 	const int CYCLE_SIZE = 16;
 
+	bool isReadySPI = false;
 	bool isCommResetting = false;
 	bool isCommTransmitting = false;
 
@@ -98,10 +99,9 @@ int main()
 	// Check if other MCUs are ready to go.
 	// TODO: Periodically check for connectivity later.
 	resync_spi();
-
-	sei(); // ready to go.
-
-	PORTC |= 1<<PC4;
+	isReadySPI = true;
+	
+	//sei(); // ready to go.
 
 	while (true) {
 		++RGB_counter;
@@ -121,34 +121,33 @@ int main()
 		};
 
 		// ask for stuff, update registers
-		set_SPI_mux(MUX_3);
-		//set_SPI_mux(MUX_1);
+		set_SPI_mux(MUX_1);
 		_delay_us(MAGIC_MUX_SWITCH_DELAY);
 
+		PORTC |= 1<<PC5; // G
 
-
-		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
 		SPDR = SPI_REQ_DEBUG_A;
 		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
 		while ( !(SPSR & (1<<SPIF)) ) { ; }
 		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
 		uint8_t check_byte = SPDR;
 		
-		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
 		SPDR = SPI_REQ_DEBUG_B;
 		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
 		while ( !(SPSR & (1<<SPIF)) ) { ; }
 		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
 		t_isPressedDebugA = SPDR;
 		
-		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
 		SPDR = SPI_TRANSMIT_OVER;
 		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
 		while ( !(SPSR & (1<<SPIF)) ) { ; }
 		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
 		t_isPressedDebugB = SPDR;
 
-
+		PORTC |= 1<<PC4; // Y
 
 		//uint8_t check_link = req_data(SPI_REQ_DEBUG_A);
 		//if (check_link != SPI_ACK_READY) {
@@ -198,32 +197,33 @@ int main()
 				break;
 		}
 
-		//if (isReadySPI) {
+		if (isReadySPI) {
 			PORTC |= 1<<PC3; // always true for now
+		} else {
+			PORTC &= ~(1<<PC3); // R
+		}
+		//if (isCommResetting) {
+		//	PORTC |= 1<<PC4;
 		//} else {
-			//PORTC &= ~(1<<PC3); // R
+		//	PORTC &= ~(1<<PC4); // Y
 		//}
-		if (isCommResetting) {
-			PORTC |= 1<<PC4;
-		} else {
-			PORTC &= ~(1<<PC4); // Y
-		}
-		if (isCommTransmitting) {
-			PORTC |= 1<<PC5;
-		} else {
-			PORTC &= ~(1<<PC5); // G
-		}
+		//if (isCommTransmitting) {
+		//	PORTC |= 1<<PC5;
+		//} else {
+		//	PORTC &= ~(1<<PC5); // G
+		//}
 
-		_delay_us(10); // Only enable this delay if there aren't other delay sources.
+		//_delay_us(10); // Only enable this delay if there aren't other delay sources.
 	}
 }
 
 void resync_spi()
 {
 	const int delay_const = 50; // usec
-	bool isReadySPI = false;
+	bool isSynced = false;
 	int ready_counter = 0;
-	while (!isReadySPI) {
+	
+	while (!isSynced) {
 		set_SPI_mux(MUX_1);
 		_delay_us(delay_const);
 		SPDR = SPI_REQ_CONFIRM;
@@ -234,10 +234,9 @@ void resync_spi()
 		} else {
 			ready_counter = 0;
 		}
-		if (ready_counter > 50) {
-			isReadySPI = true;
+		if (ready_counter > 25) {
+			isSynced = true;
 		}
-		_delay_us(delay_const);
 	}
 }
 
@@ -249,7 +248,7 @@ void initialize_io()
 	DDRB =
 		1<<DDB0 | // SPI_SS'_A
 		1<<DDB1 | // SPI_SS'_B
-		0<<DDB2 | // SPI_SS'_COM
+		1<<DDB2 | // SPI_SS'_COM
 		1<<DDB3 | // SPI_MOSI
 		0<<DDB4 | // SPI_MISO
 		1<<DDB5 | // SPI_SCLK
