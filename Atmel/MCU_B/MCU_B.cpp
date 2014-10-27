@@ -78,7 +78,7 @@ const double USEC_TO_SEC = 1.0/1000000.0;
 void initialize_io();
 void initialize_adc();
 void initialize_spi();
-void initialize_pcint();
+//void initialize_pcint();
 
 double update_rot(double rot, int vel, int vel_prev, double conversion_const);
 void setLED(MuxLine line, LedMode mode);
@@ -187,7 +187,8 @@ int main()
 	initialize_io();
 	initialize_adc();
 	initialize_spi();
-	initialize_pcint();
+	SPDR = SPI_ACK_READY;
+	//initialize_pcint();
 
 	// Initialize IMU.
 	i2c_init();
@@ -516,15 +517,14 @@ int main()
     }
 }
 
-ISR(PCINT0_vect)
+ISR(SPI_STC_vect)
 {
 	uint8_t read_byte = SPI_UNOWN;
 	uint8_t write_byte = SPI_ACK_READY;
+	SPDR = write_byte;
 
 	// SS' is active low.
 	while ((PINB & (1<<PINB2)) == 0) {
-	
-		SPDR = write_byte;
 		while ( !(SPSR & (1<<SPIF)) ) { ; } // wait for transfer to complete
 		uint8_t read_byte = SPDR;
 
@@ -621,9 +621,10 @@ ISR(PCINT0_vect)
 				break;
 		}
 
-		//setLED(MUX_7, LED_STEADY);
+		SPDR = write_byte;
 	}
-	// SPDR = SPI_ACK_READY; // SS' is high now so we're safe
+
+	SPDR = SPI_ACK_READY; // SS' is high now so we're safe
 }
 
 void initialize_io()
@@ -679,7 +680,7 @@ void initialize_io()
 		0<<PORTC3 |
 		0<<PORTC4 | // IMU has strong built-in pull-up
 		0<<PORTC5 | // IMU has strong built-in pull-up
-		0<<PORTC6 ; // TODO: figure out if this is necessary.
+		1<<PORTC6 ; // TODO: figure out if this is necessary.
 		// PORTC does NOT have a 7th bit.
 	PORTD =
 		1<<PORTD0 |
@@ -722,12 +723,12 @@ void initialize_spi()
 	SPDR = SPI_ACK_READY; // Means we're ready to receive data.
 }
 
-void initialize_pcint()
-{
-	PCICR |= 1<<PCIE0; // Enable PCINT0 interrupts
-	PCMSK0 |= 1<<PCINT2; // Unmask PCINT2 ('SS / PB2)
-	// PCICR and PCMSK0 both default to 0.
-}
+//void initialize_pcint()
+//{
+	//PCICR |= 1<<PCIE0; // Enable PCINT0 interrupts
+	//PCMSK0 |= 1<<PCINT2; // Unmask PCINT2 ('SS / PB2)
+	//// PCICR and PCMSK0 both default to 0.
+//}
 
 double update_rot(double rot, int vel, int vel_prev, double conversion_const)
 {

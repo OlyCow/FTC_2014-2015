@@ -50,7 +50,7 @@ int main()
 	initialize_spi();
 
 	const int MAGIC_SPI_TRANSMIT_DELAY = 12; // actually seems to be 10 but let's be safe here
-	const int MAGIC_MUX_SWITCH_DELAY = 20; // way to large but let's be generous
+	const int MAGIC_MUX_SWITCH_DELAY = 100; // way to large but let's be generous
 	
 	int RGB_counter = 0;
 	int LED_counter = 0;
@@ -99,7 +99,9 @@ int main()
 	// TODO: Periodically check for connectivity later.
 	resync_spi();
 
-	//sei(); // ready to go.
+	sei(); // ready to go.
+
+	PORTC |= 1<<PC4;
 
 	while (true) {
 		++RGB_counter;
@@ -114,25 +116,51 @@ int main()
 			_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
 			SPDR = SPI_code;
 			while ( !(SPSR & (1<<SPIF)) ) { ; } // wait for reception to complete
-			return SPDR;
+			uint8_t byte_read = SPDR;
+			return byte_read;
 		};
 
 		// ask for stuff, update registers
-		set_SPI_mux(MUX_1);
+		set_SPI_mux(MUX_3);
+		//set_SPI_mux(MUX_1);
 		_delay_us(MAGIC_MUX_SWITCH_DELAY);
-		uint8_t check_link = req_data(SPI_REQ_DEBUG_A);
-		if (check_link != SPI_ACK_READY) {
-			//resync_spi();
-		}
-		t_isPressedDebugA = req_data(SPI_REQ_DEBUG_B);
+
+
+
+		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		SPDR = SPI_REQ_DEBUG_A;
+		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		while ( !(SPSR & (1<<SPIF)) ) { ; }
+		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		uint8_t check_byte = SPDR;
+		
+		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		SPDR = SPI_REQ_DEBUG_B;
+		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		while ( !(SPSR & (1<<SPIF)) ) { ; }
+		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		t_isPressedDebugA = SPDR;
+		
+		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		SPDR = SPI_TRANSMIT_OVER;
+		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		while ( !(SPSR & (1<<SPIF)) ) { ; }
+		//_delay_us(MAGIC_SPI_TRANSMIT_DELAY);
+		t_isPressedDebugB = SPDR;
+
+
+
+		//uint8_t check_link = req_data(SPI_REQ_DEBUG_A);
+		//if (check_link != SPI_ACK_READY) {
+			////resync_spi();
+		//}
+		//t_isPressedDebugA = req_data(SPI_REQ_DEBUG_B);
 		//t_isPressedDebugB = req_data(SPI_REQ_Z_LOW);
 		//t_Z_low = req_data(SPI_REQ_Z_HIGH);
 		//t_Z_high = req_data(SPI_REQ_XY_LOW);
 		//t_XY_low = req_data(SPI_REQ_XY_HIGH);
 		//t_XY_high = req_data(SPI_TRANSMIT_OVER);
-		t_isPressedDebugA = req_data(SPI_TRANSMIT_OVER);
-		t_isPressedDebugB = req_data(SPI_TRANSMIT_OVER);
-
+		
 		set_SPI_mux(MUX_2);
 		_delay_us(MAGIC_MUX_SWITCH_DELAY);
 
@@ -192,12 +220,14 @@ int main()
 
 void resync_spi()
 {
+	const int delay_const = 50; // usec
 	bool isReadySPI = false;
 	int ready_counter = 0;
 	while (!isReadySPI) {
 		set_SPI_mux(MUX_1);
+		_delay_us(delay_const);
 		SPDR = SPI_REQ_CONFIRM;
-		_delay_us(50);
+		while ( !(SPSR & (1<<SPIF)) ) { ; }
 		uint8_t read_byte = SPDR;
 		if (read_byte == SPI_ACK_READY) {
 			ready_counter++;
@@ -207,7 +237,7 @@ void resync_spi()
 		if (ready_counter > 50) {
 			isReadySPI = true;
 		}
-		_delay_us(50);
+		_delay_us(delay_const);
 	}
 }
 
@@ -219,7 +249,7 @@ void initialize_io()
 	DDRB =
 		1<<DDB0 | // SPI_SS'_A
 		1<<DDB1 | // SPI_SS'_B
-		1<<DDB2 | // SPI_SS'_COM
+		0<<DDB2 | // SPI_SS'_COM
 		1<<DDB3 | // SPI_MOSI
 		0<<DDB4 | // SPI_MISO
 		1<<DDB5 | // SPI_SCLK
@@ -250,7 +280,7 @@ void initialize_io()
 	PORTB =
 		0<<PB0 |
 		0<<PB1 |
-		1<<PB2 | // SS' defaults to high
+		0<<PB2 | // SS' is active low
 		0<<PB3 | // other SPI lines should default to low
 		0<<PB4 |
 		0<<PB5 |
@@ -263,7 +293,7 @@ void initialize_io()
 		0<<PC3 |
 		0<<PC4 |
 		0<<PC5 |
-		0<<PC6 ; // TODO: figure out if this is necessary.
+		1<<PC6 ; // TODO: figure out if this is necessary.
 		// PORTC does NOT have a 7th bit.
 	PORTD =
 		0<<PD0 |
