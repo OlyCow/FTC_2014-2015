@@ -65,10 +65,6 @@ volatile uint8_t t_overheat_alert	= 0x00; // 1 bit
 volatile uint8_t t_overheat_map		= 0x00; // 8 bits
 volatile uint8_t t_IR_alert			= 0x00; // 1 bit
 volatile uint8_t t_IR[MUX_NUM]		= {0,0,0,0,0,0,0,0}; // 7 bits each, 0~100
-// volatile uint8_t t_light_map_A		= 0x00;	// 8 bits
-// volatile uint8_t t_light_map_B		= 0x00;	// 8 bits
-// volatile uint8_t t_light_A[MUX_NUM]	= {0,0,0,0,0,0,0,0};	// 4 bits each
-// volatile uint8_t t_light_B[MUX_NUM]	= {0,0,0,0,0,0,0,0};	// 4 bits each
 
 // Constants.
 const double BIT_TO_GYRO = 500.0/32768.0; // Also in MPU-6050 Register Map "Gyroscope Measurements".
@@ -254,8 +250,7 @@ int main()
 	isReady = true;
 	sei(); // yay finally
 
-    while (true)
-    {
+    while (true) {
 		// Update system timer. TODO: Make this a class.
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 			dt = TCNT1;
