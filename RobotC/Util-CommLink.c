@@ -5,7 +5,7 @@
 task CommLink(); // R/W to the prototype board as tightly as possible. TODO: Separate into its own library.
 task Display(); // Updates the NXT's LCD display with useful info.
 
-// For comms link:
+// For comm link:
 // TODO: Make more efficient by putting vars completely inside bytes, etc.
 // Possibly implement something like "std::vector<bool>".
 const int NXT_LINE_NUM = 6;
@@ -14,37 +14,39 @@ typedef enum CardinalDirection {
 	CARDINAL_DIR_E	= 1,
 	CARDINAL_DIR_S	= 2,
 	CARDINAL_DIR_W	= 3,
-	CARDINAL_DIR_NUM,
+	CARDINAL_DIR_NUM
 } CardinalDirection;
-typedef enum CommLinkMode {
-	COMM_LINK_POS_XY	= 0,
-	COMM_LINK_ROT_LIGHT	= 1,
-	COMM_LINK_RANGE_AB	= 2,
-	COMM_LINK_RANGE_CD	= 3,
-	COMM_LINK_TELEOP	= 4,
-	COMM_LINK_BUMPERS	= 5,
-} CommLinkMode;
-CommLinkMode f_commLinkMode[6] = {	COMM_LINK_POS_XY,
-									COMM_LINK_ROT_LIGHT,
-									COMM_LINK_RANGE_AB,
-									COMM_LINK_RANGE_CD,
-									COMM_LINK_TELEOP,
-									COMM_LINK_BUMPERS	};
-int f_angle_x = 30; // RobotC doesn't support unsigned types (other than ubyte).
-int f_angle_y = 30; // This is equivalent to "0".
-int f_angle_z = 0;
-int f_pos_x = 0;
-int f_pos_y = 0;
-int f_pos_z = 0;
-ubyte f_closeRange[CARDINAL_DIR_NUM] = {0,0,0,0};
-int f_longRange[CARDINAL_DIR_NUM] = {0,0,0,0};
-ubyte f_lineSensor[2][4] = {0,0,0,0,0,0,0,0}; // 0 = front, 1 = back; 0 = left, 3 = right.
-ubyte f_cubeNum = 0; // Type is `ubyte` to avoid complications.
-bool f_cubeDetected[8] = {0,0,0,0,0,0,0,0}; // 0 = leftmost, 7 = rightmost.
-bool f_isFlagBumped = false;
-bool f_isHangBumped = false;
-bool f_isBumped[CARDINAL_DIR_NUM] = {false, false, false, false};
-bool f_isRedAlliance = true; // Changing this var is helpful for testing the MCU connection.
+typedef enum LineMode {
+	LINE_MODE_UNUSED	= -1,
+	LINE_MODE_ROT_XY	= 0,
+	LINE_MODE_ROT_XYZ,
+	LINE_MODE_ROT_Z,
+	LINE_MODE_FLAGS,
+	LINE_MODE_NUM
+} LineMode;
+LineMode c_lineMode[6] = {	LINE_MODE_ROT_XY,
+							LINE_MODE_ROT_XYZ,
+							LINE_MODE_ROT_Z,
+							LINE_MODE_FLAGS,
+							LINE_MODE_UNUSED,
+							LINE_MODE_UNUSED	};
+
+// Sensor info:
+int c_angle_x = 0; // RobotC doesn't support unsigned types (other than ubyte).
+int c_angle_y = 0; // This is equivalent to "0".
+int c_angle_z = 0;
+int c_pos_x = 0;
+int c_pos_y = 0;
+int c_pos_z = 0;
+
+// Alert flags: (not redundant! hehe)
+bool c_isOverheating = false;
+bool c_isConfigReady = false;
+
+// Config info:
+// Changing this var is helpful for testing the MCU connection.
+bool c_isRamp = true; // Whether or not to start on the ramp.
+int c_autonDelay = 0; // How many seconds to delay the start of the autonomous program.
 
 // Comm link debugging vars:
 const ubyte mask_read = 0b00111111; // We read from the last 6 bits.
