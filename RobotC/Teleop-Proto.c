@@ -46,11 +46,11 @@ task main()
 		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_1);
 		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_1);
 		power_lift = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_2);
-		if (Motor_GetEncoder(motor_lift_A)>-200) {
+		if (Motor_GetEncoder(motor_lift_A)>-500) {
 			if (power_lift<0) {
 				power_lift = 0;
 			}
-		} else if (Motor_GetEncoder(motor_lift_A)<-LIFT_UPPER_LIMIT) {
+		} else if (Motor_GetEncoder(motor_lift_A)<-8200) {
 			if (power_lift>0) {
 				power_lift = 0;
 			}
