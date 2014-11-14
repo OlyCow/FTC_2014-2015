@@ -20,15 +20,17 @@
 
 task main()
 {
+	const int LIFT_UPPER_LIMIT = 4000;
+
+	const int dump_pos_open = 190;
+	const int dump_pos_closed = 240;
+
 	int power_L = 0;
 	int power_R = 0;
 	int power_lift = 0;
 	int power_pickup = 0;
 	int power_clamp = 0;
 	int dump_position = 0;
-
-	const int dump_pos_open = 190;
-	const int dump_pos_closed = 240;
 
 	bool isPickingUp = false;
 
@@ -48,10 +50,10 @@ task main()
 			if (power_lift<0) {
 				power_lift = 0;
 			}
-		//} else if (Motor_GetEncoder(motor_lift_A)>0) {
-		//	if (power_lift>0) {
-		//		power_lift = 0;
-		//	}
+		} else if (Motor_GetEncoder(motor_lift_A)<-LIFT_UPPER_LIMIT) {
+			if (power_lift>0) {
+				power_lift = 0;
+			}
 		}
 		if (Joystick_ButtonReleased(BUTTON_X, CONTROLLER_1)) {
 			isPickingUp = !isPickingUp;
