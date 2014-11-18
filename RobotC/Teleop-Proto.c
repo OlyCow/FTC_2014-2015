@@ -25,6 +25,7 @@ task Display();
 int heading = 0;
 int lift_target = 0;
 int power_lift = 0;
+bool is_lift_manual = false;
 
 task main()
 {
@@ -87,8 +88,6 @@ task main()
 		Motor_SetPower(power_L, motor_L);
 		Motor_SetPower(power_R, motor_R_A);
 		Motor_SetPower(power_R, motor_R_B);
-		Motor_SetPower(power_lift, motor_lift_A);
-		Motor_SetPower(power_lift, motor_lift_B);
 		Motor_SetPower(power_pickup, motor_pickup);
 		Motor_SetPower(power_pickup, motor_assist);
 		Motor_SetPower(power_clamp, motor_clamp_L);
@@ -111,6 +110,7 @@ task PID()
 	const float kP_down = 1.0;
 	const float kI_down = 0.0;
 	const float kD_down = 0.0;
+	const float I_term_decay_rate = 0.8;
 
 	float term_P = 0.0;
 	float term_I = 0.0;
@@ -124,6 +124,7 @@ task PID()
 
 	float error = 0.0;
 	float error_prev = 0.0;
+	float error_sum = 0.0;
 	float error_rate = 0.0;
 
 	Joystick_WaitForStart();
@@ -135,15 +136,43 @@ task PID()
 		error_prev = error;
 		lift_pos = Motor_GetEncoder(encoder_lift);
 
-		if (lift_target<LIFT_BOTTOM) {
-			lift_target = LIFT_BOTTOM;
-		}
-		if (lift_target>LIFT_TOP) {
-			lift_target = LIFT_TOP;
-		}
-		error = lift_target - lift_pos;
+		if (is_lift_manual == false) {
+			if (lift_target<LIFT_BOTTOM) {
+				lift_target = LIFT_BOTTOM;
+			}
+			if (lift_target>LIFT_TOP) {
+				lift_target = LIFT_TOP;
+			}
+			error = lift_target - lift_pos;
+			if (error > 0) {
+				isDown = false;
+			} else {
+				isDown = true;
+			}
+			error_sum *= I_term_decay_rate;
+			error_sum += error * (int)dt;
+			error_rate = (error - error_prev) / (int)dt;
 
-		power_lift = term_P + term_I + term_D;
+			term_P = error;
+			term_I = error_sum;
+			term_D = error_rate;
+			switch (isDown) {
+				case true :
+					term_P *= kP_down;
+					term_I *= kI_down;
+					term_D *= kD_down;
+					break;
+				case false :
+					term_P *= kP_up;
+					term_I *= kI_up;
+					term_D *= kD_up;
+					break;
+			}
+			power_lift = term_P + term_I + term_D;
+		}
+
+		Motor_SetPower(power_lift, motor_lift_A);
+		Motor_SetPower(power_lift, motor_lift_B);
 	}
 }
 
