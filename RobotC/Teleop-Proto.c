@@ -25,6 +25,7 @@ task Display();
 int heading = 0;
 int lift_target = 0;
 int power_lift = 0;
+int power_lift_temp = 0;
 bool is_lift_manual = false;
 
 task main()
@@ -53,16 +54,23 @@ task main()
 
 		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_1);
 		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_1);
-		power_lift = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_2);
-		if (Motor_GetEncoder(motor_lift_A)<LIFT_BOTTOM) {
-			if (power_lift<0) {
-				power_lift = 0;
-			}
-		} else if (Motor_GetEncoder(motor_lift_A)>LIFT_TOP) {
-			if (power_lift>0) {
-				power_lift = 0;
+		power_lift_temp = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_2);
+		if (power_lift_temp != 0) {
+			is_lift_manual = true;
+		} else {
+			is_lift_manual = false;
+			int current_pos = Motor_GetEncoder(emcoder_lift);
+			if (current_pos<LIFT_BOTTOM) {
+				if (power_lift_temp<0) {
+					power_lift_temp = 0;
+				}
+			} else if (current_pos>LIFT_TOP) {
+				if (power_lift_temp>0) {
+					power_lift_temp = 0;
+				}
 			}
 		}
+
 		if (Joystick_ButtonReleased(BUTTON_X, CONTROLLER_1)) {
 			isPickingUp = !isPickingUp;
 		}
@@ -94,9 +102,6 @@ task main()
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
 		Servo_SetPosition(servo_dump, dump_position);
-
-		nxtDisplayCenteredBigTextLine(2, "pwr: %d", power_lift);
-		nxtDisplayCenteredBigTextLine(4, "pos: %d", Motor_GetEncoder(motor_lift_A));
 	}
 }
 
@@ -169,6 +174,8 @@ task PID()
 					break;
 			}
 			power_lift = term_P + term_I + term_D;
+		} else {
+			power_lift = power_lift_temp;
 		}
 
 		Motor_SetPower(power_lift, motor_lift_A);
