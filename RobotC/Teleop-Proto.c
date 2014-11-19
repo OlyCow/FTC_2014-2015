@@ -1,5 +1,7 @@
 #pragma config(Hubs,  S1, HTServo,  HTMotor,  HTMotor,  HTMotor)
-#pragma config(Sensor, S1,     ,               sensorI2CMuxController)
+#pragma config(Sensor, S2,     sensor_IR,      sensorI2CCustom)
+#pragma config(Sensor, S3,     sensor_light,   sensorLightActive)
+#pragma config(Sensor, S4,     sensor_gyro,    sensorI2CHiTechnicGyro)
 #pragma config(Motor,  motorA,          motor_assist,  tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorC,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
@@ -28,6 +30,11 @@ int power_lift = 0;
 int power_lift_temp = 0;
 bool is_lift_manual = false;
 bool isDown = true;
+int IR_A = 0;
+int IR_B = 0;
+int IR_C = 0;
+int IR_D = 0;
+int IR_E = 0;
 
 float term_P = 0.0;
 float term_I = 0.0;
@@ -235,6 +242,11 @@ task Display()
 				break;
 			case DISP_SENSORS :
 				nxtDisplayTextLine(0, "Angle: %3d", heading);
+				nxtDisplayTextLine(1, "IR A:  %3d", IR_A);
+				nxtDisplayTextLine(2, "IR B:  %3d", IR_B);
+				nxtDisplayTextLine(3, "IR C:  %3d", IR_C);
+				nxtDisplayTextLine(4, "IR D:  %3d", IR_D);
+				nxtDisplayTextLine(5, "IR E:  %3d", IR_E);
 				break;
 			case DISP_PID :
 				nxtDisplayTextLine(0, "P: %+7d", term_P);
