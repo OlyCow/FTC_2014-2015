@@ -3,12 +3,12 @@
 #pragma config(Motor,  motorA,          motor_assist,  tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorC,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
-#pragma config(Motor,  mtr_S1_C2_1,     motor_L,       tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C2_1,     motor_L,       tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Motor,  mtr_S1_C2_2,     motor_pickup,  tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C3_1,     motor_lift_A,  tmotorTetrix, openLoop, reversed, encoder)
+#pragma config(Motor,  mtr_S1_C3_1,     motor_lift_A,  tmotorTetrix, openLoop, encoder)
 #pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_1,     motor_R_A,     tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C4_2,     motor_R_B,     tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C4_2,     motor_R_B,     tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Servo,  srvo_S1_C1_1,    servo_dump,           tServoStandard)
 #pragma config(Servo,  srvo_S1_C1_2,    servo2,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_3,    servo3,               tServoNone)
@@ -27,6 +27,11 @@ int lift_target = 0;
 int power_lift = 0;
 int power_lift_temp = 0;
 bool is_lift_manual = false;
+bool isDown = true;
+
+float term_P = 0.0;
+float term_I = 0.0;
+float term_D = 0.0;
 
 task main()
 {
@@ -38,11 +43,9 @@ task main()
 
 	bool isPickingUp = false;
 
-	Motor_ResetEncoder(encoder_lift);
 	Motor_ResetEncoder(encoder_L);
 	Motor_ResetEncoder(encoder_R);
-
-	bDisplayDiagnostics = false;
+	Motor_ResetEncoder(encoder_lift);
 
 	Task_Spawn(PID);
 	Task_Spawn(Display);
@@ -55,20 +58,22 @@ task main()
 		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_1);
 		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_1);
 		power_lift_temp = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_2);
+
+		int current_pos = Motor_GetEncoder(encoder_lift);
+		if (current_pos<LIFT_BOTTOM) {
+			if (power_lift_temp<0) {
+				power_lift_temp = 0;
+			}
+		} else if (current_pos>LIFT_TOP) {
+			if (power_lift_temp>0) {
+				power_lift_temp = 0;
+			}
+		}
+
 		if (power_lift_temp != 0) {
 			is_lift_manual = true;
 		} else {
 			is_lift_manual = false;
-			int current_pos = Motor_GetEncoder(emcoder_lift);
-			if (current_pos<LIFT_BOTTOM) {
-				if (power_lift_temp<0) {
-					power_lift_temp = 0;
-				}
-			} else if (current_pos>LIFT_TOP) {
-				if (power_lift_temp>0) {
-					power_lift_temp = 0;
-				}
-			}
 		}
 
 		if (Joystick_ButtonReleased(BUTTON_X, CONTROLLER_1)) {
@@ -79,6 +84,11 @@ task main()
 		} else {
 			power_pickup = 0;
 		}
+
+		if (Joystick_Button(BUTTON_Y)) {
+			power_pickup = -100;
+		}
+
 		if (Joystick_Direction(DIRECTION_F, CONTROLLER_2)) {
 			power_clamp = -100;
 		} else if (Joystick_Direction(DIRECTION_B, CONTROLLER_2)) {
@@ -87,10 +97,23 @@ task main()
 			power_clamp = 0;
 		}
 
-		if (Joystick_Button(BUTTON_Y, CONTROLLER_2) == true) {
+		if (Joystick_Button(BUTTON_LT, CONTROLLER_2)||Joystick_Button(BUTTON_RT, CONTROLLER_2)) {
 			dump_position = pos_dump_open;
 		} else {
 			dump_position = pos_dump_closed;
+		}
+
+		if (Joystick_ButtonReleased(BUTTON_X, CONTROLLER_2)) {
+			lift_target = LIFT_BOTTOM;
+		}
+		if (Joystick_ButtonReleased(BUTTON_A, CONTROLLER_2)) {
+			lift_target = LIFT_LOW;
+		}
+		if (Joystick_ButtonReleased(BUTTON_B, CONTROLLER_2)) {
+			lift_target = LIFT_MID;
+		}
+		if (Joystick_ButtonReleased(BUTTON_Y, CONTROLLER_2)) {
+			lift_target = LIFT_HIGH;
 		}
 
 		Motor_SetPower(power_L, motor_L);
@@ -107,19 +130,13 @@ task main()
 
 task PID()
 {
-	bool isDown = true;
-
-	const float kP_up = 1.0;
-	const float kI_up = 0.0;
+	const float kP_up = 0.12;
+	const float kI_up = 0.06;
 	const float kD_up = 0.0;
-	const float kP_down = 1.0;
-	const float kI_down = 0.0;
+	const float kP_down = 0.10;
+	const float kI_down = 0.07;
 	const float kD_down = 0.0;
 	const float I_term_decay_rate = 0.8;
-
-	float term_P = 0.0;
-	float term_I = 0.0;
-	float term_D = 0.0;
 
 	int timer_loop = 0;
 	Time_ClearTimer(timer_loop);
@@ -175,10 +192,14 @@ task PID()
 			}
 			power_lift = term_P + term_I + term_D;
 		} else {
+			lift_target = lift_pos;
 			power_lift = power_lift_temp;
 		}
+		if (abs(power_lift)<10) {
+			power_lift = 0;
+		}
 
-		Motor_SetPower(power_lift, motor_lift_A);
+		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
 	}
 }
@@ -188,6 +209,7 @@ task Display()
 	typedef enum DisplayMode {
 		DISP_FCS,				// Default FCS screen.
 		DISP_ENCODERS,			// Raw encoder values.
+		DISP_PID,
 		DISP_SENSORS,			// Might need to split this into two screens.
 		DISP_JOYSTICKS,			// For convenience. TODO: Add buttons, D-pad, etc.?
 		DISP_NUM
@@ -207,12 +229,27 @@ task Display()
 			case DISP_ENCODERS :
 				nxtDisplayTextLine(0, "Lift:  %+6i", Motor_GetEncoder(encoder_lift));
 				nxtDisplayTextLine(1, "Tgt:   %+6i", lift_target);
-				nxtDisplayTextLine(1, "Pwr:   %+6i", power_lift);
-				nxtDisplayTextLine(1, "Mtr L: %+6i", Motor_GetEncoder(encoder_L));
-				nxtDisplayTextLine(2, "Mtr R: %+6i", Motor_GetEncoder(encoder_R));
+				nxtDisplayTextLine(2, "Pwr:   %+6i", power_lift);
+				nxtDisplayTextLine(3, "Mtr L: %+6i", Motor_GetEncoder(encoder_L));
+				nxtDisplayTextLine(4, "Mtr R: %+6i", Motor_GetEncoder(encoder_R));
 				break;
 			case DISP_SENSORS :
 				nxtDisplayTextLine(0, "Angle: %3d", heading);
+				break;
+			case DISP_PID :
+				nxtDisplayTextLine(0, "P: %+7d", term_P);
+				nxtDisplayTextLine(1, "I: %+7d", term_I);
+				nxtDisplayTextLine(2, "D: %+7d", term_D);
+				if (is_lift_manual) {
+					nxtDisplayTextLine(3, "MANUAL");
+				} else {
+					nxtDisplayTextLine(3, "PID");
+				}
+				if (isDown) {
+					nxtDisplayTextLine(4, "DOWN");
+				} else {
+					nxtDisplayTextLine(4, "UP");
+				}
 				break;
 			case DISP_JOYSTICKS :
 				nxtDisplayCenteredTextLine(0, "--Driver I:--");
