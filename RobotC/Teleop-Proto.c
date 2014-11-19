@@ -21,7 +21,7 @@
 #include "includes.h"
 #include "proto.h"
 
-task PID();
+task PID()  
 task Display();
 
 int heading = 0;
@@ -179,8 +179,8 @@ task PID()
 				isDown = true;
 			}
 			error_sum *= I_term_decay_rate;
-			error_sum += error * (int)dt;
-			error_rate = (error - error_prev) / (int)dt;
+			error_sum += error * (float)dt;
+			error_rate = (error - error_prev) / (float)dt;
 
 			term_P = error;
 			term_I = error_sum;
