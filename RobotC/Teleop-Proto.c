@@ -145,11 +145,11 @@ task main()
 
 task PID()
 {
-	const float kP_up = 0.12;
-	const float kI_up = 0.06;
+	const float kP_up = 0.083;
+	const float kI_up = 0.011;
 	const float kD_up = 0.0;
-	const float kP_down = 0.10;
-	const float kI_down = 0.07;
+	const float kP_down = 0.079;
+	const float kI_down = 0.008;
 	const float kD_down = 0.0;
 	const float I_term_decay_rate = 0.8;
 
@@ -217,7 +217,7 @@ task PID()
 		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
 
-		Time_Wait(5);
+		Time_Wait(2);
 	}
 }
 

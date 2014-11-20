@@ -9,7 +9,7 @@ const int LIFT_LOW		= 1700;
 const int LIFT_MID		= 4300;
 const int LIFT_HIGH		= 6600;
 const int LIFT_CENTER	= 8500;
-const int LIFT_TOP		= 8900;
+const int LIFT_TOP		= 9200;
 
 // Servo position values.
 const int pos_dump_open 	= 190;
