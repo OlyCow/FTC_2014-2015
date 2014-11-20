@@ -21,8 +21,11 @@
 #include "includes.h"
 #include "proto.h"
 
-task PID()  
+task PID();
 task Display();
+
+void Drive(int encoder_count);
+void Turn(int degrees);
 
 int heading = 0;
 int lift_target = 0;
@@ -40,6 +43,9 @@ int IR_E = 0;
 float term_P = 0.0;
 float term_I = 0.0;
 float term_D = 0.0;
+
+float disp_L = 0.0;
+float disp_R = 0.0;
 
 task main()
 {
@@ -62,83 +68,12 @@ task main()
 
 	Joystick_WaitForStart();
 
-	while (true) {
-		Joystick_UpdateData();
+	Drive(2000);
 
-		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_1);
-		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_1);
-		power_lift_temp = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_2);
-
-		int current_pos = Motor_GetEncoder(encoder_lift);
-		if (current_pos<LIFT_BOTTOM) {
-			if (power_lift_temp<0) {
-				power_lift_temp = 0;
-			}
-		} else if (current_pos>LIFT_TOP) {
-			if (power_lift_temp>0) {
-				power_lift_temp = 0;
-			}
-		}
-
-		if (power_lift_temp != 0) {
-			is_lift_manual = true;
-		} else {
-			is_lift_manual = false;
-		}
-
-		if (Joystick_ButtonReleased(BUTTON_X, CONTROLLER_1)) {
-			isPickingUp = !isPickingUp;
-		}
-		if (isPickingUp == true) {
-			power_pickup = 100;
-		} else {
-			power_pickup = 0;
-		}
-
-		if (Joystick_Button(BUTTON_Y)) {
-			power_pickup = -100;
-		}
-
-		if (Joystick_Direction(DIRECTION_F, CONTROLLER_2)) {
-			power_clamp = -100;
-		} else if (Joystick_Direction(DIRECTION_B, CONTROLLER_2)) {
-			power_clamp = 100;
-		} else {
-			power_clamp = 0;
-		}
-
-		if (Joystick_Button(BUTTON_LT, CONTROLLER_2)||Joystick_Button(BUTTON_RT, CONTROLLER_2)) {
-			dump_position = pos_dump_open;
-		} else {
-			dump_position = pos_dump_closed;
-		}
-
-		if (Joystick_ButtonReleased(BUTTON_X, CONTROLLER_2)) {
-			lift_target = LIFT_BOTTOM;
-		}
-		if (Joystick_ButtonReleased(BUTTON_A, CONTROLLER_2)) {
-			lift_target = LIFT_LOW;
-		}
-		if (Joystick_ButtonReleased(BUTTON_B, CONTROLLER_2)) {
-			lift_target = LIFT_MID;
-		}
-		if (Joystick_ButtonReleased(BUTTON_Y, CONTROLLER_2)) {
-			lift_target = LIFT_HIGH;
-		}
-
-		light_intensity = SensorValue[sensor_light];
-		HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
-
-		Motor_SetPower(power_L, motor_L);
-		Motor_SetPower(power_R, motor_R_A);
-		Motor_SetPower(power_R, motor_R_B);
-		Motor_SetPower(power_pickup, motor_pickup);
-		Motor_SetPower(power_pickup, motor_assist);
-		Motor_SetPower(power_clamp, motor_clamp_L);
-		Motor_SetPower(power_clamp, motor_clamp_R);
-
-		Servo_SetPosition(servo_dump, dump_position);
-	}
+	// Drive off of ramp
+	// Drive forward, turn left, drive, turn right, drive
+	// Pick up goal
+	// Dump balls
 }
 
 task PID()
@@ -185,8 +120,8 @@ task PID()
 				isDown = true;
 			}
 			error_sum *= I_term_decay_rate;
-			error_sum += error * (float)dt;
-			error_rate = (error - error_prev) / (float)dt;
+			error_sum += error * (int)dt;
+			error_rate = (error - error_prev) / (int)dt;
 
 			term_P = error;
 			term_I = error_sum;
@@ -269,6 +204,8 @@ task Display()
 				} else {
 					nxtDisplayTextLine(4, "UP");
 				}
+				nxtDisplayTextLine(5, "ncdr L: %+d", disp_L);
+				nxtDisplayTextLine(6, "ncdr R: %+d", disp_R);
 				break;
 			case DISP_JOYSTICKS :
 				nxtDisplayCenteredTextLine(0, "--Driver I:--");
@@ -304,4 +241,49 @@ task Display()
 		}
 		Time_Wait(50); // MAGIC_NUM: Prevents the LCD from updating itself to death.
 	}
+}
+
+void Drive(int encoder_count)
+{
+	int timer_watchdog = 0;
+	Time_ClearTimer(timer_watchdog);
+
+	const float kP = 0.02;
+	const float kI = 0.004;
+	const float I_term_decay_rate = 0.90;
+
+	int count_init_L = Motor_GetEncoder(encoder_L);
+	int count_init_R = Motor_GetEncoder(encoder_R);
+	int pos_L = Motor_GetEncoder(encoder_L) - count_init_L;
+	int pos_R = Motor_GetEncoder(encoder_R) - count_init_R;
+	int error_L = 0.0;
+	int error_R = 0.0;
+	float error_sum_L = 0.0;
+	float error_sum_R = 0.0;
+	float power_L = 0;
+	float power_R = 0;
+
+	while (true) {
+		pos_L = Motor_GetEncoder(encoder_L) - count_init_L;
+		pos_L *= -1;
+		pos_R = Motor_GetEncoder(encoder_R) - count_init_R;
+		error_L = pos_L - encoder_count;
+		error_R = pos_R - encoder_count;
+		error_sum_L *= I_term_decay_rate;
+		error_sum_R *= I_term_decay_rate;
+		error_sum_L += error_L;
+		error_sum_R += error_R;
+		power_L = kP*error_L + kI*error_sum_L;
+		power_R = kP*error_R + kI*error_sum_R;
+		Motor_SetPower((int)round(power_L), motor_L);
+		Motor_SetPower((int)round(power_R), motor_R_A);
+		Motor_SetPower((int)round(power_R), motor_R_B);
+
+		disp_L = power_L;
+		disp_R = power_R;
+	}
+}
+
+void Turn(int degrees)
+{
 }
