@@ -25,8 +25,8 @@ task Gyro();
 task PID();
 task Display();
 
-void Drive(int encoder_count);
-void Turn(int degrees);
+bool Drive(int encoder_count);
+bool Turn(int degrees);
 
 float heading = 0;
 int lift_target = 0;
@@ -263,10 +263,21 @@ task Display()
 	}
 }
 
-void Drive(int encoder_count)
+bool Drive(int encoder_count)
 {
+	bool isSuccess = false;
+
 	int timer_watchdog = 0;
 	Time_ClearTimer(timer_watchdog);
+	const float watchdog_encoder_rate = 1.736;
+	const float watchdog_base = 2000.0;
+	int time_limit = (int)round((float)encoder_count*watchdog_encoder_rate+watchdog_base);
+	const int acceptable_error = 100;
+
+	const int finish_limit = 500; // msec
+	bool isFinishing = false;
+	int timer_finish = 0;
+	Time_ClearTimer(timer_finish);
 
 	const float kP = 0.02;
 	const float kI = 0.004;
@@ -301,9 +312,29 @@ void Drive(int encoder_count)
 
 		disp_L = power_L;
 		disp_R = power_R;
+
+		if ((abs(error_L)<acceptable_error) && (abs(error_R)<acceptable_error)) {
+			if (isFinishing == false) {
+				Time_ClearTimer(timer_finish);
+			}
+			isFinishing = true;
+		} else {
+			isFinishing = false;
+		}
+
+		if (Time_GetTime(timer_finish) > finish_limit) {
+			isSuccess = true;
+			break;
+		}
+		if (Time_GetTime(timer_watchdog) > time_limit) {
+			isSuccess = false;
+			break;
+		}
 	}
+
+	return isSuccess;
 }
 
-void Turn(int degrees)
+bool Turn(int degrees)
 {
 }
