@@ -21,7 +21,7 @@
 #include "includes.h"
 #include "proto.h"
 
-task PID()  
+task PID();
 task Display();
 
 int heading = 0;
@@ -138,6 +138,8 @@ task main()
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
 		Servo_SetPosition(servo_dump, dump_position);
+
+		Time_Wait(15);
 	}
 }
 
@@ -214,6 +216,8 @@ task PID()
 
 		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
+
+		Time_Wait(5);
 	}
 }
 

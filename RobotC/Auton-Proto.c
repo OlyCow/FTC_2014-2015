@@ -21,13 +21,14 @@
 #include "includes.h"
 #include "proto.h"
 
+task Gyro();
 task PID();
 task Display();
 
 void Drive(int encoder_count);
 void Turn(int degrees);
 
-int heading = 0;
+float heading = 0;
 int lift_target = 0;
 int power_lift = 0;
 int power_lift_temp = 0;
@@ -63,6 +64,7 @@ task main()
 
 	HTIRS2setDSPMode(sensor_IR, DSP_1200);
 
+	Task_Spawn(Gyro);
 	Task_Spawn(PID);
 	Task_Spawn(Display);
 
@@ -74,6 +76,24 @@ task main()
 	// Drive forward, turn left, drive, turn right, drive
 	// Pick up goal
 	// Dump balls
+}
+
+task Gyro()
+{
+	HTGYROstartCal(sensor_gyro);
+	float vel_curr = 0.0;
+	float vel_prev = 0.0;
+	float dt = 0.0;
+	int timer_gyro = 0;
+	Time_ClearTimer(timer_gyro);
+	while (true) {
+		vel_prev = vel_curr;
+		dt = (float)Time_GetTime(timer_gyro)/(float)1000.0; // msec to sec
+		Time_ClearTimer(timer_gyro);
+		vel_curr = (float)HTGYROreadRot(sensor_gyro);
+		heading += ((float)vel_prev+(float)vel_curr)*(float)0.5*(float)dt;
+		Time_Wait(1);
+	}
 }
 
 task PID()
