@@ -64,6 +64,16 @@ float term_I_angle = 0.0;
 
 task main()
 {
+	typedef enum CenterGoalPos {
+		CENTER_POS_UNKNOWN	= -1,
+		CENTER_POS_1		= 0,
+		CENTER_POS_2		= 1,
+		CENTER_POS_3		= 2,
+		CENTER_POS_NUM
+	} CenterGoalPos;
+	
+	CenterGoalPos centerGoalPos = CENTER_POS_UNKNOWN;
+	
 	Motor_ResetEncoder(encoder_L);
 	Motor_ResetEncoder(encoder_R);
 	Motor_ResetEncoder(encoder_lift);
@@ -86,10 +96,57 @@ task main()
 		PlaySound(soundLowBuzz);
 		Time_Wait(1000);
 	}
-	// Drive off of ramp
-	// Drive forward, turn left, drive, turn right, drive
+
+	// Drive off of ramp (backward)
+	// Sense IR, determine position of center goal
+	Time_Wait(500);
+	HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
+	if (((IR_B+IR_C)>35) && (IR_B>15) && (IR_C>15)) {
+		centerGoalPos = CENTER_POS_3;
+	} else if (IR_B>25) {
+		centerGoalPos = CENTER_POS_2;
+	} else if ((IR_A + IR_B + IR_C)<10) {
+		centerGoalPos = CENTER_POS_1;
+	} // else it stays unknown.
+	
+	// Drive backward, turn left, drive backward, turn right, drive backward
+	// Raise lift (to tall goal height)
+	lift_target = LIFT_HIGH;
+	
 	// Pick up goal
-	// Dump balls
+	Motor_SetPower(100, motor_clamp_L);
+	Motor_SetPower(100, motor_clamp_R);
+	// drive forward a bit
+	Motor_SetPower(100, motor_clamp_L);
+	Motor_SetPower(100, motor_clamp_R);
+	// wait for lift to raise
+	
+	// Dump balls (or just small ball)
+	// Lower lift
+	
+	// The following depends on center goal position!
+	switch (centerGoalPos) {
+		case CENTER_POS_UNKNOWN :
+			break;
+		case CENTER_POS_1 :
+			break;
+		case CENTER_POS_2 :
+			break;
+		case CENTER_POS_3 :
+			break;
+	}
+	
+	// 	Drive forward, turn left, drive forward
+	// 	Turn left, drive backward, turn right, drive backward
+	// Raise lift (to center goal height)
+	// Dump large ball
+	// Drive forward, turn around (180)
+	
+	// Lower lift!!!
+	lift_target = LIFT_BOTTOM;
+	while (true) {
+		Time_Wait(1000);
+	}
 }
 
 bool Drive(int encoder_count)
