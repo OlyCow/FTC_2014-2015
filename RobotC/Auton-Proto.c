@@ -85,10 +85,20 @@ task main()
 		Time_Wait(500);
 	}
 
-	// Drive off of ramp
-	// Drive forward, turn left, drive, turn right, drive
+	// Drive off of ramp (backward)
+	// Sense IR, determine position of center goal
+	// Drive backward, turn left, drive backward, turn right, drive backward
+	// Raise lift (to tall goal height)
 	// Pick up goal
-	// Dump balls
+	// Dump balls (or just small ball)
+	// Lower lift
+	// 	Drive forward, turn left, drive forward
+	// 	Turn left, drive backward, turn right, drive backward
+	// Raise lift (to center goal height)
+	// Dump large ball
+	// Drive forward, turn around (180)
+	// Lower lift!!!
+	
 }
 
 bool Drive(int encoder_count)
