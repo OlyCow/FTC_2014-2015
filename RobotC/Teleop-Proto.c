@@ -1,6 +1,6 @@
 #pragma config(Hubs,  S1, HTServo,  HTMotor,  HTMotor,  HTMotor)
 #pragma config(Sensor, S2,     sensor_IR,      sensorI2CCustom)
-#pragma config(Sensor, S3,     sensor_light,   sensorLightActive)
+#pragma config(Sensor, S3,     sensor_color,   sensorCOLORFULL)
 #pragma config(Sensor, S4,     sensor_gyro,    sensorAnalogInactive)
 #pragma config(Motor,  motorA,          motor_assist,  tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
@@ -126,7 +126,7 @@ task main()
 			lift_target = LIFT_HIGH;
 		}
 
-		light_intensity = SensorValue[sensor_light];
+		light_intensity = SensorValue[sensor_color];
 		HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
 
 		Motor_SetPower(power_L, motor_L);

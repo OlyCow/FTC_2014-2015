@@ -1,6 +1,6 @@
 #pragma config(Hubs,  S1, HTServo,  HTMotor,  HTMotor,  HTMotor)
 #pragma config(Sensor, S2,     sensor_IR,      sensorI2CCustom)
-#pragma config(Sensor, S3,     sensor_light,   sensorLightActive)
+#pragma config(Sensor, S3,     sensor_color,   sensorCOLORFULL)
 #pragma config(Sensor, S4,     sensor_gyro,    sensorAnalogInactive)
 #pragma config(Motor,  motorA,          motor_assist,  tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
@@ -71,9 +71,9 @@ task main()
 		CENTER_POS_3		= 2,
 		CENTER_POS_NUM
 	} CenterGoalPos;
-	
+
 	CenterGoalPos centerGoalPos = CENTER_POS_UNKNOWN;
-	
+
 	Motor_ResetEncoder(encoder_L);
 	Motor_ResetEncoder(encoder_R);
 	Motor_ResetEncoder(encoder_lift);
@@ -85,17 +85,8 @@ task main()
 	Task_Spawn(Display);
 
 	Joystick_WaitForStart();
+	Time_Wait(500);
 
-	bool test = Turn(30);
-
-	while (test) {
-		PlaySound(soundBeepBeep);
-		Time_Wait(1000);
-	}
-	while (!test) {
-		PlaySound(soundLowBuzz);
-		Time_Wait(1000);
-	}
 
 	// Drive off of ramp (backward)
 	// Sense IR, determine position of center goal
@@ -108,45 +99,57 @@ task main()
 	} else if ((IR_A + IR_B + IR_C)<10) {
 		centerGoalPos = CENTER_POS_1;
 	} // else it stays unknown.
-	
+
 	// Drive backward, turn left, drive backward, turn right, drive backward
+	Drive(2000);
+	Turn(45);
+
 	// Raise lift (to tall goal height)
 	lift_target = LIFT_HIGH;
-	
-	// Pick up goal
-	Motor_SetPower(100, motor_clamp_L);
-	Motor_SetPower(100, motor_clamp_R);
-	// drive forward a bit
-	Motor_SetPower(100, motor_clamp_L);
-	Motor_SetPower(100, motor_clamp_R);
-	// wait for lift to raise
-	
-	// Dump balls (or just small ball)
-	// Lower lift
-	
-	// The following depends on center goal position!
-	switch (centerGoalPos) {
-		case CENTER_POS_UNKNOWN :
-			break;
-		case CENTER_POS_1 :
-			break;
-		case CENTER_POS_2 :
-			break;
-		case CENTER_POS_3 :
-			break;
-	}
-	
-	// 	Drive forward, turn left, drive forward
-	// 	Turn left, drive backward, turn right, drive backward
-	// Raise lift (to center goal height)
-	// Dump large ball
-	// Drive forward, turn around (180)
-	
-	// Lower lift!!!
-	lift_target = LIFT_BOTTOM;
+
+	//// Pick up goal
+	//Motor_SetPower(100, motor_clamp_L);
+	//Motor_SetPower(100, motor_clamp_R);
+	//// drive forward a bit
+	//Motor_SetPower(100, motor_clamp_L);
+	//Motor_SetPower(100, motor_clamp_R);
+	//// wait for lift to raise
+
+	//// Dump balls (or just small ball)
+	//// Lower lift
+
+	//// The following depends on center goal position!
+	//switch (centerGoalPos) {
+	//	case CENTER_POS_UNKNOWN :
+	//		break;
+	//	case CENTER_POS_1 :
+	//		break;
+	//	case CENTER_POS_2 :
+	//		break;
+	//	case CENTER_POS_3 :
+	//		break;
+	//}
+
+	//// 	Drive forward, turn left, drive forward
+	//// 	Turn left, drive backward, turn right, drive backward
+	//// Raise lift (to center goal height)
+	//// Dump large ball
+	//// Drive forward, turn around (180)
+
+	//// Lower lift!!!
+	//lift_target = LIFT_BOTTOM;
 	while (true) {
+		PlaySound(soundUpwardTones);
 		Time_Wait(1000);
 	}
+	//while (test) {
+	//	PlaySound(soundBeepBeep);
+	//	Time_Wait(1000);
+	//}
+	//while (!test) {
+	//	PlaySound(soundLowBuzz);
+	//	Time_Wait(1000);
+	//}
 }
 
 bool Drive(int encoder_count)
@@ -255,13 +258,13 @@ bool Turn(int degrees)
 	int time_limit = (int)round((float)degrees*watchdog_degree_rate+watchdog_base);
 	const float acceptable_error = 1.0;
 
-	const int finish_limit = 1500; // msec
+	const int finish_limit = 750; // msec
 	bool isFinishing = false;
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 6.5;
-	const float kI = 0.0;
+	const float kP = 3.5;
+	const float kI = 0.05;
 	const float I_term_decay_rate = 0.91;
 
 	float heading_init = heading;
@@ -274,7 +277,7 @@ bool Turn(int degrees)
 	while (true) {
 		power_prev = power;
 		heading_curr = heading - heading_init;
-		error = (float)degrees - heading_curr;
+		error = heading_curr - (float)degrees;
 		error_sum *= I_term_decay_rate;
 		error_sum += error;
 		float kP_var = kP;
@@ -308,10 +311,10 @@ bool Turn(int degrees)
 			isSuccess = true;
 			break;
 		}
-		//if ((isFinishing == false)&&(Time_GetTime(timer_watchdog)>time_limit)) {
-		//	isSuccess = false;
-		//	break;
-		//}
+		if ((isFinishing == false)&&(Time_GetTime(timer_watchdog)>time_limit)) {
+			isSuccess = false;
+			break;
+		}
 
 		Time_Wait(2);
 	}
@@ -435,6 +438,9 @@ task Display()
 	DisplayMode isMode = DISP_FCS;
 
 	// We don't need to wait for start. ;)
+
+	// TODO: DELETE
+	isMode = DISP_PID_ANGLE;
 
 	while (true) {
 		Buttons_UpdateData();
