@@ -45,11 +45,22 @@ float term_P_lift = 0.0;
 float term_I_lift = 0.0;
 float term_D_lift = 0.0;
 
-int power_final_disp = 0;
-int error_distance_disp = 0;
+int target_dist_disp = 0;
+int pos_dist_disp_L = 0;
+int pos_dist_disp_R = 0;
+float error_dist_disp = 0.0;
+float error_sum_dist_disp = 0.0;
+float power_dist_disp = 0.0;
+float term_P_dist = 0.0;
+float term_I_dist = 0.0;
 
-float disp_L = 0.0;
-float disp_R = 0.0;
+int target_angle_disp = 0;
+int curr_angle_disp = 0;
+float error_angle_disp = 0.0;
+float error_sum_angle_disp = 0.0;
+float power_angle_disp = 0.0;
+float term_P_angle = 0.0;
+float term_I_angle = 0.0;
 
 task main()
 {
@@ -82,6 +93,8 @@ task main()
 
 bool Drive(int encoder_count)
 {
+	target_dist_disp = encoder_count;
+
 	bool isSuccess = false;
 
 	int timer_watchdog = 0;
@@ -104,8 +117,8 @@ bool Drive(int encoder_count)
 	int count_init_R = Motor_GetEncoder(encoder_R);
 	int pos_L = Motor_GetEncoder(encoder_L) - count_init_L;
 	int pos_R = Motor_GetEncoder(encoder_R) - count_init_R;
-	int error_L = 0.0;
-	int error_R = 0.0;
+	int error_L = 0;
+	int error_R = 0;
 	float error_sum_L = 0.0;
 	float error_sum_R = 0.0;
 	float power_L = 0.0;
@@ -133,8 +146,11 @@ bool Drive(int encoder_count)
 		power_L = power_final;
 		power_R = power_final;
 
-		power_final_disp = power_final;
-		error_distance_disp = (int)round((error_L+error_R)/2.0);
+		pos_disp_dist_L = pos_L;
+		pos_disp_dist_R = pos_R;
+		error_dist_disp = (float)(error_L+error_R)/2.0;
+		error_sum_dist_disp = (error_sum_L+error_sum_R)/2.0;
+		power_dist_disp = (float)power_final;
 
 		Motor_SetPower((int)round(power_L), motor_L);
 		Motor_SetPower((int)round(power_R), motor_R_A);
@@ -209,9 +225,6 @@ bool Turn(int degrees)
 
 		int power_L = -1 * (int)round(power);
 		int power_R = (int)round(power);
-
-		disp_L = error;
-		disp_R = heading_curr;
 
 		Motor_SetPower(power_L, motor_L);
 		Motor_SetPower(power_R, motor_R_A);
@@ -397,9 +410,9 @@ task Display()
 				}
 				break;
 			case DISP_PID_ENCODERS :
-				nxtDisplayCenteredTextLine(0, "Linear Movement");
-				nxtDisplayTextLine(1, "error: %+6i", error_distance_disp);
-				nxtDisplayTextLine(2, "power: %+6i", power_final_disp);
+				nxtDisplayTextLine(0, "trgt:  %+6i", target_dist_disp);
+				nxtDisplayTextLine(1, "pos L: %+6i", pos_L_dist_disp);
+				nxtDisplayTextLine(2, "pos R: %+6i", pos_R_dist_disp);
 				break;
 			case DISP_PID_ANGLE :
 
