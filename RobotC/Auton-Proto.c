@@ -50,14 +50,6 @@ float disp_R = 0.0;
 
 task main()
 {
-	int power_L = 0;
-	int power_R = 0;
-	int power_pickup = 0;
-	int power_clamp = 0;
-	int dump_position = 0;
-
-	bool isPickingUp = false;
-
 	Motor_ResetEncoder(encoder_L);
 	Motor_ResetEncoder(encoder_R);
 	Motor_ResetEncoder(encoder_lift);
@@ -70,7 +62,14 @@ task main()
 
 	Joystick_WaitForStart();
 
-	Drive(2000);
+	bool test = Turn(-90);
+
+	while (test) {
+		PlaySound(soundFastUpwardTones);
+		Time_Wait(500);
+		PlaySound(soundBeepBeep);
+		Time_Wait(500);
+	}
 
 	// Drive off of ramp
 	// Drive forward, turn left, drive, turn right, drive
@@ -98,11 +97,11 @@ task Gyro()
 
 task PID()
 {
-	const float kP_up = 0.12;
-	const float kI_up = 0.06;
+	const float kP_up = 0.083;
+	const float kI_up = 0.011;
 	const float kD_up = 0.0;
-	const float kP_down = 0.10;
-	const float kI_down = 0.07;
+	const float kP_down = 0.079;
+	const float kI_down = 0.008;
 	const float kD_down = 0.0;
 	const float I_term_decay_rate = 0.8;
 
@@ -169,6 +168,8 @@ task PID()
 
 		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
+
+		Time_Wait(2);
 	}
 }
 
@@ -272,16 +273,16 @@ bool Drive(int encoder_count)
 	const float watchdog_encoder_rate = 1.736;
 	const float watchdog_base = 2000.0;
 	int time_limit = (int)round((float)encoder_count*watchdog_encoder_rate+watchdog_base);
-	const int acceptable_error = 100;
+	const int acceptable_error = 40;
 
-	const int finish_limit = 500; // msec
+	const int finish_limit = 1250; // msec
 	bool isFinishing = false;
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 0.02;
-	const float kI = 0.004;
-	const float I_term_decay_rate = 0.90;
+	const float kP = 0.0048;
+	const float kI = 0.0029;
+	const float I_term_decay_rate = 0.91;
 
 	int count_init_L = Motor_GetEncoder(encoder_L);
 	int count_init_R = Motor_GetEncoder(encoder_R);
@@ -291,10 +292,14 @@ bool Drive(int encoder_count)
 	int error_R = 0.0;
 	float error_sum_L = 0.0;
 	float error_sum_R = 0.0;
-	float power_L = 0;
-	float power_R = 0;
+	float power_L = 0.0;
+	float power_R = 0.0;
+	float power_L_prev = 0.0;
+	float power_R_prev = 0.0;
 
 	while (true) {
+		power_L_prev = power_L;
+		power_R_prev = power_R;
 		pos_L = Motor_GetEncoder(encoder_L) - count_init_L;
 		pos_L *= -1;
 		pos_R = Motor_GetEncoder(encoder_R) - count_init_R;
@@ -306,6 +311,12 @@ bool Drive(int encoder_count)
 		error_sum_R += error_R;
 		power_L = kP*error_L + kI*error_sum_L;
 		power_R = kP*error_R + kI*error_sum_R;
+		power_L = Math_Limit(power_L, 70);
+		power_R = Math_Limit(power_R, 70);
+		int power_final = (power_L+power_R)/2.0;
+		power_L = power_final;
+		power_R = power_final;
+
 		Motor_SetPower((int)round(power_L), motor_L);
 		Motor_SetPower((int)round(power_R), motor_R_A);
 		Motor_SetPower((int)round(power_R), motor_R_B);
@@ -330,11 +341,89 @@ bool Drive(int encoder_count)
 			isSuccess = false;
 			break;
 		}
+
+		// WHY DOES THIS BREAK THINGS
+		//Time_Wait(2);
 	}
+
+	Motor_SetPower(0, motor_L);
+	Motor_SetPower(0, motor_R_A);
+	Motor_SetPower(0, motor_R_B);
 
 	return isSuccess;
 }
 
 bool Turn(int degrees)
 {
+	bool isSuccess = false;
+
+	int timer_watchdog = 0;
+	Time_ClearTimer(timer_watchdog);
+	const float watchdog_degree_rate = 0.0139;
+	const float watchdog_base = 1800.0;
+	int time_limit = (int)round((float)degrees*watchdog_degree_rate+watchdog_base);
+	const int acceptable_error = 1;
+
+	const int finish_limit = 1500; // msec
+	bool isFinishing = false;
+	int timer_finish = 0;
+	Time_ClearTimer(timer_finish);
+
+	const float kP = 1.0;
+	const float kI = 0.0;
+	const float I_term_decay_rate = 0.91;
+
+	int heading_init = heading;
+	int heading_curr = heading;
+	float error = 0.0;
+	float error_sum = 0.0;
+	float power = 0.0;
+	float power_prev = 0.0;
+
+	while (true) {
+		//power_prev = power;
+		//heading_curr = heading - heading_init;
+		//error = (float)degrees - (float)heading_curr;
+		//error_sum *= I_term_decay_rate;
+		//error_sum += error;
+		//power = kP*error + kI*error_sum;
+		//power = Math_Limit(power, 70);
+
+		int power_L = -1 * (int)round(power);
+		int power_R = (int)round(power);
+
+		disp_L = error;
+		disp_R = heading_curr;
+
+		Motor_SetPower(power_L, motor_L);
+		Motor_SetPower(power_R, motor_R_A);
+		Motor_SetPower(power_R, motor_R_B);
+
+		if (abs(error)<acceptable_error) {
+			if (isFinishing == false) {
+				Time_ClearTimer(timer_finish);
+			}
+			isFinishing = true;
+		} else {
+			isFinishing = false;
+		}
+
+		if (Time_GetTime(timer_finish) > finish_limit) {
+			isSuccess = true;
+			break;
+		}
+		//if (Time_GetTime(timer_watchdog) > time_limit) {
+		//	isSuccess = false;
+		//	break;
+		//}
+
+		// WHY DOES THIS BREAK THINGS
+		//Time_Wait(2);
+	}
+
+	Motor_SetPower(0, motor_L);
+	Motor_SetPower(0, motor_R_A);
+	Motor_SetPower(0, motor_R_B);
+
+	return isSuccess;
 }
