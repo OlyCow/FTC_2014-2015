@@ -28,7 +28,7 @@ task Display();
 bool Drive(int encoder_count);
 bool Turn(int degrees);
 
-float heading = 0;
+float heading = 0.0;
 int lift_target = 0;
 int power_lift = 0;
 int power_lift_temp = 0;
@@ -373,21 +373,23 @@ bool Turn(int degrees)
 	const float kI = 0.0;
 	const float I_term_decay_rate = 0.91;
 
-	int heading_init = heading;
-	int heading_curr = heading;
+	float heading_init = heading;
+	float heading_curr = heading;
 	float error = 0.0;
 	float error_sum = 0.0;
 	float power = 0.0;
 	float power_prev = 0.0;
 
 	while (true) {
-		//power_prev = power;
-		//heading_curr = heading - heading_init;
-		//error = (float)degrees - (float)heading_curr;
-		//error_sum *= I_term_decay_rate;
-		//error_sum += error;
-		//power = kP*error + kI*error_sum;
-		//power = Math_Limit(power, 70);
+		power_prev = power;
+		heading_curr = heading - heading_init;
+		error = (float)degrees - heading_curr;
+		error_sum *= I_term_decay_rate;
+		error_sum += error;
+		float kP_var = kP;
+		float kI_var = kI;
+		power = kP_var*error + kI_var*error_sum;
+		power = Math_Limit(power, 70.0);
 
 		int power_L = -1 * (int)round(power);
 		int power_R = (int)round(power);
