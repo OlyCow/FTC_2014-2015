@@ -45,6 +45,9 @@ float term_P_lift = 0.0;
 float term_I_lift = 0.0;
 float term_D_lift = 0.0;
 
+int power_final_disp = 0;
+int error_distance_disp = 0;
+
 float disp_L = 0.0;
 float disp_R = 0.0;
 
@@ -130,12 +133,12 @@ bool Drive(int encoder_count)
 		power_L = power_final;
 		power_R = power_final;
 
+		power_final_disp = power_final;
+		error_distance_disp = (int)round((error_L+error_R)/2.0);
+
 		Motor_SetPower((int)round(power_L), motor_L);
 		Motor_SetPower((int)round(power_R), motor_R_A);
 		Motor_SetPower((int)round(power_R), motor_R_B);
-
-		disp_L = power_L;
-		disp_R = power_R;
 
 		if ((abs(error_L)<acceptable_error) && (abs(error_R)<acceptable_error)) {
 			if (isFinishing == false) {
@@ -392,6 +395,14 @@ task Display()
 				} else {
 					nxtDisplayTextLine(4, "UP");
 				}
+				break;
+			case DISP_PID_ENCODERS :
+				nxtDisplayCenteredTextLine(0, "Linear Movement");
+				nxtDisplayTextLine(1, "error: %+6i", error_distance_disp);
+				nxtDisplayTextLine(2, "power: %+6i", power_final_disp);
+				break;
+			case DISP_PID_ANGLE :
+
 				break;
 			default :
 				nxtDisplayCenteredTextLine(3, "Doesn't work...");
