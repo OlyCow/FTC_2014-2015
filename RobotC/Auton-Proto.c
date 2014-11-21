@@ -76,15 +76,16 @@ task main()
 
 	Joystick_WaitForStart();
 
-	bool test = Turn(-90);
+	bool test = Turn(30);
 
 	while (test) {
-		PlaySound(soundFastUpwardTones);
-		Time_Wait(500);
 		PlaySound(soundBeepBeep);
-		Time_Wait(500);
+		Time_Wait(1000);
 	}
-
+	while (!test) {
+		PlaySound(soundLowBuzz);
+		Time_Wait(1000);
+	}
 	// Drive off of ramp
 	// Drive forward, turn left, drive, turn right, drive
 	// Pick up goal
@@ -146,8 +147,8 @@ bool Drive(int encoder_count)
 		power_L = power_final;
 		power_R = power_final;
 
-		pos_disp_dist_L = pos_L;
-		pos_disp_dist_R = pos_R;
+		pos_dist_disp_L = pos_L;
+		pos_dist_disp_R = pos_R;
 		error_dist_disp = (float)(error_L+error_R)/2.0;
 		error_sum_dist_disp = (error_sum_L+error_sum_R)/2.0;
 		power_dist_disp = (float)power_final;
@@ -165,17 +166,16 @@ bool Drive(int encoder_count)
 			isFinishing = false;
 		}
 
-		if (Time_GetTime(timer_finish) > finish_limit) {
+		if ((isFinishing == true)&&(Time_GetTime(timer_finish)>finish_limit)) {
 			isSuccess = true;
 			break;
 		}
-		if (Time_GetTime(timer_watchdog) > time_limit) {
+		if ((isFinishing == false)&&(Time_GetTime(timer_watchdog)>time_limit)) {
 			isSuccess = false;
 			break;
 		}
 
-		// WHY DOES THIS BREAK THINGS
-		//Time_Wait(2);
+		Time_Wait(2);
 	}
 
 	Motor_SetPower(0, motor_L);
@@ -187,6 +187,8 @@ bool Drive(int encoder_count)
 
 bool Turn(int degrees)
 {
+	target_angle_disp = degrees;
+
 	bool isSuccess = false;
 
 	int timer_watchdog = 0;
@@ -194,14 +196,14 @@ bool Turn(int degrees)
 	const float watchdog_degree_rate = 0.0139;
 	const float watchdog_base = 1800.0;
 	int time_limit = (int)round((float)degrees*watchdog_degree_rate+watchdog_base);
-	const int acceptable_error = 1;
+	const float acceptable_error = 1.0;
 
 	const int finish_limit = 1500; // msec
 	bool isFinishing = false;
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 1.0;
+	const float kP = 6.5;
 	const float kI = 0.0;
 	const float I_term_decay_rate = 0.91;
 
@@ -226,6 +228,11 @@ bool Turn(int degrees)
 		int power_L = -1 * (int)round(power);
 		int power_R = (int)round(power);
 
+		curr_angle_disp = heading_curr;
+		error_angle_disp = error;
+		error_sum_angle_disp = error_sum;
+		power_angle_disp = power;
+
 		Motor_SetPower(power_L, motor_L);
 		Motor_SetPower(power_R, motor_R_A);
 		Motor_SetPower(power_R, motor_R_B);
@@ -235,21 +242,21 @@ bool Turn(int degrees)
 				Time_ClearTimer(timer_finish);
 			}
 			isFinishing = true;
+			nxtDisplayCenteredTextLine(2, "!!!!!");
 		} else {
 			isFinishing = false;
 		}
 
-		if (Time_GetTime(timer_finish) > finish_limit) {
+		if ((isFinishing == true)&&(Time_GetTime(timer_finish)>finish_limit)) {
 			isSuccess = true;
 			break;
 		}
-		if (Time_GetTime(timer_watchdog) > time_limit) {
-			isSuccess = false;
-			break;
-		}
+		//if ((isFinishing == false)&&(Time_GetTime(timer_watchdog)>time_limit)) {
+		//	isSuccess = false;
+		//	break;
+		//}
 
-		// WHY DOES THIS BREAK THINGS
-		//Time_Wait(2);
+		Time_Wait(2);
 	}
 
 	Motor_SetPower(0, motor_L);
@@ -410,12 +417,23 @@ task Display()
 				}
 				break;
 			case DISP_PID_ENCODERS :
-				nxtDisplayTextLine(0, "trgt:  %+6i", target_dist_disp);
-				nxtDisplayTextLine(1, "pos L: %+6i", pos_L_dist_disp);
-				nxtDisplayTextLine(2, "pos R: %+6i", pos_R_dist_disp);
+				nxtDisplayTextLine(0, "trgt : %+6i", target_dist_disp);
+				nxtDisplayTextLine(1, "pos L: %+6i", pos_dist_disp_L);
+				nxtDisplayTextLine(2, "pos R: %+6i", pos_dist_disp_R);
+				nxtDisplayTextLine(3, "error: %+6i", error_dist_disp);
+				nxtDisplayTextLine(4, "e_sum: %+6i", error_sum_dist_disp);
+				nxtDisplayTextLine(5, "power: %+6i", power_dist_disp);
+				nxtDisplayTextLine(6, "P    : %+6i", term_P_dist);
+				nxtDisplayTextLine(7, "I    : %+6i", term_I_dist);
 				break;
 			case DISP_PID_ANGLE :
-
+				nxtDisplayTextLine(0, "trgt : %+6i", target_angle_disp);
+				nxtDisplayTextLine(1, "angle: %+6i", curr_angle_disp);
+				nxtDisplayTextLine(3, "error: %+6i", error_angle_disp);
+				nxtDisplayTextLine(4, "e_sum: %+6i", error_sum_angle_disp);
+				nxtDisplayTextLine(5, "power: %+6i", power_angle_disp);
+				nxtDisplayTextLine(6, "P    : %+6i", term_P_angle);
+				nxtDisplayTextLine(7, "I    : %+6i", term_I_angle);
 				break;
 			default :
 				nxtDisplayCenteredTextLine(3, "Doesn't work...");
