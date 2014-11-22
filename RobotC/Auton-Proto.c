@@ -25,6 +25,13 @@ task Gyro();
 task PID();
 task Display();
 
+int timer_test = 0;
+
+bool DriveForward(int encoder_count);
+bool DriveBackward(int encoder_count);
+bool TurnLeft(int degrees);
+bool TurnRight(int degrees);
+
 bool Drive(int encoder_count);
 bool Turn(int degrees);
 
@@ -87,57 +94,90 @@ task main()
 	Joystick_WaitForStart();
 	Time_Wait(500);
 
+	//// Drive off of ramp (backward)
+	//Motor_SetPower(-100, motor_L);
+	//Motor_SetPower(-100, motor_R_B);
+	//Motor_SetPower(-100, motor_R_A);
+	//Time_Wait(1700);
+	//Motor_SetPower(0, motor_L);
+	//Motor_SetPower(0, motor_R_B);
+	//Motor_SetPower(0, motor_R_A);
+	//Time_Wait(500);
+	//int correction_turn = heading;
+	//TurnLeft(correction_turn);
+	//Motor_SetPower(10, motor_L);
+	//Motor_SetPower(10, motor_R_B);
+	//Motor_SetPower(10, motor_R_A);
+	//Time_Wait(500);
+	//Motor_SetPower(0, motor_L);
+	//Motor_SetPower(0, motor_R_B);
+	//Motor_SetPower(0, motor_R_A);
 
-	// Drive off of ramp (backward)
-	// Sense IR, determine position of center goal
-	Time_Wait(500);
-	HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
-	if (((IR_B+IR_C)>35) && (IR_B>15) && (IR_C>15)) {
-		centerGoalPos = CENTER_POS_3;
-	} else if (IR_B>25) {
-		centerGoalPos = CENTER_POS_2;
-	} else if ((IR_A + IR_B + IR_C)<10) {
-		centerGoalPos = CENTER_POS_1;
-	} // else it stays unknown.
+	//// Sense IR, determine position of center goal
+	//Time_Wait(500);
+	//HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
+	//if (((IR_B+IR_C)>35) && (IR_B>15) && (IR_C>15)) {
+	//	centerGoalPos = CENTER_POS_3;
+	//} else if (IR_B>25) {
+	//	centerGoalPos = CENTER_POS_2;
+	//} else if ((IR_A + IR_B + IR_C)<10) {
+	//	centerGoalPos = CENTER_POS_1;
+	//} // else it stays unknown.
 
 	// Drive backward, turn left, drive backward, turn right, drive backward
-	Drive(2000);
-	Turn(45);
+	DriveBackward(2400);
+	TurnLeft(45);
+	DriveBackward(3300);
+	TurnRight(90);
+	DriveBackward(3600);
 
-	// Raise lift (to tall goal height)
+	// Pick up goal
+	Motor_SetPower(100, motor_clamp_L);
+	Motor_SetPower(100, motor_clamp_R);
+	// Drive backward a bit
+	DriveBackward(900);
+	Time_Wait(2000);
+	Motor_SetPower(0, motor_clamp_L);
+	Motor_SetPower(0, motor_clamp_R);
+
+	// Raise lift (to tall goal height) and dump
 	lift_target = LIFT_HIGH;
+	Time_Wait(3000);
+	Servo_SetPosition(servo_dump, pos_dump_open);
+	Time_Wait(1500);
+	Servo_SetPosition(servo_dump, pos_dump_closed);
+	Time_Wait(800);
 
-	//// Pick up goal
-	//Motor_SetPower(100, motor_clamp_L);
-	//Motor_SetPower(100, motor_clamp_R);
-	//// drive forward a bit
-	//Motor_SetPower(100, motor_clamp_L);
-	//Motor_SetPower(100, motor_clamp_R);
-	//// wait for lift to raise
+	// Lower lift
+	lift_target = LIFT_BOTTOM;
 
-	//// Dump balls (or just small ball)
-	//// Lower lift
+	// Get ready
+	DriveForward(4000);
+	TurnLeft(45);
+	DriveForward(7000);
+	TurnRight(45);
+	DriveForward(4000);
 
-	//// The following depends on center goal position!
-	//switch (centerGoalPos) {
-	//	case CENTER_POS_UNKNOWN :
-	//		break;
-	//	case CENTER_POS_1 :
-	//		break;
-	//	case CENTER_POS_2 :
-	//		break;
-	//	case CENTER_POS_3 :
-	//		break;
-	//}
+	// The following depends on center goal position!
+	switch (centerGoalPos) {
+		case CENTER_POS_UNKNOWN :
+			break;
+		case CENTER_POS_1 :
+			break;
+		case CENTER_POS_2 :
+			break;
+		case CENTER_POS_3 :
+			break;
+	}
 
-	//// 	Drive forward, turn left, drive forward
-	//// 	Turn left, drive backward, turn right, drive backward
-	//// Raise lift (to center goal height)
-	//// Dump large ball
-	//// Drive forward, turn around (180)
+	// 	Drive forward, turn left, drive forward
+	// 	Turn left, drive backward, turn right, drive backward
+	// Raise lift (to center goal height)
+	// Dump large ball
+	// Drive forward, turn around (180)
 
-	//// Lower lift!!!
-	//lift_target = LIFT_BOTTOM;
+	// Lower lift!!!
+	lift_target = LIFT_BOTTOM;
 	while (true) {
 		PlaySound(soundUpwardTones);
 		Time_Wait(1000);
@@ -162,16 +202,16 @@ bool Drive(int encoder_count)
 	Time_ClearTimer(timer_watchdog);
 	const float watchdog_encoder_rate = 1.736;
 	const float watchdog_base = 2000.0;
-	int time_limit = (int)round((float)encoder_count*watchdog_encoder_rate+watchdog_base);
-	const int acceptable_error = 40;
+	int time_limit = (int)round((float)abs(encoder_count*watchdog_encoder_rate)+watchdog_base);
+	const int acceptable_error = 250;
 
-	const int finish_limit = 1250; // msec
+	const int finish_limit = 750; // msec
 	bool isFinishing = false;
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 0.0048;
-	const float kI = 0.0029;
+	const float kP = 0.0133;
+	const float kI = 0.0047;
 	const float I_term_decay_rate = 0.91;
 
 	int count_init_L = Motor_GetEncoder(encoder_L);
@@ -201,9 +241,9 @@ bool Drive(int encoder_count)
 		error_sum_R += error_R;
 		power_L = kP*error_L + kI*error_sum_L;
 		power_R = kP*error_R + kI*error_sum_R;
-		power_L = Math_Limit(power_L, 70);
-		power_R = Math_Limit(power_R, 70);
-		int power_final = (power_L+power_R)/2.0;
+		power_L = Math_Limit(power_L, 40);
+		power_R = Math_Limit(power_R, 40);
+		int power_final = (int)round((power_L+power_R)/2.0);
 		power_L = power_final;
 		power_R = power_final;
 
@@ -213,9 +253,9 @@ bool Drive(int encoder_count)
 		error_sum_dist_disp = (error_sum_L+error_sum_R)/2.0;
 		power_dist_disp = (float)power_final;
 
-		Motor_SetPower((int)round(power_L), motor_L);
-		Motor_SetPower((int)round(power_R), motor_R_A);
-		Motor_SetPower((int)round(power_R), motor_R_B);
+		Motor_SetPower(power_L, motor_L);
+		Motor_SetPower(power_R, motor_R_A);
+		Motor_SetPower(power_R, motor_R_B);
 
 		if ((abs(error_L)<acceptable_error) && (abs(error_R)<acceptable_error)) {
 			if (isFinishing == false) {
@@ -255,16 +295,16 @@ bool Turn(int degrees)
 	Time_ClearTimer(timer_watchdog);
 	const float watchdog_degree_rate = 0.0139;
 	const float watchdog_base = 1800.0;
-	int time_limit = (int)round((float)degrees*watchdog_degree_rate+watchdog_base);
+	int time_limit = (int)round((float)abs(degrees)*watchdog_degree_rate+watchdog_base);
 	const float acceptable_error = 1.0;
 
-	const int finish_limit = 750; // msec
+	const int finish_limit = 1250; // msec
 	bool isFinishing = false;
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 3.5;
-	const float kI = 0.05;
+	const float kP = 6.9;
+	const float kI = 0.12;
 	const float I_term_decay_rate = 0.91;
 
 	float heading_init = heading;
@@ -285,13 +325,14 @@ bool Turn(int degrees)
 		power = kP_var*error + kI_var*error_sum;
 		power = Math_Limit(power, 70.0);
 
-		int power_L = -1 * (int)round(power);
+		int power_L = (int)round(power);
+		power_L *= -1;
 		int power_R = (int)round(power);
 
 		curr_angle_disp = heading_curr;
 		error_angle_disp = error;
 		error_sum_angle_disp = error_sum;
-		power_angle_disp = power;
+		power_angle_disp = power_R;
 
 		Motor_SetPower(power_L, motor_L);
 		Motor_SetPower(power_R, motor_R_A);
@@ -302,7 +343,6 @@ bool Turn(int degrees)
 				Time_ClearTimer(timer_finish);
 			}
 			isFinishing = true;
-			nxtDisplayCenteredTextLine(2, "!!!!!");
 		} else {
 			isFinishing = false;
 		}
@@ -324,6 +364,25 @@ bool Turn(int degrees)
 	Motor_SetPower(0, motor_R_B);
 
 	return isSuccess;
+}
+
+bool DriveForward(int encoder_count)
+{
+	int temp_count = encoder_count * -1;
+	return Drive(temp_count);
+}
+bool DriveBackward(int encoder_count)
+{
+	return Drive(encoder_count);
+}
+bool TurnLeft(int degrees)
+{
+	int temp_degrees = degrees * -1;
+	return Turn(temp_degrees);
+}
+bool TurnRight(int degrees)
+{
+	return Turn(degrees);
 }
 
 task Gyro()
@@ -492,6 +551,7 @@ task Display()
 			case DISP_PID_ANGLE :
 				nxtDisplayTextLine(0, "trgt : %+6i", target_angle_disp);
 				nxtDisplayTextLine(1, "angle: %+6i", curr_angle_disp);
+				nxtDisplayTextLine(2, "%+6i", timer_test);
 				nxtDisplayTextLine(3, "error: %+6i", error_angle_disp);
 				nxtDisplayTextLine(4, "e_sum: %+6i", error_sum_angle_disp);
 				nxtDisplayTextLine(5, "power: %+6i", power_angle_disp);
