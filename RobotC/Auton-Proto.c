@@ -25,8 +25,6 @@ task Gyro();
 task PID();
 task Display();
 
-int timer_test = 0;
-
 bool DriveForward(int encoder_count);
 bool DriveBackward(int encoder_count);
 bool TurnLeft(int degrees);
@@ -94,7 +92,13 @@ task main()
 	Joystick_WaitForStart();
 	Time_Wait(500);
 
-	// Drive off of ramp (backward)
+	// Drive off ramp (backwards):
+	// This portion is mostly wizardry. First we drive off the ramp at full speed
+	// to minimize the amount of time spent in an unbalanced position, then stop
+	// just short of completely flattening out at the bottom of the ramp. Then we
+	// attempt to make sure our robot is oriented correctly by turning until our
+	// gyro reads that our angle is 0. Finally we back up at very low power to make
+	// sure we're just barely off the ramp.
 	Motor_SetPower(-100, motor_L);
 	Motor_SetPower(-100, motor_R_B);
 	Motor_SetPower(-100, motor_R_A);
@@ -113,7 +117,10 @@ task main()
 	Motor_SetPower(0, motor_R_B);
 	Motor_SetPower(0, motor_R_A);
 
-	// Sense IR, determine position of center goal
+	// Sense IR, determine position of center goal:
+	// Due to the way the IR beacons are placed, if the signals from the two (R/B)
+	// beacons add linearly, we can determine the position of the center goal
+	// solely by aggregating the readings from each region.
 	Time_Wait(500);
 	HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
 	if (((IR_B+IR_C)>35) && (IR_B>15) && (IR_C>15)) {
@@ -122,43 +129,65 @@ task main()
 		centerGoalPos = CENTER_POS_2;
 	} else if ((IR_A + IR_B + IR_C)<10) {
 		centerGoalPos = CENTER_POS_1;
-	} // else it stays unknown.
+	} // else the center position stays unknown.
 
-	// Drive backward, turn left, drive backward, turn right, drive backward
+	// Move into position to pick up rolling goal:
+	// The first drive command moves us about flush with the tile just before the
+	// medium rolling goal (going off memory here; I may be completely off).
+	// The second drive command moves us back far enough so that we line up with
+	// the tall rolling goal when we go to retrieve it.
+	// 		-->		NOTE: this is probably the number you need to fix!!
+	// We then drive backwards. Make sure to leave some space for PID to overshoot
+	// and still not bump the goal (that moves it farther away from us).
 	DriveBackward(2400);
 	TurnLeft(45);
-	DriveBackward(3300);
+	DriveBackward(3300);	// <-- That's the one!
 	TurnRight(90);
 	DriveBackward(3600);
 
-	// Pick up goal
+	// Pick up goal:
+	// Start both the clamp motors, drive backward a bit, wait a bit to make sure
+	// we're clamped on solidly, then turn off the clamp motors.
 	Motor_SetPower(100, motor_clamp_L);
 	Motor_SetPower(100, motor_clamp_R);
-	// Drive backward a bit
 	DriveBackward(900);
-	Time_Wait(2000);
+	Time_Wait(1600);
 	Motor_SetPower(0, motor_clamp_L);
 	Motor_SetPower(0, motor_clamp_R);
 
-	// Raise lift (to tall goal height) and dump
+	// Raise lift and dump balls:
+	// We want to be safe and keep our center of gravity low for as long as possible,
+	// so only raise lift now. We're giving it a delay to get to the top, then giving
+	// the dumping servo plenty of time to dump the balls *and* close so that it
+	// doesn't get caught on the ball tube as the lift lowers.
 	lift_target = LIFT_HIGH;
 	Time_Wait(3000);
 	Servo_SetPosition(servo_dump, pos_dump_open);
-	Time_Wait(1500);
+	Time_Wait(1600);
 	Servo_SetPosition(servo_dump, pos_dump_closed);
 	Time_Wait(800);
 
-	// Lower lift
+	// Lower lift.
 	lift_target = LIFT_BOTTOM;
 
-	// Get ready
+	// Tow the goal back to the parking zone:
+	// The first drive statement determines how close the robot drives to the ramp and
+	// the center goal. In one of the positions the robot drives very close to the
+	// center goal (when the kickstands face the parking zones) because there isn't a
+	// lot of clearance. However, it is more dangerous to drive close to the ramp,
+	// since there is the risk of turning and having the goal knocked out of the clamp.
+	// Then we drive back far enough to line ourselves up with the parking zone,
+	// then turn and enter the zone with the rolling goal in the back. (It only needs
+	// to be partially inside the zone.) Moving too far does have the risk of burning
+	// out motors, since the watchdog kicks in after a sizeable delay.
 	DriveForward(4500);
 	TurnLeft(45);
 	DriveForward(7000);
 	TurnRight(45);
 	DriveForward(4000);
 
-	// The following depends on center goal position!
+	// Take different routes depending on center goal position:
+	// (Currently this does nothing.)
 	switch (centerGoalPos) {
 		case CENTER_POS_UNKNOWN :
 			break;
@@ -170,26 +199,14 @@ task main()
 			break;
 	}
 
-	// 	Drive forward, turn left, drive forward
-	// 	Turn left, drive backward, turn right, drive backward
-	// Raise lift (to center goal height)
-	// Dump large ball
-	// Drive forward, turn around (180)
-
-	// Lower lift!!!
+	// Lower lift:
+	// We need to be extra sure that the lift lowers completely. Do NOT get rid
+	// of the delay at the end!
 	lift_target = LIFT_BOTTOM;
 	while (true) {
 		PlaySound(soundUpwardTones);
 		Time_Wait(1000);
 	}
-	//while (test) {
-	//	PlaySound(soundBeepBeep);
-	//	Time_Wait(1000);
-	//}
-	//while (!test) {
-	//	PlaySound(soundLowBuzz);
-	//	Time_Wait(1000);
-	//}
 }
 
 bool Drive(int encoder_count)
@@ -498,9 +515,6 @@ task Display()
 
 	// We don't need to wait for start. ;)
 
-	// TODO: DELETE
-	isMode = DISP_PID_ANGLE;
-
 	while (true) {
 		Buttons_UpdateData();
 
@@ -551,7 +565,6 @@ task Display()
 			case DISP_PID_ANGLE :
 				nxtDisplayTextLine(0, "trgt : %+6i", target_angle_disp);
 				nxtDisplayTextLine(1, "angle: %+6i", curr_angle_disp);
-				nxtDisplayTextLine(2, "%+6i", timer_test);
 				nxtDisplayTextLine(3, "error: %+6i", error_angle_disp);
 				nxtDisplayTextLine(4, "e_sum: %+6i", error_sum_angle_disp);
 				nxtDisplayTextLine(5, "power: %+6i", power_angle_disp);
