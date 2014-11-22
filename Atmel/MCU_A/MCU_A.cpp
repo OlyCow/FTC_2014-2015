@@ -101,8 +101,8 @@ int main()
 	resync_spi();
 	isReadySPI = true;
 	
-	// FOR SOME REASON THIS LINE BREAKS THINGS :(
-	//sei(); // ready to go.
+	// NOTE: FOR SOME REASON THIS LINE BREAKS THINGS :(
+	sei(); // ready to go.
 
 	while (true) {
 		++RGB_counter;
@@ -134,7 +134,11 @@ int main()
 		t_Z_low = req_data(SPI_REQ_Z_HIGH);
 		t_Z_high = req_data(SPI_REQ_XY_LOW);
 		t_XY_low = req_data(SPI_REQ_XY_HIGH);
-		t_XY_high = req_data(SPI_TRANSMIT_OVER);
+		t_XY_high = req_data(SPI_REQ_BUMP_MAP);
+		t_bump_map = req_data(SPI_REQ_OVERHEAT_ALERT);
+		t_overheat_alert = req_data(SPI_REQ_OVERHEAT_MAP);
+		t_overheat_map = req_data(SPI_REQ_IR_ALERT);
+		t_IR_alert = req_data(SPI_TRANSMIT_OVER);
 		
 		set_SPI_mux(MUX_2);
 		_delay_us(MAGIC_MUX_SWITCH_DELAY);
@@ -284,7 +288,8 @@ void initialize_io()
 
 void initialize_spi()
 {
-	SPCR |= 1<<SPIE; // Enable SPI interrupts
+	// NOTE: Enabling this seems to kill things.
+	//SPCR |= 1<<SPIE; // Enable SPI interrupts
 	SPCR |= 0<<DORD; // MSB transmitted first
 	SPCR |= 1<<MSTR; // master mode
 	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
