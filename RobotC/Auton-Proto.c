@@ -94,35 +94,35 @@ task main()
 	Joystick_WaitForStart();
 	Time_Wait(500);
 
-	//// Drive off of ramp (backward)
-	//Motor_SetPower(-100, motor_L);
-	//Motor_SetPower(-100, motor_R_B);
-	//Motor_SetPower(-100, motor_R_A);
-	//Time_Wait(1700);
-	//Motor_SetPower(0, motor_L);
-	//Motor_SetPower(0, motor_R_B);
-	//Motor_SetPower(0, motor_R_A);
-	//Time_Wait(500);
-	//int correction_turn = heading;
-	//TurnLeft(correction_turn);
-	//Motor_SetPower(10, motor_L);
-	//Motor_SetPower(10, motor_R_B);
-	//Motor_SetPower(10, motor_R_A);
-	//Time_Wait(500);
-	//Motor_SetPower(0, motor_L);
-	//Motor_SetPower(0, motor_R_B);
-	//Motor_SetPower(0, motor_R_A);
+	// Drive off of ramp (backward)
+	Motor_SetPower(-100, motor_L);
+	Motor_SetPower(-100, motor_R_B);
+	Motor_SetPower(-100, motor_R_A);
+	Time_Wait(1700);
+	Motor_SetPower(0, motor_L);
+	Motor_SetPower(0, motor_R_B);
+	Motor_SetPower(0, motor_R_A);
+	Time_Wait(500);
+	int correction_turn = heading;
+	TurnLeft(correction_turn);
+	Motor_SetPower(10, motor_L);
+	Motor_SetPower(10, motor_R_B);
+	Motor_SetPower(10, motor_R_A);
+	Time_Wait(500);
+	Motor_SetPower(0, motor_L);
+	Motor_SetPower(0, motor_R_B);
+	Motor_SetPower(0, motor_R_A);
 
-	//// Sense IR, determine position of center goal
-	//Time_Wait(500);
-	//HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
-	//if (((IR_B+IR_C)>35) && (IR_B>15) && (IR_C>15)) {
-	//	centerGoalPos = CENTER_POS_3;
-	//} else if (IR_B>25) {
-	//	centerGoalPos = CENTER_POS_2;
-	//} else if ((IR_A + IR_B + IR_C)<10) {
-	//	centerGoalPos = CENTER_POS_1;
-	//} // else it stays unknown.
+	// Sense IR, determine position of center goal
+	Time_Wait(500);
+	HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
+	if (((IR_B+IR_C)>35) && (IR_B>15) && (IR_C>15)) {
+		centerGoalPos = CENTER_POS_3;
+	} else if (IR_B>25) {
+		centerGoalPos = CENTER_POS_2;
+	} else if ((IR_A + IR_B + IR_C)<10) {
+		centerGoalPos = CENTER_POS_1;
+	} // else it stays unknown.
 
 	// Drive backward, turn left, drive backward, turn right, drive backward
 	DriveBackward(2400);
@@ -152,7 +152,7 @@ task main()
 	lift_target = LIFT_BOTTOM;
 
 	// Get ready
-	DriveForward(4000);
+	DriveForward(4500);
 	TurnLeft(45);
 	DriveForward(7000);
 	TurnRight(45);
