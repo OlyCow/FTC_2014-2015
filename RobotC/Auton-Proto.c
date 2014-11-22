@@ -515,9 +515,6 @@ task Display()
 
 	// We don't need to wait for start. ;)
 
-	// TODO: DELETE
-	isMode = DISP_PID_ANGLE;
-
 	while (true) {
 		Buttons_UpdateData();
 
