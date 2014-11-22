@@ -1,6 +1,6 @@
 #pragma config(Hubs,  S1, HTServo,  HTMotor,  HTMotor,  HTMotor)
 #pragma config(Sensor, S2,     sensor_IR,      sensorI2CCustom)
-#pragma config(Sensor, S3,     sensor_light,   sensorLightActive)
+#pragma config(Sensor, S3,     sensor_color,   sensorCOLORFULL)
 #pragma config(Sensor, S4,     sensor_gyro,    sensorAnalogInactive)
 #pragma config(Motor,  motorA,          motor_assist,  tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
@@ -126,7 +126,7 @@ task main()
 			lift_target = LIFT_HIGH;
 		}
 
-		light_intensity = SensorValue[sensor_light];
+		light_intensity = SensorValue[sensor_color];
 		HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
 
 		Motor_SetPower(power_L, motor_L);
@@ -138,16 +138,18 @@ task main()
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
 		Servo_SetPosition(servo_dump, dump_position);
+
+		Time_Wait(15);
 	}
 }
 
 task PID()
 {
-	const float kP_up = 0.12;
-	const float kI_up = 0.06;
+	const float kP_up = 0.083;
+	const float kI_up = 0.011;
 	const float kD_up = 0.0;
-	const float kP_down = 0.10;
-	const float kI_down = 0.07;
+	const float kP_down = 0.079;
+	const float kI_down = 0.008;
 	const float kD_down = 0.0;
 	const float I_term_decay_rate = 0.8;
 
@@ -185,8 +187,8 @@ task PID()
 				isDown = true;
 			}
 			error_sum *= I_term_decay_rate;
-			error_sum += error * (int)dt;
-			error_rate = (error - error_prev) / (int)dt;
+			error_sum += error * (float)dt;
+			error_rate = (error - error_prev) / (float)dt;
 
 			term_P = error;
 			term_I = error_sum;
@@ -214,6 +216,8 @@ task PID()
 
 		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
+
+		Time_Wait(2);
 	}
 }
 
