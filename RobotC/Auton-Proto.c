@@ -89,6 +89,8 @@ task main()
 	Task_Spawn(PID);
 	Task_Spawn(Display);
 
+	Servo_SetPosition(servo_dump, pos_dump_closed);
+
 	Joystick_WaitForStart();
 	Time_Wait(500);
 
@@ -141,7 +143,7 @@ task main()
 	// and still not bump the goal (that moves it farther away from us).
 	DriveBackward(2400);
 	TurnLeft(45);
-	DriveBackward(3300);	// <-- That's the one!
+	DriveBackward(3000);	// <-- That's the one!
 	TurnRight(90);
 	DriveBackward(3600);
 
