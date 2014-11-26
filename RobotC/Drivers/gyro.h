@@ -52,21 +52,21 @@ float HTGYROstartCal(tSensors link) {
 	}
 
 	long _avgdata = 0;
-	hogCPU();
+	//hogCPU(); // dangerous
 	wait1Msec(100); // Give the gyro time to initialize.
 	int temp_reading = SensorValue[link]; // Flush out bad readings.
 
-	// Take 50 readings and average them out.
+	// Take 20 readings and average them out.
 	// NOTE: When changing limits on `i`, make sure to change
 	// the number `_avgdata` is averaged by as well!
-	for (int i=0; i<50; i++) {
+	for (int i=0; i<20; i++) {
 		_avgdata += SensorValue[link];
 		wait1Msec(5);
 	}
-	releaseCPU();
+	//releaseCPU(); // dangerous
 
 	// Store & return new offset value.
-	HTGYRO_offsets[link][0] = (float)_avgdata/50.0;
+	HTGYRO_offsets[link][0] = (float)_avgdata/20.0;
 	return HTGYRO_offsets[link][0];
 }
 

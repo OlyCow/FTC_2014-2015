@@ -12,8 +12,8 @@
 #pragma config(Motor,  mtr_S1_C4_1,     motor_R_A,     tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_2,     motor_R_B,     tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Servo,  srvo_S1_C1_1,    servo_dump,           tServoStandard)
-#pragma config(Servo,  srvo_S1_C1_2,    servo2,               tServoNone)
-#pragma config(Servo,  srvo_S1_C1_3,    servo3,               tServoNone)
+#pragma config(Servo,  srvo_S1_C1_2,    servo_test_A,         tServoStandard)
+#pragma config(Servo,  srvo_S1_C1_3,    servo_test_B,         tServoStandard)
 #pragma config(Servo,  srvo_S1_C1_4,    servo4,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_5,    servo5,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_6,    servo6,               tServoNone)
@@ -63,6 +63,10 @@ task main()
 	Joystick_WaitForStart();
 
 	while (true) {
+		int pos = 40;
+		Servo_SetPosition(servo_test_A, 128+pos);
+		Servo_SetPosition(servo_test_B, 128-pos);
+
 		Joystick_UpdateData();
 
 		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_1);
