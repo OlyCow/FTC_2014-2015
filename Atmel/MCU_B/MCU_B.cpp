@@ -705,7 +705,7 @@ void initialize_spi()
 	SPCR |= 1<<SPIE; // Enable SPI interrupts
 	SPCR |= 0<<DORD; // MSB transmitted first
 	SPCR |= 0<<MSTR; // slave mode
-	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
+	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent across all MCUs
 	SPCR |= 1<<SPE; // Enable SPI
 	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
 	
