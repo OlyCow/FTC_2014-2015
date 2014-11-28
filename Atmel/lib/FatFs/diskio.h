@@ -42,7 +42,7 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 #define STA_PROTECT		0x04	/* Write protected */
 
 
-/* Command code for disk_ioctrl fucntion */
+/* Command code for disk_ioctrl function */
 
 /* Generic command (used by FatFs) */
 #define CTRL_SYNC			0	/* Flush disk cache (for write functions) */
