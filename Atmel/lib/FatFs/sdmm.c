@@ -34,23 +34,23 @@
 /* Platform dependent macros and functions needed to be modified           */
 /*-------------------------------------------------------------------------*/
 
-#include <avr/io.h>			/* Include device specific declareation file here */
+#include <avr/io.h>			/* Include device specific declaration file here */
 
 
-#define DO_INIT()					/* Initialize port for MMC DO as input */
-#define DO			(PINB &	0x01)	/* Test for MMC DO ('H':true, 'L':false) */
+#define DO_INIT()	PORTB &= ~(1<<PORTB4)	/* Initialize port for MMC DO as input */
+#define DO			(PINB &	(1<<PORTB4))	/* Test for MMC DO ('H':true, 'L':false) */
 
-#define DI_INIT()	DDRB  |= 0x02	/* Initialize port for MMC DI as output */
-#define DI_H()		PORTB |= 0x02	/* Set MMC DI "high" */
-#define DI_L()		PORTB &= 0xFD	/* Set MMC DI "low" */
+#define DI_INIT()	DDRB  |= 1<<PORTB3		/* Initialize port for MMC DI as output */
+#define DI_H()		PORTB |= 1<<PORTB3		/* Set MMC DI "high" */
+#define DI_L()		PORTB &= ~(1<<PORTB3)	/* Set MMC DI "low" */
 
-#define CK_INIT()	DDRB  |= 0x04	/* Initialize port for MMC SCLK as output */
-#define CK_H()		PORTB |= 0x04	/* Set MMC SCLK "high" */
-#define	CK_L()		PORTB &= 0xFB	/* Set MMC SCLK "low" */
+#define CK_INIT()	DDRB  |= 1<<PORTB5		/* Initialize port for MMC SCLK as output */
+#define CK_H()		PORTB |= 1<<PORTB5		/* Set MMC SCLK "high" */
+#define	CK_L()		PORTB &= ~(1<<PORTB2)	/* Set MMC SCLK "low" */
 
-#define CS_INIT()	DDRB  |= 0x08	/* Initialize port for MMC CS as output */
-#define	CS_H()		PORTB |= 0x08	/* Set MMC CS "high" */
-#define CS_L()		PORTB &= 0xF7	/* Set MMC CS "low" */
+#define CS_INIT()	DDRB  |= 1<<PORTB2		/* Initialize port for MMC CS as output */
+#define	CS_H()		PORTB |= 1<<PORTB2		/* Set MMC CS "high" */
+#define CS_L()		PORTB &= ~(1<<PORTB2)	/* Set MMC CS "low" */
 
 
 static
