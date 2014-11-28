@@ -563,4 +563,4 @@ DRESULT disk_ioctl (
 	return res;
 }
 
-
+DWORD get_fattime (void) { return 0; }
