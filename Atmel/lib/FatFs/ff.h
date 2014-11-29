@@ -14,7 +14,7 @@
 /
 /----------------------------------------------------------------------------*/
 
-#define F_CPU 8000000UL
+//#define F_CPU 8000000UL
 
 #ifndef _FATFS
 #define _FATFS	8051	/* Revision ID */

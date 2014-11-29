@@ -26,7 +26,7 @@
 
 /-------------------------------------------------------------------------*/
 
-#define F_CPU  8000000UL
+//#define F_CPU  8000000UL
 
 #include "diskio.h"		/* Common include file for FatFs and disk I/O layer */
 
