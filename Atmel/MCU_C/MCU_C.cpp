@@ -65,6 +65,8 @@ int main()
 	uint8_t buffer = 0x00;
 	FRESULT result;
 	unsigned int bw;
+
+	_delay_ms(100);
 	
 	result = f_mount(&FatFs, "", 0);
 	switch (result) {
