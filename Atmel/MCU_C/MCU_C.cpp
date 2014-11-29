@@ -56,6 +56,11 @@ void initialize_pcint();
 
 int main()
 {
+	initialize_io();
+	initialize_adc();
+	initialize_spi();
+	initialize_pcint();
+
 	unsigned int bw;
 	f_mount(&FatFs, "", 0);
 	f_open(&Fil, "hello.txt", FA_WRITE | FA_CREATE_ALWAYS);
@@ -154,12 +159,12 @@ void initialize_adc()
 
 void initialize_spi()
 {
-	SPCR |= 1<<SPIE; // Enable SPI interrupts
+	//SPCR |= 1<<SPIE; // Enable SPI interrupts
 	SPCR |= 0<<DORD; // MSB transmitted first
 	//SPCR |= 0<<MSTR; // slave mode
 	SPCR |= 1<<MSTR; // master mode
 	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent across all MCUs
-	SPCR |= 1<<SPE; // Enable SPI
+	//SPCR |= 1<<SPE; // Enable SPI
 	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
 	
 	SPDR = SPI_ACK_READY; // Means we're ready to receive data.
