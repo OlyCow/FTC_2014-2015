@@ -186,6 +186,33 @@ int main()
 	eeprom_write_byte(eeprom_pointer, buffer);
 	eeprom_pointer++;
 
+	result = f_sync(&Fil);
+	switch (result) {
+		case FR_OK :
+			buffer = 0xCE;
+			break;
+		case FR_DISK_ERR :
+			buffer = 0x2B;
+			break;
+		case FR_INT_ERR :
+			buffer = 0xD0;
+			break;
+		case FR_NOT_READY :
+			buffer = 0x71;
+			break;
+		case FR_INVALID_OBJECT :
+			buffer = 0x7C;
+			break;
+		case FR_TIMEOUT :
+			buffer = 0x8F;
+			break;
+		default :
+			buffer = 0xA1;
+			break;
+	}
+	eeprom_write_byte(eeprom_pointer, buffer);
+	eeprom_pointer++;
+
 	result = f_close(&Fil);
 	switch (result) {
 		case FR_OK :
