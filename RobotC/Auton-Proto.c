@@ -85,9 +85,11 @@ task main()
 
 	HTIRS2setDSPMode(sensor_IR, DSP_1200);
 
+	Task_Spawn(Display);
 	Task_Spawn(Gyro);
 	Task_Spawn(PID);
-	Task_Spawn(Display);
+
+	Servo_SetPosition(servo_dump, pos_dump_closed);
 
 	Joystick_WaitForStart();
 	Time_Wait(500);
@@ -99,10 +101,11 @@ task main()
 	// attempt to make sure our robot is oriented correctly by turning until our
 	// gyro reads that our angle is 0. Finally we back up at very low power to make
 	// sure we're just barely off the ramp.
-	Motor_SetPower(-100, motor_L);
-	Motor_SetPower(-100, motor_R_B);
-	Motor_SetPower(-100, motor_R_A);
-	Time_Wait(1700);
+	int ramp_power = -30;
+	Motor_SetPower(ramp_power, motor_L);
+	Motor_SetPower(ramp_power, motor_R_B);
+	Motor_SetPower(ramp_power, motor_R_A);
+	Time_Wait(3000);
 	Motor_SetPower(0, motor_L);
 	Motor_SetPower(0, motor_R_B);
 	Motor_SetPower(0, motor_R_A);
@@ -141,7 +144,7 @@ task main()
 	// and still not bump the goal (that moves it farther away from us).
 	DriveBackward(2400);
 	TurnLeft(45);
-	DriveBackward(3300);	// <-- That's the one!
+	DriveBackward(3000);	// <-- That's the one!
 	TurnRight(90);
 	DriveBackward(3600);
 
@@ -321,8 +324,8 @@ bool Turn(int degrees)
 	Time_ClearTimer(timer_finish);
 
 	const float kP = 6.9;
-	const float kI = 0.12;
-	const float I_term_decay_rate = 0.91;
+	const float kI = 0.15;
+	const float I_term_decay_rate = 0.94;
 
 	float heading_init = heading;
 	float heading_curr = heading;
@@ -410,6 +413,7 @@ task Gyro()
 	float dt = 0.0;
 	int timer_gyro = 0;
 	Time_ClearTimer(timer_gyro);
+
 	while (true) {
 		vel_prev = vel_curr;
 		dt = (float)Time_GetTime(timer_gyro)/(float)1000.0; // msec to sec
