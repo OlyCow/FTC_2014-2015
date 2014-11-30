@@ -3,7 +3,7 @@
 #include <math.h>
 #include <avr/io.h>
 #ifndef F_CPU
-#define F_CPU 8000000UL
+#define F_CPU 1000000UL
 #endif // F_CPU
 // WARNING: If you change F_CPU, you must also change:
 // * ADC TIMER PRESCALER
@@ -56,15 +56,19 @@ void initialize_pcint();
 
 int main()
 {
-	initialize_io();
-	initialize_adc();
-	initialize_spi();
-	initialize_pcint();
+	//initialize_io();
+	//initialize_adc();
+	//initialize_spi();
+	//initialize_pcint();
 	
 	uint8_t* eeprom_pointer = reinterpret_cast<uint8_t*>(0x00);
-	uint8_t buffer = 0x00;
+	uint8_t buffer = 0xFF;
 	FRESULT result;
 	unsigned int bw;
+	//while (buffer == 0xFF) {
+		//buffer = eeprom_read_byte(eeprom_pointer);
+		//eeprom_pointer += 6;
+	//}
 
 	_delay_ms(100);
 	
