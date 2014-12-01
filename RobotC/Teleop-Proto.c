@@ -143,6 +143,10 @@ task main()
 
 		Servo_SetPosition(servo_dump, dump_position);
 
+		if (Motor_GetPower(power_lift)<0) {
+			Motor_SetPower(-100, motor_assist);
+		}
+
 		Time_Wait(15);
 	}
 }
