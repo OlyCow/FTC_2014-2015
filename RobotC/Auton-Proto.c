@@ -21,6 +21,8 @@
 #include "includes.h"
 #include "proto.h"
 
+// This autonomous program
+
 task Gyro();
 task PID();
 task Display();
@@ -78,6 +80,10 @@ task main()
 	} CenterGoalPos;
 
 	CenterGoalPos centerGoalPos = CENTER_POS_UNKNOWN;
+	bool isRed = false;
+	bool isBlue = false;
+	bool isUnknown = true;
+	int color_threshold = 0;
 
 	Motor_ResetEncoder(encoder_L);
 	Motor_ResetEncoder(encoder_R);
@@ -94,24 +100,64 @@ task main()
 	Joystick_WaitForStart();
 	Time_Wait(500);
 
+	// Determine color of ramp:
+	// Currently unbelievably complicated. Could probably be alleviated by using
+	// an enum. Whatever. Still need to figure out what happens if data conflicts.
+	SensorType[sensor_color] = sensorCOLORRED;
+	if (SensorValue[sensor_color]>=detected_red) {
+		isRed = true;
+	}
+	SensorType[sensor_color] = sensorCOLORBLUE;
+	if (SensorValue[sensor_color]>=detected_blue) {
+		isBlue = true;
+	}
+	if (isRed==isBlue) {
+		isUnknown = true;
+	}
+	if (!isUnknown) {
+		if (isRed) {
+			color_threshold = detected_red;
+		} else {
+			color_threshold = detected_blue;
+		}
+	}
+
 	// Drive off ramp (backwards):
-	// This portion is mostly wizardry. First we drive off the ramp at full speed
-	// to minimize the amount of time spent in an unbalanced position, then stop
-	// just short of completely flattening out at the bottom of the ramp. Then we
-	// attempt to make sure our robot is oriented correctly by turning until our
-	// gyro reads that our angle is 0. Finally we back up at very low power to make
-	// sure we're just barely off the ramp.
-	int ramp_power = -30;
+	// This portion is mostly wizardry (heuristic). First we drive off the ramp at
+	// full speed to minimize the amount of time spent in an unbalanced position,
+	// then slow down for the ramped portion of the ramp, and stop moving forward
+	// when the color sensor determines that we are just off of the ramp.
+	int ramp_power = -100;
 	Motor_SetPower(ramp_power, motor_L);
 	Motor_SetPower(ramp_power, motor_R_B);
 	Motor_SetPower(ramp_power, motor_R_A);
-	Time_Wait(3000);
+	Time_Wait(1400);
+	ramp_power = -30;
+	Motor_SetPower(ramp_power, motor_L);
+	Motor_SetPower(ramp_power, motor_R_B);
+	Motor_SetPower(ramp_power, motor_R_A);
+	Time_Wait(1800);
+	// TODO: WHAT HAPPENS HERE??? DETECT COLOR CHANGE OR SOMETHING?
 	Motor_SetPower(0, motor_L);
 	Motor_SetPower(0, motor_R_B);
 	Motor_SetPower(0, motor_R_A);
 	Time_Wait(500);
+
+	// Correct the heading of the robot:
+	// After coming off the ramp the robot will (probably) be at an angle. As
+	// as the robot isn't stranded on the ramp, the displacement should be small
+	// enough such that we can correct it and still be reasonably close to being
+	// on the correct path.
+	// We correct the heading by turning the robot until the gyro reads that our
+	// angle is 0 again. This may not work 100% because the gyro might mess up
+	// the angle readings when pitch and roll aren't 0.
 	int correction_turn = heading;
 	TurnLeft(correction_turn);
+
+	// Back up to bottom of ramp:
+	// Apply just enough power to move backwards but not enough to drive the
+	// robot back up the ramp. This makes doubly sure that the robot is in a
+	// determined location (since we're aligning the robot up against the ramp).
 	Motor_SetPower(10, motor_L);
 	Motor_SetPower(10, motor_R_B);
 	Motor_SetPower(10, motor_R_A);
@@ -138,13 +184,12 @@ task main()
 	// The first drive command moves us about flush with the tile just before the
 	// medium rolling goal (going off memory here; I may be completely off).
 	// The second drive command moves us back far enough so that we line up with
-	// the tall rolling goal when we go to retrieve it.
-	// 		-->		NOTE: this is probably the number you need to fix!!
-	// We then drive backwards. Make sure to leave some space for PID to overshoot
-	// and still not bump the goal (that moves it farther away from us).
+	// the tall rolling goal when we go to retrieve it. We then drive backwards.
+	// We make sure to leave some space for PID to overshoot and still not bump
+	// the goal (such that moves it farther from us).
 	DriveBackward(2400);
 	TurnLeft(45);
-	DriveBackward(3000);	// <-- That's the one!
+	DriveBackward(3000);
 	TurnRight(90);
 	DriveBackward(3600);
 
