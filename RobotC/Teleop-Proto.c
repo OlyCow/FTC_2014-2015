@@ -25,6 +25,7 @@ task PID();
 task Display();
 
 int heading = 0;
+int lift_pos = 0;
 int lift_target = 0;
 int power_lift = 0;
 int power_lift_temp = 0;
@@ -73,12 +74,12 @@ task main()
 		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_1);
 		power_lift_temp = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_2);
 
-		int current_pos = Motor_GetEncoder(encoder_lift);
-		if (current_pos<LIFT_BOTTOM) {
+		lift_pos = Motor_GetEncoder(encoder_lift);
+		if (lift_pos<LIFT_BOTTOM) {
 			if (power_lift_temp<0) {
 				power_lift_temp = 0;
 			}
-		} else if (current_pos>LIFT_TOP) {
+		} else if (lift_pos>LIFT_TOP) {
 			if (power_lift_temp>0) {
 				power_lift_temp = 0;
 			}
@@ -130,6 +131,10 @@ task main()
 			lift_target = LIFT_HIGH;
 		}
 
+		if (lift_pos > LIFT_KILL_PICKUP) {
+			isPickingUp = false;
+		}
+
 		light_intensity = SensorValue[sensor_color];
 		HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
 
@@ -165,7 +170,7 @@ task PID()
 	Time_ClearTimer(timer_loop);
 	int dt = Time_GetTime(timer_loop);
 
-	int lift_pos = Motor_GetEncoder(encoder_lift);
+	lift_pos = Motor_GetEncoder(encoder_lift);
 
 	float error = 0.0;
 	float error_prev = 0.0;
@@ -218,7 +223,7 @@ task PID()
 			lift_target = lift_pos;
 			power_lift = power_lift_temp;
 		}
-		if (abs(power_lift)<10) {
+		if (abs(power_lift)<5) {
 			power_lift = 0;
 		}
 
@@ -252,7 +257,7 @@ task Display()
 			case DISP_FCS :
 				break;
 			case DISP_ENCODERS :
-				nxtDisplayTextLine(0, "Lift:  %+6i", Motor_GetEncoder(encoder_lift));
+				nxtDisplayTextLine(0, "Lift:  %+6i", lift_pos);
 				nxtDisplayTextLine(1, "Tgt:   %+6i", lift_target);
 				nxtDisplayTextLine(2, "Pwr:   %+6i", power_lift);
 				nxtDisplayTextLine(3, "Mtr L: %+6i", Motor_GetEncoder(encoder_L));
