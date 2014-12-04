@@ -73,9 +73,9 @@ task main()
 {
 	typedef enum CenterGoalPos {
 		CENTER_POS_UNKNOWN	= -1,
-		CENTER_POS_1		= 0,
-		CENTER_POS_2		= 1,
-		CENTER_POS_3		= 2,
+		CENTER_POS_1		= 0,        //Goal is perpendicular to posision 3
+		CENTER_POS_2		= 1,        //Goal faces the corner where your ramp is
+		CENTER_POS_3		= 2,        //Goal faces the parking zone
 		CENTER_POS_NUM
 	} CenterGoalPos;
 
@@ -236,15 +236,49 @@ task main()
 
 	// Take different routes depending on center goal position:
 	// (Currently this does nothing.)
+	// There's probably a better way to do the whole lift thing. Not to mention, using
+	// the servo on the main hopper is prolly gonna change depending on how it is decided
+	// to put the center goal ball in. Not to mention, at the start of this switch statement
+	// the robot is facing the arena side at a 45 degree angle and towing a rolling goal
+	// which is staying on through teleop. Dropping it and picking it back up isn't too
+	// practical in terms of feasibility. Something may have to be done with the above code
+	// in order to avoid spinning and pushing against the side of the arena with the rolling goal.
 	switch (centerGoalPos) {
 		case CENTER_POS_UNKNOWN :
-			break;
+            //TurnRight((9001))
+            break;
 		case CENTER_POS_1 :
-			break;
+		    TurnRight(180);
+		    DriveForward(4000);
+		    TurnLeft(135);
+		    DriveForward(100);
+		    lift_target = LIFT_HIGH;
+            Time_Wait(3000);
+            Servo_SetPosition(servo_dump, pos_dump_open);
+            Time_Wait(1600);
+            Servo_SetPosition(servo_dump, pos_dump_closed);
+            Time_Wait(800);
+            break;
 		case CENTER_POS_2 :
-			break;
+		    TurnRight(180);
+		    DriveForward(1400);
+            lift_target = LIFT_HIGH;
+            Time_Wait(3000);
+            Servo_SetPosition(servo_dump, pos_dump_open);
+            Time_Wait(1600);
+            Servo_SetPosition(servo_dump, pos_dump_closed);
+            Time_Wait(800);
+            break;
 		case CENTER_POS_3 :
-			break;
+		   TurnRight(135);
+		    DriveForward(1000);
+            lift_target = LIFT_HIGH;
+            Time_Wait(3000);
+            Servo_SetPosition(servo_dump, pos_dump_open);
+            Time_Wait(1600);
+            Servo_SetPosition(servo_dump, pos_dump_closed);
+            Time_Wait(800);
+            break;
 	}
 
 	// Lower lift:
