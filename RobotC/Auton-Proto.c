@@ -235,7 +235,7 @@ task main()
 	DriveForward(4000);
 
 	// Take different routes depending on center goal position:
-	// (Currently this does nothing.)
+	// (Currently this does not work "magic number"-wise.)
 	// There's probably a better way to do the whole lift thing. Not to mention, using
 	// the servo on the main hopper is prolly gonna change depending on how it is decided
 	// to put the center goal ball in. Not to mention, at the start of this switch statement
@@ -243,41 +243,74 @@ task main()
 	// which is staying on through teleop. Dropping it and picking it back up isn't too
 	// practical in terms of feasibility. Something may have to be done with the above code
 	// in order to avoid spinning and pushing against the side of the arena with the rolling goal.
-	switch (centerGoalPos) {
-		case CENTER_POS_UNKNOWN :
-            //TurnRight((9001)) // Nathan what is this? :) --Ernest
+
+    // All 3 cases mostly do the same thing. Drive up to the center goal, dump the ball and
+    // drive back. Then align with the side of the arena and drive forwards a bit to make sure
+    // that the rolling goal is inside the parking zone. Depending on what happens, we might need
+    // to implement a small turn in position 1 to not bump into the ramp as we back up.
+    // An unknkown goal position means we just center the rolling goal, or maybe just guess that it's
+    // position 3, no crashing happens if it isn't.
+
+	switch (centerGoalPos) {                                                                    //Hey Ernest this can take less code if you use a default instead of unknown or maybe
+		case CENTER_POS_UNKNOWN :                   //or do position 3                          //go pos3 || pos_unknown. idk
+            TurnRight(45);
+            DriveForward(100);
             break;
+
 		case CENTER_POS_1 :
-		    TurnRight(180);
-		    DriveForward(4000);
-		    TurnLeft(135);
-		    DriveForward(100);
+		    DriveBackward(4000);
+		    TurnRight(135);
+		    DriveBackward(100);
+
 		    lift_target = LIFT_CENTER;
             Time_Wait(3000);
             Servo_SetPosition(servo_dump, pos_dump_open);
             Time_Wait(1600);
             Servo_SetPosition(servo_dump, pos_dump_closed);
             Time_Wait(800);
+
+            DriveForward(100);
+            TurnLeft(135);
+            DriveForward(4000);
+            TurnRight(45);
+            DriveForward(50);
+
             break;
+
 		case CENTER_POS_2 :
-		    TurnRight(180);
-		    DriveForward(1400);
+		    DriveBackward(1400);
+		    TurnRight(90);
+            DriveBackward(100);
+
             lift_target = LIFT_CENTER;
             Time_Wait(3000);
             Servo_SetPosition(servo_dump, pos_dump_open);
             Time_Wait(1600);
             Servo_SetPosition(servo_dump, pos_dump_closed);
             Time_Wait(800);
+
+            TurnLeft(90);
+            DriveForward(1400);
+            TurnRight(45);
+            DriveForward(50);
+
             break;
+
 		case CENTER_POS_3 :
-		   TurnRight(135);
-		    DriveForward(1000);
+            TurnLeft(45);
+		    DriveBackward(1000);
+
             lift_target = LIFT_CENTER;
             Time_Wait(3000);
             Servo_SetPosition(servo_dump, pos_dump_open);
             Time_Wait(1600);
             Servo_SetPosition(servo_dump, pos_dump_closed);
             Time_Wait(800);
+
+            DriveForward(1000);
+            TurnRight(90);
+            DriveForward(50);
+
             break;
 	}
 
