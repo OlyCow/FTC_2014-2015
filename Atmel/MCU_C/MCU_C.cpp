@@ -54,21 +54,19 @@ void initialize_adc();
 void initialize_spi();
 void initialize_pcint();
 
+uint8_t translate_fs_error(FRESULT fs_error);
+
 int main()
 {
-	//initialize_io();
-	//initialize_adc();
-	//initialize_spi();
-	//initialize_pcint();
+	initialize_io();
+	initialize_adc();
+	initialize_spi();
+	initialize_pcint();
 	
 	uint8_t* eeprom_pointer = reinterpret_cast<uint8_t*>(0x00);
 	uint8_t buffer = 0xFF;
 	FRESULT result;
 	unsigned int bw;
-	//while (buffer == 0xFF) {
-		//buffer = eeprom_read_byte(eeprom_pointer);
-		//eeprom_pointer += 6;
-	//}
 
 	_delay_ms(100);
 	
@@ -243,6 +241,71 @@ int main()
 	while (true) {
 		_delay_ms(10);
 	}
+}
+
+uint8_t translate_fs_error(FRESULT fs_error)
+{
+	uint8_t return_code = 0x00;
+	switch (fs_error) {
+		case FR_OK :
+			return_code = 0xB4;
+			break;
+		case FR_DISK_ERR :
+			return_code = 0x9D;
+			break;
+		case FR_INT_ERR :
+			return_code = 0x38;
+			break;
+		case FR_NOT_READY :
+			return_code = 0x51;
+			break;
+		case FR_NO_FILE :
+			return_code = 0xE9;
+			break;
+		case FR_NO_PATH :
+			return_code = 0xE8;
+			break;
+		case FR_INVALID_NAME :
+			return_code = 0xAA;
+			break;
+		case FR_DENIED :
+			return_code = 0x4A;
+			break;
+		case FR_EXIST :
+			return_code = 0x2F;
+			break;
+		case FR_INVALID_OBJECT :
+			return_code = 0x6E;
+			break;
+		case FR_WRITE_PROTECTED :
+			return_code = 0x40;
+			break;
+		case FR_INVALID_DRIVE :
+			return_code = 0x75;
+			break;
+		case FR_NOT_ENABLED :
+			return_code = 0xC6;
+			break;
+		case FR_NO_FILESYSTEM :
+			return_code = 0x13;
+			break;
+		case FR_TIMEOUT :
+			return_code = 0x11;
+			break;
+		case FR_LOCKED :
+			return_code = 0xC0;
+			break;
+		case FR_NOT_ENOUGH_CORE :
+			return_code = 0xBB;
+			break;
+		case FR_TOO_MANY_OPEN_FILES :
+			return_code = 0x58;
+			break;
+		default :
+			return_code = 0x89;
+			break;
+	}
+	return return_code;
 }
 
 void initialize_io()
