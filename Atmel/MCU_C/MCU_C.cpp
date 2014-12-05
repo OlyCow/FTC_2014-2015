@@ -71,170 +71,27 @@ int main()
 	_delay_ms(100);
 	
 	result = f_mount(&FatFs, "", 0);
-	switch (result) {
-		case FR_OK :
-			buffer = 0x91;
-			break;
-		case FR_INVALID_DRIVE :
-			buffer = 0x6F;
-			break;
-		case FR_DISK_ERR :
-			buffer = 0xF5;
-			break;
-		case FR_NOT_READY :
-			buffer = 0x5E;
-			break;
-		case FR_NO_FILESYSTEM :
-			buffer = 0x99;
-			break;
-		default :
-			buffer = 0x85;
-			break;
-	}
+	buffer = translate_fs_error(result);
 	eeprom_write_byte(eeprom_pointer, buffer);
 	eeprom_pointer++;
 
 	result = f_open(&Fil, "hello.txt", FA_WRITE | FA_CREATE_ALWAYS);
-	switch (result) {
-		case FR_OK :
-			buffer = 0xB4;
-			break;
-		case FR_DISK_ERR :
-			buffer = 0x9D;
-			break;
-		case FR_INT_ERR :
-			buffer = 0x38;
-			break;
-		case FR_NOT_READY :
-			buffer = 0x51;
-			break;
-		case FR_NO_FILE :
-			buffer = 0xE9;
-			break;
-		case FR_NO_PATH :
-			buffer = 0xE8;
-			break;
-		case FR_INVALID_NAME :
-			buffer = 0xAA;
-			break;
-		case FR_DENIED :
-			buffer = 0x4A;
-			break;
-		case FR_EXIST :
-			buffer = 0x2F;
-			break;
-		case FR_INVALID_OBJECT :
-			buffer = 0x6E;
-			break;
-		case FR_WRITE_PROTECTED :
-			buffer = 0x40;
-			break;
-		case FR_INVALID_DRIVE :
-			buffer = 0x75;
-			break;
-		case FR_NOT_ENABLED :
-			buffer = 0xC6;
-			break;
-		case FR_NO_FILESYSTEM :
-			buffer = 0x13;
-			break;
-		case FR_TIMEOUT :
-			buffer = 0x11;
-			break;
-		case FR_LOCKED :
-			buffer = 0xC0;
-			break;
-		case FR_NOT_ENOUGH_CORE :
-			buffer = 0xBB;
-			break;
-		case FR_TOO_MANY_OPEN_FILES :
-			buffer = 0x58;
-			break;
-		default :
-			buffer = 0x89;
-			break;
-	}
+	buffer = translate_fs_error(result);
 	eeprom_write_byte(eeprom_pointer, buffer);
 	eeprom_pointer++;
 
 	result = f_write(&Fil, "I AM A WIZARD\r\n", 15, &bw);
-	switch (result) {
-		case FR_OK :
-			buffer = 0x45;
-			break;
-		case FR_DISK_ERR :
-			buffer = 0x69;
-			break;
-		case FR_INT_ERR :
-			buffer = 0x44;
-			break;
-		case FR_NOT_READY :
-			buffer = 0xCB;
-			break;
-		case FR_INVALID_OBJECT :
-			buffer = 0x1A;
-			break;
-		case FR_TIMEOUT :
-			buffer = 0xBD;
-			break;
-		default :
-			buffer = 0x6B;
-			break;
-	}
+	buffer = translate_fs_error(result);
 	eeprom_write_byte(eeprom_pointer, buffer);
 	eeprom_pointer++;
 
 	result = f_sync(&Fil);
-	switch (result) {
-		case FR_OK :
-			buffer = 0xCE;
-			break;
-		case FR_DISK_ERR :
-			buffer = 0x2B;
-			break;
-		case FR_INT_ERR :
-			buffer = 0xD0;
-			break;
-		case FR_NOT_READY :
-			buffer = 0x71;
-			break;
-		case FR_INVALID_OBJECT :
-			buffer = 0x7C;
-			break;
-		case FR_TIMEOUT :
-			buffer = 0x8F;
-			break;
-		default :
-			buffer = 0xA1;
-			break;
-	}
+	buffer = translate_fs_error(result);
 	eeprom_write_byte(eeprom_pointer, buffer);
 	eeprom_pointer++;
 
 	result = f_close(&Fil);
-	switch (result) {
-		case FR_OK :
-			buffer = 0x2C;
-			break;
-		case FR_DISK_ERR :
-			buffer = 0xA4;
-			break;
-		case FR_INT_ERR :
-			buffer = 0x36;
-			break;
-		case FR_NOT_READY :
-			buffer = 0xA5;
-			break;
-		case FR_INVALID_OBJECT :
-			buffer = 0x9D;
-			break;
-		case FR_TIMEOUT :
-			buffer = 0x5B;
-			break;
-		default :
-			buffer = 0x60;
-			break;
-	}
+	buffer = translate_fs_error(result);
 	eeprom_write_byte(eeprom_pointer, buffer);
 	eeprom_pointer++;
 
