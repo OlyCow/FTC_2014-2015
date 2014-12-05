@@ -73,7 +73,7 @@ task main()
 {
 	typedef enum CenterGoalPos {
 		CENTER_POS_UNKNOWN	= -1,
-		CENTER_POS_1		= 0,        //Goal is perpendicular to posision 3
+		CENTER_POS_1		= 0,        //Goal is perpendicular to position 3
 		CENTER_POS_2		= 1,        //Goal faces the corner where your ramp is
 		CENTER_POS_3		= 2,        //Goal faces the parking zone
 		CENTER_POS_NUM
@@ -245,14 +245,14 @@ task main()
 	// in order to avoid spinning and pushing against the side of the arena with the rolling goal.
 	switch (centerGoalPos) {
 		case CENTER_POS_UNKNOWN :
-            //TurnRight((9001))
+            //TurnRight((9001)) // Nathan what is this? :) --Ernest
             break;
 		case CENTER_POS_1 :
 		    TurnRight(180);
 		    DriveForward(4000);
 		    TurnLeft(135);
 		    DriveForward(100);
-		    lift_target = LIFT_HIGH;
+		    lift_target = LIFT_CENTER;
             Time_Wait(3000);
             Servo_SetPosition(servo_dump, pos_dump_open);
             Time_Wait(1600);
@@ -262,7 +262,7 @@ task main()
 		case CENTER_POS_2 :
 		    TurnRight(180);
 		    DriveForward(1400);
-            lift_target = LIFT_HIGH;
+            lift_target = LIFT_CENTER;
             Time_Wait(3000);
             Servo_SetPosition(servo_dump, pos_dump_open);
             Time_Wait(1600);
@@ -272,7 +272,7 @@ task main()
 		case CENTER_POS_3 :
 		   TurnRight(135);
 		    DriveForward(1000);
-            lift_target = LIFT_HIGH;
+            lift_target = LIFT_CENTER;
             Time_Wait(3000);
             Servo_SetPosition(servo_dump, pos_dump_open);
             Time_Wait(1600);
