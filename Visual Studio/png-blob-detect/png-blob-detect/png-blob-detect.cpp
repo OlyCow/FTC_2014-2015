@@ -78,12 +78,16 @@ int main()
 		image_out_V.push_back(255);
 
 		int intensity = 0;
+		float diff = H_ - H_target;
+		if (fabs(diff) > 180) {
+			H_ -= 360 * copysignf(1.0f, diff); // diff can't be 0!
+		}
 		if (fabs(H_ - H_target) < H_tolerance) {
-			//if (V_ > 0.2) {
+			if (V_ > 0.2) {
 				if (S_ > S_threshold) {
 					intensity = 255;
 				}
-			//}
+			}
 		}
 
 		image_output.push_back(intensity);
