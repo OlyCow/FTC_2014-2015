@@ -71,9 +71,9 @@ float term_I_angle = 0.0;
 
 typedef enum CenterGoalPos {
 	CENTER_POS_UNKNOWN	= -1,
-	CENTER_POS_1		= 0,        //Goal is perpendicular to position 3
+	CENTER_POS_1		= 0,        //Goal is facing the parking zone
 	CENTER_POS_2		= 1,        //Goal faces the corner where your ramp is
-	CENTER_POS_3		= 2,        //Goal faces the parking zone
+	CENTER_POS_3		= 2,        //Goal is perpendicular to pos_1 (facing the side of the arena your ramp is on)
 	CENTER_POS_NUM
 } CenterGoalPos;
 
@@ -252,13 +252,49 @@ task main()
     // An unknkown goal position means we just center the rolling goal, or maybe just guess that it's
     // position 3, no crashing happens if it isn't.
 
-	switch (centerGoalPos) {                                                                    //Hey Ernest this can take less code if you use a default instead of unknown or maybe
-		case CENTER_POS_UNKNOWN :                   //or do position 3                          //go pos3 || pos_unknown. idk
+	switch (centerGoalPos) {                     //these are all conservative guesses so when we test we most likely wont crash  
+		case CENTER_POS_UNKNOWN :                   //guesses that it is pos_1 since we won't crash into anything
             TurnRight(45);
             DriveForward(100);
             break;
 
-		case CENTER_POS_3 :
+		case CENTER_POS_1 :			//goal faces the parking zone
+            TurnLeft(45);
+		    DriveBackward(1000);
+
+            lift_target = LIFT_CENTER;
+            Time_Wait(3000);
+            Servo_SetPosition(servo_dump, pos_dump_open);
+            Time_Wait(1600);
+            Servo_SetPosition(servo_dump, pos_dump_closed);
+            Time_Wait(800);
+
+            DriveForward(1000);
+            TurnRight(90);
+            DriveForward(50);
+
+            break;
+
+		case CENTER_POS_2 :				//goal faces corner
+		    DriveBackward(1400);
+		    TurnRight(90);
+            DriveBackward(100);
+
+            lift_target = LIFT_CENTER;
+            Time_Wait(3000);
+            Servo_SetPosition(servo_dump, pos_dump_open);
+            Time_Wait(1600);
+            Servo_SetPosition(servo_dump, pos_dump_closed);
+            Time_Wait(800);
+
+            TurnLeft(90);
+            DriveForward(1400);
+            TurnRight(45);
+            DriveForward(50);
+
+            break;
+            
+           	case CENTER_POS_3 :				//goal faces the side of the arena
 		    DriveBackward(4000);
 		    TurnRight(135);
 		    DriveBackward(100);
@@ -277,42 +313,7 @@ task main()
             DriveForward(50);
 
             break;
-
-		case CENTER_POS_2 :
-		    DriveBackward(1400);
-		    TurnRight(90);
-            DriveBackward(100);
-
-            lift_target = LIFT_CENTER;
-            Time_Wait(3000);
-            Servo_SetPosition(servo_dump, pos_dump_open);
-            Time_Wait(1600);
-            Servo_SetPosition(servo_dump, pos_dump_closed);
-            Time_Wait(800);
-
-            TurnLeft(90);
-            DriveForward(1400);
-            TurnRight(45);
-            DriveForward(50);
-
-            break;
-
-		case CENTER_POS_1 :
-            TurnLeft(45);
-		    DriveBackward(1000);
-
-            lift_target = LIFT_CENTER;
-            Time_Wait(3000);
-            Servo_SetPosition(servo_dump, pos_dump_open);
-            Time_Wait(1600);
-            Servo_SetPosition(servo_dump, pos_dump_closed);
-            Time_Wait(800);
-
-            DriveForward(1000);
-            TurnRight(90);
-            DriveForward(50);
-
-            break;
+            
 	}
 
 	// Lower lift:
