@@ -18,10 +18,11 @@ int main()
 	using std::endl;
 	
 	vector<unsigned char> image_input;
-	vector<unsigned char> image_output;
 	vector<unsigned char> image_out_H;
 	vector<unsigned char> image_out_S;
 	vector<unsigned char> image_out_V;
+	vector<unsigned char> image_blob_1;
+	vector<unsigned char> image_blob_2;
 	unsigned int width, height;
 	string filename_input = "";
 	string filename_buffer = "";
@@ -50,7 +51,7 @@ int main()
 	cout << "width:  " << width << endl;
 	cout << "height: " << height << endl;
 
-	cout << endl << "processing..." << endl;
+	cout << endl << "pre-processing..." << endl;
 	int chunk_size = image_input.size() / width / height;
 	for (unsigned int i = 0; i < image_input.size(); i += chunk_size) {
 		unsigned int i_R = i;
@@ -90,10 +91,49 @@ int main()
 			}
 		}
 
-		image_output.push_back(intensity);
-		image_output.push_back(intensity);
-		image_output.push_back(intensity);
-		image_output.push_back(255);
+		image_blob_1.push_back(intensity);
+		image_blob_1.push_back(intensity);
+		image_blob_1.push_back(intensity);
+		image_blob_1.push_back(255);
+	}
+
+	vector<int> y_blank(height, -1);
+	vector<vector<int>> grid_raw(width, y_blank);
+	vector<vector<int>> grid_blob(width, y_blank);
+	for (unsigned int y = 0; y < height; ++y) {
+		for (unsigned int x = 0; x < width; ++x) {
+			grid_raw[x][y] = image_blob_1[(y*width + x)*chunk_size];
+		}
+	}
+	
+	int blob_count = 0;
+	for (unsigned int x = 0; x < width-1; ++x) {
+		for (unsigned int y = 0; y < height-1; ++y) {
+			if (grid_raw[x][y] == 255) {
+				if (grid_blob[x][y] == -1) {
+					blob_count++;
+					grid_blob[x][y] = blob_count;
+				}
+				if (grid_raw[x + 1][y] == 255) {
+					grid_blob[x + 1][y] = blob_count;
+				}
+				if (grid_raw[x][y + 1] == 255) {
+					grid_blob[x][y + 1] = blob_count;
+				}
+			}
+		}
+	}
+	for (unsigned int y = 0; y < height; ++y) {
+		for (unsigned int x = 0; x < width; ++x) {
+			int color = 0;
+			if (grid_blob[x][y] != -1) {
+				color = 20 * grid_blob[x][y];
+			}
+			image_blob_2.push_back(color);
+			image_blob_2.push_back(color);
+			image_blob_2.push_back(color);
+			image_blob_2.push_back(255);
+		}
 	}
 
 	cout << "writing..." << endl;
@@ -103,8 +143,10 @@ int main()
 	lodepng::encode(filename_buffer, image_out_S, width, height);
 	filename_buffer = filename_input + "_V.png";
 	lodepng::encode(filename_buffer, image_out_V, width, height);
-	filename_buffer = filename_input + "_out.png";
-	lodepng::encode(filename_buffer, image_output, width, height);
+	filename_buffer = filename_input + "_blob_1.png";
+	lodepng::encode(filename_buffer, image_blob_1, width, height);
+	filename_buffer = filename_input + "_blob_2.png";
+	lodepng::encode(filename_buffer, image_blob_2, width, height);
 
 	cout << endl <<  "Done!" << endl;
 	//cout << "Enter anything to exit. ";
