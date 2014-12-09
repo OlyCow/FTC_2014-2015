@@ -97,6 +97,7 @@ int main()
 		image_blob_1.push_back(255);
 	}
 
+	cout << "numbering blobs..." << endl;
 	vector<int> y_blank(height, -1);
 	vector<vector<int>> grid_raw(width, y_blank);
 	vector<vector<int>> grid_blob(width, y_blank);
@@ -107,27 +108,50 @@ int main()
 	}
 	
 	int blob_count = 0;
-	for (unsigned int x = 0; x < width-1; ++x) {
-		for (unsigned int y = 0; y < height-1; ++y) {
+	for (unsigned int y = 1; y < height - 1; ++y) {
+		for (unsigned int x = 1; x < width - 1; ++x) {
 			if (grid_raw[x][y] == 255) {
 				if (grid_blob[x][y] == -1) {
 					blob_count++;
 					grid_blob[x][y] = blob_count;
 				}
-				if (grid_raw[x + 1][y] == 255) {
-					grid_blob[x + 1][y] = blob_count;
+				int blob_current = grid_blob[x][y];
+				if (grid_blob[x-1][y] != -1) {
+					blob_current = grid_blob[x-1][y];
 				}
-				if (grid_raw[x][y + 1] == 255) {
-					grid_blob[x][y + 1] = blob_count;
+				if (grid_blob[x+1][y] != -1) {
+					blob_current = grid_blob[x+1][y];
+				}
+				if (grid_blob[x][y-1] != -1) {
+					blob_current = grid_blob[x][y-1];
+				}
+				if (grid_blob[x][y+1] != -1) {
+					blob_current = grid_blob[x][y+1];
+				}
+
+				grid_blob[x][y] = blob_current;
+				if (grid_raw[x-1][y] == 255) {
+					grid_blob[x-1][y] = blob_current;
+				}
+				if (grid_raw[x+1][y] == 255) {
+					grid_blob[x+1][y] = blob_current;
+				}
+				if (grid_raw[x][y-1] == 255) {
+					grid_blob[x][y-1] = blob_current;
+				}
+				if (grid_raw[x][y+1] == 255) {
+					grid_blob[x][y+1] = blob_current;
 				}
 			}
 		}
 	}
+	cout << endl << "There were " << blob_count << " blobs." << endl;
 	for (unsigned int y = 0; y < height; ++y) {
 		for (unsigned int x = 0; x < width; ++x) {
 			int color = 0;
 			if (grid_blob[x][y] != -1) {
 				color = 20 * grid_blob[x][y];
+				color %= 255;
 			}
 			image_blob_2.push_back(color);
 			image_blob_2.push_back(color);
@@ -136,7 +160,7 @@ int main()
 		}
 	}
 
-	cout << "writing..." << endl;
+	cout << endl << "writing..." << endl;
 	filename_buffer = filename_input + "_H.png";
 	lodepng::encode(filename_buffer, image_out_H, width, height);
 	filename_buffer = filename_input + "_S.png";
@@ -149,9 +173,9 @@ int main()
 	lodepng::encode(filename_buffer, image_blob_2, width, height);
 
 	cout << endl <<  "Done!" << endl;
-	//cout << "Enter anything to exit. ";
-	//int placeholder;
-	//cin >> placeholder;
+	cout << "Enter anything to exit. ";
+	int placeholder;
+	cin >> placeholder;
 	return 0;
 }
 
