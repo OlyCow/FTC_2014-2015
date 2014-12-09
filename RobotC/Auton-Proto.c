@@ -69,17 +69,18 @@ float power_angle_disp = 0.0;
 float term_P_angle = 0.0;
 float term_I_angle = 0.0;
 
+typedef enum CenterGoalPos {
+	CENTER_POS_UNKNOWN	= -1,
+	CENTER_POS_1		= 0,        //Goal is perpendicular to position 3
+	CENTER_POS_2		= 1,        //Goal faces the corner where your ramp is
+	CENTER_POS_3		= 2,        //Goal faces the parking zone
+	CENTER_POS_NUM
+} CenterGoalPos;
+
+CenterGoalPos centerGoalPos = CENTER_POS_UNKNOWN;
+
 task main()
 {
-	typedef enum CenterGoalPos {
-		CENTER_POS_UNKNOWN	= -1,
-		CENTER_POS_1		= 0,        //Goal is perpendicular to position 3
-		CENTER_POS_2		= 1,        //Goal faces the corner where your ramp is
-		CENTER_POS_3		= 2,        //Goal faces the parking zone
-		CENTER_POS_NUM
-	} CenterGoalPos;
-
-	CenterGoalPos centerGoalPos = CENTER_POS_UNKNOWN;
 	bool isRed = false;
 	bool isBlue = false;
 	bool isUnknown = true;
@@ -128,15 +129,15 @@ task main()
 	// then slow down for the ramped portion of the ramp, and stop moving forward
 	// when the color sensor determines that we are just off of the ramp.
 	int ramp_power = -100;
-	Motor_SetPower(ramp_power, motor_L);
+	Motor_SetPower(ramp_power + 35, motor_L);
 	Motor_SetPower(ramp_power, motor_R_B);
 	Motor_SetPower(ramp_power, motor_R_A);
-	Time_Wait(1400);
-	ramp_power = -30;
-	Motor_SetPower(ramp_power, motor_L);
-	Motor_SetPower(ramp_power, motor_R_B);
-	Motor_SetPower(ramp_power, motor_R_A);
-	Time_Wait(1800);
+	Time_Wait(1900);
+	//ramp_power = -30;
+	//Motor_SetPower(ramp_power, motor_L);
+	//Motor_SetPower(ramp_power, motor_R_B);
+	//Motor_SetPower(ramp_power, motor_R_A);
+	//Time_Wait(1800);
 	// TODO: WHAT HAPPENS HERE??? DETECT COLOR CHANGE OR SOMETHING?
 	Motor_SetPower(0, motor_L);
 	Motor_SetPower(0, motor_R_B);
@@ -257,7 +258,7 @@ task main()
             DriveForward(100);
             break;
 
-		case CENTER_POS_1 :
+		case CENTER_POS_3 :
 		    DriveBackward(4000);
 		    TurnRight(135);
 		    DriveBackward(100);
@@ -296,7 +297,7 @@ task main()
 
             break;
 
-		case CENTER_POS_3 :
+		case CENTER_POS_1 :
             TurnLeft(45);
 		    DriveBackward(1000);
 
@@ -376,8 +377,8 @@ bool Drive(int encoder_count)
 		power_L = Math_Limit(power_L, 40);
 		power_R = Math_Limit(power_R, 40);
 		int power_final = (int)round((power_L+power_R)/2.0);
-		power_L = power_final;
-		power_R = power_final;
+		//power_L = power_final;
+		//power_R = power_final;
 
 		pos_dist_disp_L = pos_L;
 		pos_dist_disp_R = pos_R;
@@ -435,8 +436,8 @@ bool Turn(int degrees)
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 6.9;
-	const float kI = 0.15;
+	const float kP = 7.2;
+	const float kI = 0.18;
 	const float I_term_decay_rate = 0.94;
 
 	float heading_init = heading;
@@ -652,6 +653,20 @@ task Display()
 				nxtDisplayTextLine(4, "IR D:  %3d", IR_D);
 				nxtDisplayTextLine(5, "IR E:  %3d", IR_E);
 				nxtDisplayTextLine(6, "Light: %3d", light_intensity);
+				switch (centerGoalPos) {
+					case CENTER_POS_1 :
+						nxtDisplayTextLine(7, "pos 1");
+						break;
+					case CENTER_POS_2 :
+						nxtDisplayTextLine(7, "pos 2");
+						break;
+					case CENTER_POS_3 :
+						nxtDisplayTextLine(7, "pos 3");
+						break;
+					case CENTER_POS_UNKNOWN :
+						nxtDisplayTextLine(7, "IDK wutttt");
+						break;
+				}
 				break;
 			case DISP_PID_LIFT :
 				nxtDisplayTextLine(0, "P: %+7d", term_P_lift);
