@@ -21,6 +21,8 @@
 #include "includes.h"
 #include "proto.h"
 
+// This autonomous program
+
 task Gyro();
 task PID();
 task Display();
@@ -67,17 +69,22 @@ float power_angle_disp = 0.0;
 float term_P_angle = 0.0;
 float term_I_angle = 0.0;
 
+typedef enum CenterGoalPos {
+	CENTER_POS_UNKNOWN	= -1,
+	CENTER_POS_1		= 0,        //Goal is facing the parking zone
+	CENTER_POS_2		= 1,        //Goal faces the corner where your ramp is
+	CENTER_POS_3		= 2,        //Goal is perpendicular to pos_1 (facing the side of the arena your ramp is on)
+	CENTER_POS_NUM
+} CenterGoalPos;
+
+CenterGoalPos centerGoalPos = CENTER_POS_UNKNOWN;
+
 task main()
 {
-	typedef enum CenterGoalPos {
-		CENTER_POS_UNKNOWN	= -1,
-		CENTER_POS_1		= 0,
-		CENTER_POS_2		= 1,
-		CENTER_POS_3		= 2,
-		CENTER_POS_NUM
-	} CenterGoalPos;
-
-	CenterGoalPos centerGoalPos = CENTER_POS_UNKNOWN;
+	bool isRed = false;
+	bool isBlue = false;
+	bool isUnknown = true;
+	int color_threshold = 0;
 
 	Motor_ResetEncoder(encoder_L);
 	Motor_ResetEncoder(encoder_R);
@@ -85,30 +92,73 @@ task main()
 
 	HTIRS2setDSPMode(sensor_IR, DSP_1200);
 
+	Task_Spawn(Display);
 	Task_Spawn(Gyro);
 	Task_Spawn(PID);
-	Task_Spawn(Display);
+
+	Servo_SetPosition(servo_dump, pos_dump_closed);
 
 	Joystick_WaitForStart();
 	Time_Wait(500);
 
+	// Determine color of ramp:
+	// Currently unbelievably complicated. Could probably be alleviated by using
+	// an enum. Whatever. Still need to figure out what happens if data conflicts.
+	SensorType[sensor_color] = sensorCOLORRED;
+	if (SensorValue[sensor_color]>=detected_red) {
+		isRed = true;
+	}
+	SensorType[sensor_color] = sensorCOLORBLUE;
+	if (SensorValue[sensor_color]>=detected_blue) {
+		isBlue = true;
+	}
+	if (isRed==isBlue) {
+		isUnknown = true;
+	}
+	if (!isUnknown) {
+		if (isRed) {
+			color_threshold = detected_red;
+		} else {
+			color_threshold = detected_blue;
+		}
+	}
+
 	// Drive off ramp (backwards):
-	// This portion is mostly wizardry. First we drive off the ramp at full speed
-	// to minimize the amount of time spent in an unbalanced position, then stop
-	// just short of completely flattening out at the bottom of the ramp. Then we
-	// attempt to make sure our robot is oriented correctly by turning until our
-	// gyro reads that our angle is 0. Finally we back up at very low power to make
-	// sure we're just barely off the ramp.
-	Motor_SetPower(-100, motor_L);
-	Motor_SetPower(-100, motor_R_B);
-	Motor_SetPower(-100, motor_R_A);
-	Time_Wait(1700);
+	// This portion is mostly wizardry (heuristic). First we drive off the ramp at
+	// full speed to minimize the amount of time spent in an unbalanced position,
+	// then slow down for the ramped portion of the ramp, and stop moving forward
+	// when the color sensor determines that we are just off of the ramp.
+	int ramp_power = -100;
+	Motor_SetPower(ramp_power + 35, motor_L);
+	Motor_SetPower(ramp_power, motor_R_B);
+	Motor_SetPower(ramp_power, motor_R_A);
+	Time_Wait(1900);
+	//ramp_power = -30;
+	//Motor_SetPower(ramp_power, motor_L);
+	//Motor_SetPower(ramp_power, motor_R_B);
+	//Motor_SetPower(ramp_power, motor_R_A);
+	//Time_Wait(1800);
+	// TODO: WHAT HAPPENS HERE??? DETECT COLOR CHANGE OR SOMETHING?
 	Motor_SetPower(0, motor_L);
 	Motor_SetPower(0, motor_R_B);
 	Motor_SetPower(0, motor_R_A);
 	Time_Wait(500);
+
+	// Correct the heading of the robot:
+	// After coming off the ramp the robot will (probably) be at an angle. As
+	// as the robot isn't stranded on the ramp, the displacement should be small
+	// enough such that we can correct it and still be reasonably close to being
+	// on the correct path.
+	// We correct the heading by turning the robot until the gyro reads that our
+	// angle is 0 again. This may not work 100% because the gyro might mess up
+	// the angle readings when pitch and roll aren't 0.
 	int correction_turn = heading;
 	TurnLeft(correction_turn);
+
+	// Back up to bottom of ramp:
+	// Apply just enough power to move backwards but not enough to drive the
+	// robot back up the ramp. This makes doubly sure that the robot is in a
+	// determined location (since we're aligning the robot up against the ramp).
 	Motor_SetPower(10, motor_L);
 	Motor_SetPower(10, motor_R_B);
 	Motor_SetPower(10, motor_R_A);
@@ -135,13 +185,12 @@ task main()
 	// The first drive command moves us about flush with the tile just before the
 	// medium rolling goal (going off memory here; I may be completely off).
 	// The second drive command moves us back far enough so that we line up with
-	// the tall rolling goal when we go to retrieve it.
-	// 		-->		NOTE: this is probably the number you need to fix!!
-	// We then drive backwards. Make sure to leave some space for PID to overshoot
-	// and still not bump the goal (that moves it farther away from us).
+	// the tall rolling goal when we go to retrieve it. We then drive backwards.
+	// We make sure to leave some space for PID to overshoot and still not bump
+	// the goal (such that moves it farther from us).
 	DriveBackward(2400);
 	TurnLeft(45);
-	DriveBackward(3300);	// <-- That's the one!
+	DriveBackward(3000);
 	TurnRight(90);
 	DriveBackward(3600);
 
@@ -187,16 +236,84 @@ task main()
 	DriveForward(4000);
 
 	// Take different routes depending on center goal position:
-	// (Currently this does nothing.)
-	switch (centerGoalPos) {
-		case CENTER_POS_UNKNOWN :
-			break;
-		case CENTER_POS_1 :
-			break;
-		case CENTER_POS_2 :
-			break;
-		case CENTER_POS_3 :
-			break;
+	// (Currently this does not work "magic number"-wise.)
+	// There's probably a better way to do the whole lift thing. Not to mention, using
+	// the servo on the main hopper is prolly gonna change depending on how it is decided
+	// to put the center goal ball in. Not to mention, at the start of this switch statement
+	// the robot is facing the arena side at a 45 degree angle and towing a rolling goal
+	// which is staying on through teleop. Dropping it and picking it back up isn't too
+	// practical in terms of feasibility. Something may have to be done with the above code
+	// in order to avoid spinning and pushing against the side of the arena with the rolling goal.
+
+    // All 3 cases mostly do the same thing. Drive up to the center goal, dump the ball and
+    // drive back. Then align with the side of the arena and drive forwards a bit to make sure
+    // that the rolling goal is inside the parking zone. Depending on what happens, we might need
+    // to implement a small turn in position 1 to not bump into the ramp as we back up.
+    // An unknkown goal position means we just center the rolling goal, or maybe just guess that it's
+    // position 3, no crashing happens if it isn't.
+
+	switch (centerGoalPos) {                     //these are all conservative guesses so when we test we most likely wont crash  
+		case CENTER_POS_UNKNOWN :                   //guesses that it is pos_1 since we won't crash into anything
+            TurnRight(45);
+            DriveForward(100);
+            break;
+
+		case CENTER_POS_1 :			//goal faces the parking zone
+            TurnLeft(45);
+		    DriveBackward(1000);
+
+            lift_target = LIFT_CENTER;
+            Time_Wait(3000);
+            Servo_SetPosition(servo_dump, pos_dump_open);
+            Time_Wait(1600);
+            Servo_SetPosition(servo_dump, pos_dump_closed);
+            Time_Wait(800);
+
+            DriveForward(1000);
+            TurnRight(90);
+            DriveForward(50);
+
+            break;
+
+		case CENTER_POS_2 :				//goal faces corner
+		    DriveBackward(1400);
+		    TurnRight(90);
+            DriveBackward(100);
+
+            lift_target = LIFT_CENTER;
+            Time_Wait(3000);
+            Servo_SetPosition(servo_dump, pos_dump_open);
+            Time_Wait(1600);
+            Servo_SetPosition(servo_dump, pos_dump_closed);
+            Time_Wait(800);
+
+            TurnLeft(90);
+            DriveForward(1400);
+            TurnRight(45);
+            DriveForward(50);
+
+            break;
+            
+           	case CENTER_POS_3 :				//goal faces the side of the arena
+		    DriveBackward(4000);
+		    TurnRight(135);
+		    DriveBackward(100);
+
+		    lift_target = LIFT_CENTER;
+            Time_Wait(3000);
+            Servo_SetPosition(servo_dump, pos_dump_open);
+            Time_Wait(1600);
+            Servo_SetPosition(servo_dump, pos_dump_closed);
+            Time_Wait(800);
+
+            DriveForward(100);
+            TurnLeft(135);
+            DriveForward(4000);
+            TurnRight(45);
+            DriveForward(50);
+
+            break;
+            
 	}
 
 	// Lower lift:
@@ -261,8 +378,8 @@ bool Drive(int encoder_count)
 		power_L = Math_Limit(power_L, 40);
 		power_R = Math_Limit(power_R, 40);
 		int power_final = (int)round((power_L+power_R)/2.0);
-		power_L = power_final;
-		power_R = power_final;
+		//power_L = power_final;
+		//power_R = power_final;
 
 		pos_dist_disp_L = pos_L;
 		pos_dist_disp_R = pos_R;
@@ -320,9 +437,9 @@ bool Turn(int degrees)
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 6.9;
-	const float kI = 0.12;
-	const float I_term_decay_rate = 0.91;
+	const float kP = 7.2;
+	const float kI = 0.18;
+	const float I_term_decay_rate = 0.94;
 
 	float heading_init = heading;
 	float heading_curr = heading;
@@ -410,6 +527,7 @@ task Gyro()
 	float dt = 0.0;
 	int timer_gyro = 0;
 	Time_ClearTimer(timer_gyro);
+
 	while (true) {
 		vel_prev = vel_curr;
 		dt = (float)Time_GetTime(timer_gyro)/(float)1000.0; // msec to sec
@@ -536,6 +654,20 @@ task Display()
 				nxtDisplayTextLine(4, "IR D:  %3d", IR_D);
 				nxtDisplayTextLine(5, "IR E:  %3d", IR_E);
 				nxtDisplayTextLine(6, "Light: %3d", light_intensity);
+				switch (centerGoalPos) {
+					case CENTER_POS_1 :
+						nxtDisplayTextLine(7, "pos 1");
+						break;
+					case CENTER_POS_2 :
+						nxtDisplayTextLine(7, "pos 2");
+						break;
+					case CENTER_POS_3 :
+						nxtDisplayTextLine(7, "pos 3");
+						break;
+					case CENTER_POS_UNKNOWN :
+						nxtDisplayTextLine(7, "IDK wutttt");
+						break;
+				}
 				break;
 			case DISP_PID_LIFT :
 				nxtDisplayTextLine(0, "P: %+7d", term_P_lift);
