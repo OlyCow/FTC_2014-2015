@@ -252,7 +252,7 @@ task main()
     // An unknkown goal position means we just center the rolling goal, or maybe just guess that it's
     // position 3, no crashing happens if it isn't.
 
-	switch (centerGoalPos) {                     //these are all conservative guesses so when we test we most likely wont crash  
+	switch (centerGoalPos) {                     //these are all conservative guesses so when we test we most likely wont crash
 		case CENTER_POS_UNKNOWN :                   //guesses that it is pos_1 since we won't crash into anything
             TurnRight(45);
             DriveForward(100);
@@ -293,7 +293,7 @@ task main()
             DriveForward(50);
 
             break;
-            
+
            	case CENTER_POS_3 :				//goal faces the side of the arena
 		    DriveBackward(4000);
 		    TurnRight(135);
@@ -313,7 +313,7 @@ task main()
             DriveForward(50);
 
             break;
-            
+
 	}
 
 	// Lower lift:
@@ -337,7 +337,7 @@ bool Drive(int encoder_count)
 	const float watchdog_encoder_rate = 1.736;
 	const float watchdog_base = 2000.0;
 	int time_limit = (int)round((float)abs(encoder_count*watchdog_encoder_rate)+watchdog_base);
-	const int acceptable_error = 250;
+	const int acceptable_error = 200;
 
 	const int finish_limit = 750; // msec
 	bool isFinishing = false;
@@ -361,7 +361,17 @@ bool Drive(int encoder_count)
 	float power_L_prev = 0.0;
 	float power_R_prev = 0.0;
 
+	const float kP_turn_correct = 11.1;
+	float heading_init = heading;
+	float heading_curr = heading_init;
+	float heading_error = 0.0;
+	float power_turn = 0.0;
+
 	while (true) {
+		heading_curr = heading;
+		heading_error = heading_init - heading_curr;
+		power_turn = kP_turn_correct * heading_error;
+
 		power_L_prev = power_L;
 		power_R_prev = power_R;
 		pos_L = Motor_GetEncoder(encoder_L) - count_init_L;
@@ -377,6 +387,8 @@ bool Drive(int encoder_count)
 		power_R = kP*error_R + kI*error_sum_R;
 		power_L = Math_Limit(power_L, 40);
 		power_R = Math_Limit(power_R, 40);
+		power_L += power_turn;
+		power_R -= power_turn;
 		int power_final = (int)round((power_L+power_R)/2.0);
 		//power_L = power_final;
 		//power_R = power_final;
@@ -438,7 +450,7 @@ bool Turn(int degrees)
 	Time_ClearTimer(timer_finish);
 
 	const float kP = 7.2;
-	const float kI = 0.18;
+	const float kI = 0.14;
 	const float I_term_decay_rate = 0.94;
 
 	float heading_init = heading;
