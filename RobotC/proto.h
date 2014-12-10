@@ -16,3 +16,7 @@ const int LIFT_KILL_PICKUP = 950;
 // Servo position values.
 const int pos_dump_open 	= 170;
 const int pos_dump_closed	= 240;
+
+// Color sensor detection values.
+const int detected_red = 25;
+const int detected_blue = 15;
