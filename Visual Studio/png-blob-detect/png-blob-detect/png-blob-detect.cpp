@@ -101,6 +101,8 @@ int main()
 	vector<int> y_blank(height, -1);
 	vector<vector<int>> grid_raw(width, y_blank);
 	vector<vector<int>> grid_blob(width, y_blank);
+	vector<int> explore_list_x;
+	vector<int> explore_list_y;
 	for (unsigned int y = 0; y < height; ++y) {
 		for (unsigned int x = 0; x < width; ++x) {
 			grid_raw[x][y] = image_blob_1[(y*width + x)*chunk_size];
@@ -110,38 +112,37 @@ int main()
 	int blob_count = 0;
 	for (unsigned int y = 1; y < height - 1; ++y) {
 		for (unsigned int x = 1; x < width - 1; ++x) {
-			if (grid_raw[x][y] == 255) {
-				if (grid_blob[x][y] == -1) {
-					blob_count++;
-					grid_blob[x][y] = blob_count;
-				}
-				int blob_current = grid_blob[x][y];
-				if (grid_blob[x-1][y] != -1) {
-					blob_current = grid_blob[x-1][y];
-				}
-				if (grid_blob[x+1][y] != -1) {
-					blob_current = grid_blob[x+1][y];
-				}
-				if (grid_blob[x][y-1] != -1) {
-					blob_current = grid_blob[x][y-1];
-				}
-				if (grid_blob[x][y+1] != -1) {
-					blob_current = grid_blob[x][y+1];
-				}
-
-				grid_blob[x][y] = blob_current;
-				if (grid_raw[x-1][y] == 255) {
-					grid_blob[x-1][y] = blob_current;
-				}
-				if (grid_raw[x+1][y] == 255) {
-					grid_blob[x+1][y] = blob_current;
-				}
-				if (grid_raw[x][y-1] == 255) {
-					grid_blob[x][y-1] = blob_current;
-				}
-				if (grid_raw[x][y+1] == 255) {
-					grid_blob[x][y+1] = blob_current;
-				}
+			if (grid_raw[x][y] == 255 && grid_blob[x][y] == -1) {
+				blob_count++;
+				grid_blob[x][y] = blob_count;
+				explore_list_x.push_back(x);
+				explore_list_y.push_back(y);
+				do {
+					int test_x = explore_list_x.back();
+					int test_y = explore_list_y.back();
+					explore_list_x.pop_back();
+					explore_list_y.pop_back();
+					if (grid_raw[test_x - 1][test_y] == 255 && grid_blob[test_x - 1][test_y] == -1) {
+						grid_blob[test_x - 1][test_y] = blob_count;
+						explore_list_x.push_back(test_x - 1);
+						explore_list_y.push_back(test_y);
+					}
+					if (grid_raw[test_x][test_y - 1] == 255 && grid_blob[test_x][test_y - 1] == -1) {
+						grid_blob[test_x][test_y - 1] = blob_count;
+						explore_list_x.push_back(test_x);
+						explore_list_y.push_back(test_y - 1);
+					}
+					if (grid_raw[test_x + 1][test_y] == 255 && grid_blob[test_x + 1][test_y] == -1) {
+						grid_blob[test_x + 1][test_y] = blob_count;
+						explore_list_x.push_back(test_x + 1);
+						explore_list_y.push_back(test_y);
+					}
+					if (grid_raw[test_x][test_y + 1] == 255 && grid_blob[test_x][test_y + 1] == -1) {
+						grid_blob[test_x][test_y + 1] = blob_count;
+						explore_list_x.push_back(test_x);
+						explore_list_y.push_back(test_y + 1);
+					}
+				} while (explore_list_x.size() > 0 && explore_list_y.size() > 0);
 			}
 		}
 	}
