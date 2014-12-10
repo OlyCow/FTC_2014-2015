@@ -612,6 +612,10 @@ task PID()
 		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
 
+		if (Motor_GetPower(power_lift)<0) {
+			Motor_SetPower(-100, motor_assist);
+		}
+
 		Time_Wait(2);
 	}
 }

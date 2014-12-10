@@ -11,6 +11,8 @@ const int LIFT_HIGH		= 6600;
 const int LIFT_CENTER	= 8700;
 const int LIFT_TOP		= 8800;
 
+const int LIFT_KILL_PICKUP = 950;
+
 // Servo position values.
 const int pos_dump_open 	= 170;
 const int pos_dump_closed	= 240;
