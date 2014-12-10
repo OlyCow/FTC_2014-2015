@@ -111,7 +111,6 @@
   <avrgcc.compiler.warnings.Undefined>True</avrgcc.compiler.warnings.Undefined>
   <avrgcc.compiler.warnings.Pedantic>True</avrgcc.compiler.warnings.Pedantic>
   <avrgcc.compiler.miscellaneous.Verbose>True</avrgcc.compiler.miscellaneous.Verbose>
-  <avrgcc.compiler.miscellaneous.SupportAnsiPrograms>True</avrgcc.compiler.miscellaneous.SupportAnsiPrograms>
   <avrgcccpp.compiler.general.ChangeDefaultCharTypeUnsigned>True</avrgcccpp.compiler.general.ChangeDefaultCharTypeUnsigned>
   <avrgcccpp.compiler.general.ChangeDefaultBitFieldUnsigned>True</avrgcccpp.compiler.general.ChangeDefaultBitFieldUnsigned>
   <avrgcccpp.compiler.symbols.DefSymbols>
@@ -138,6 +137,30 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\lib\FatFs\diskio.h">
+      <SubType>compile</SubType>
+      <Link>diskio.h</Link>
+    </Compile>
+    <Compile Include="..\lib\FatFs\ff.c">
+      <SubType>compile</SubType>
+      <Link>ff.c</Link>
+    </Compile>
+    <Compile Include="..\lib\FatFs\ff.h">
+      <SubType>compile</SubType>
+      <Link>ff.h</Link>
+    </Compile>
+    <Compile Include="..\lib\FatFs\ffconf.h">
+      <SubType>compile</SubType>
+      <Link>ffconf.h</Link>
+    </Compile>
+    <Compile Include="..\lib\FatFs\integer.h">
+      <SubType>compile</SubType>
+      <Link>integer.h</Link>
+    </Compile>
+    <Compile Include="..\lib\FatFs\sdmm.c">
+      <SubType>compile</SubType>
+      <Link>sdmm.c</Link>
+    </Compile>
     <Compile Include="..\lib\SPI-codes.h">
       <SubType>compile</SubType>
       <Link>SPI-codes.h</Link>
