@@ -129,10 +129,10 @@ task main()
 	// then slow down for the ramped portion of the ramp, and stop moving forward
 	// when the color sensor determines that we are just off of the ramp.
 	int ramp_power = -100;
-	Motor_SetPower(ramp_power + 35, motor_L);
+	Motor_SetPower(ramp_power + 45, motor_L);
 	Motor_SetPower(ramp_power, motor_R_B);
 	Motor_SetPower(ramp_power, motor_R_A);
-	Time_Wait(1900);
+	Time_Wait(2000);
 	//ramp_power = -30;
 	//Motor_SetPower(ramp_power, motor_L);
 	//Motor_SetPower(ramp_power, motor_R_B);
@@ -181,6 +181,8 @@ task main()
 		centerGoalPos = CENTER_POS_1;
 	} // else the center position stays unknown.
 
+	lift_target = LIFT_HIGH;
+
 	// Move into position to pick up rolling goal:
 	// The first drive command moves us about flush with the tile just before the
 	// medium rolling goal (going off memory here; I may be completely off).
@@ -188,18 +190,18 @@ task main()
 	// the tall rolling goal when we go to retrieve it. We then drive backwards.
 	// We make sure to leave some space for PID to overshoot and still not bump
 	// the goal (such that moves it farther from us).
-	DriveBackward(2400);
-	TurnLeft(45);
-	DriveBackward(3000);
-	TurnRight(90);
+	DriveBackward(1200);
+	TurnLeft(30);
+	DriveBackward(4500);
+	TurnRight(105);
 	DriveBackward(3600);
 
 	// Pick up goal:
 	// Start both the clamp motors, drive backward a bit, wait a bit to make sure
 	// we're clamped on solidly, then turn off the clamp motors.
-	Motor_SetPower(100, motor_clamp_L);
-	Motor_SetPower(100, motor_clamp_R);
-	DriveBackward(900);
+	Motor_SetPower(80, motor_clamp_L);
+	Motor_SetPower(80, motor_clamp_R);
+	DriveBackward(800);
 	Time_Wait(1600);
 	Motor_SetPower(0, motor_clamp_L);
 	Motor_SetPower(0, motor_clamp_R);
@@ -209,8 +211,6 @@ task main()
 	// so only raise lift now. We're giving it a delay to get to the top, then giving
 	// the dumping servo plenty of time to dump the balls *and* close so that it
 	// doesn't get caught on the ball tube as the lift lowers.
-	lift_target = LIFT_HIGH;
-	Time_Wait(3000);
 	Servo_SetPosition(servo_dump, pos_dump_open);
 	Time_Wait(1600);
 	Servo_SetPosition(servo_dump, pos_dump_closed);
@@ -385,11 +385,12 @@ bool Drive(int encoder_count)
 		error_sum_R += error_R;
 		power_L = kP*error_L + kI*error_sum_L;
 		power_R = kP*error_R + kI*error_sum_R;
-		power_L = Math_Limit(power_L, 40);
-		power_R = Math_Limit(power_R, 40);
+		power_L = Math_Limit(power_L, 70);
+		power_R = Math_Limit(power_R, 70);
+		int power_final = (int)round((power_L+power_R)/2.0);
+		//power_turn = Math_Limit(power_turn, power_final*0.6);
 		power_L += power_turn;
 		power_R -= power_turn;
-		int power_final = (int)round((power_L+power_R)/2.0);
 		//power_L = power_final;
 		//power_R = power_final;
 
@@ -580,43 +581,40 @@ task PID()
 		error_prev = error;
 		lift_pos = Motor_GetEncoder(encoder_lift);
 
-		if (is_lift_manual == false) {
-			if (lift_target<LIFT_BOTTOM) {
-				lift_target = LIFT_BOTTOM;
-			}
-			if (lift_target>LIFT_TOP) {
-				lift_target = LIFT_TOP;
-			}
-			error = lift_target - lift_pos;
-			if (error > 0) {
-				isDown = false;
-			} else {
-				isDown = true;
-			}
-			error_sum *= I_term_decay_rate;
-			error_sum += error * (int)dt;
-			error_rate = (error - error_prev) / (int)dt;
 
-			term_P_lift = error;
-			term_I_lift = error_sum;
-			term_D_lift = error_rate;
-			switch (isDown) {
-				case true :
-					term_P_lift *= kP_down;
-					term_I_lift *= kI_down;
-					term_D_lift *= kD_down;
-					break;
-				case false :
-					term_P_lift *= kP_up;
-					term_I_lift *= kI_up;
-					term_D_lift *= kD_up;
-					break;
-			}
-			power_lift = term_P_lift + term_I_lift + term_D_lift;
-		} else {
-			lift_target = lift_pos;
-			power_lift = power_lift_temp;
+		if (lift_target<LIFT_BOTTOM) {
+			lift_target = LIFT_BOTTOM;
 		}
+		if (lift_target>LIFT_TOP) {
+			lift_target = LIFT_TOP;
+		}
+		error = lift_target - lift_pos;
+		if (error > 0) {
+			isDown = false;
+		} else {
+			isDown = true;
+		}
+		error_sum *= I_term_decay_rate;
+		error_sum += error * (int)dt;
+		error_rate = (error - error_prev) / (int)dt;
+
+		term_P_lift = error;
+		term_I_lift = error_sum;
+		term_D_lift = error_rate;
+		switch (isDown) {
+			case true :
+				term_P_lift *= kP_down;
+				term_I_lift *= kI_down;
+				term_D_lift *= kD_down;
+				break;
+			case false :
+				term_P_lift *= kP_up;
+				term_I_lift *= kI_up;
+				term_D_lift *= kD_up;
+				break;
+		}
+		power_lift = term_P_lift + term_I_lift + term_D_lift;
+
 		if (abs(power_lift)<10) {
 			power_lift = 0;
 		}
@@ -624,9 +622,9 @@ task PID()
 		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
 
-		if (Motor_GetPower(power_lift)<0) {
-			Motor_SetPower(-100, motor_assist);
-		}
+		//if (Motor_GetPower(motor_lift_A)<20) { // motor_lift_A is opposite encoders
+		//	Motor_SetPower(-100, motor_assist);
+		//}
 
 		Time_Wait(2);
 	}
