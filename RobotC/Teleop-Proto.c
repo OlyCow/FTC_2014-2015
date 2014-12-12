@@ -148,8 +148,10 @@ task main()
 
 		Servo_SetPosition(servo_dump, dump_position);
 
-		if (Motor_GetPower(power_lift)<0) {
+		if (Motor_GetPower(motor_lift_B)<-10) {
 			Motor_SetPower(-100, motor_assist);
+		} else {
+			Motor_SetPower(0, motor_assist);
 		}
 
 		Time_Wait(15);
@@ -229,6 +231,12 @@ task PID()
 
 		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
+
+		if (Motor_GetPower(motor_lift_B)<-10) { // motor_lift_A is opposite encoders
+			Motor_SetPower(-100, motor_assist);
+		} else {
+			Motor_SetPower(0, motor_assist);
+		}
 
 		Time_Wait(2);
 	}
