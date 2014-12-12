@@ -27,6 +27,9 @@ task Gyro();
 task PID();
 task Display();
 
+void DumpBall();
+void DumpAuton();
+
 bool DriveForward(int encoder_count);
 bool DriveBackward(int encoder_count);
 bool TurnLeft(int degrees);
@@ -159,10 +162,10 @@ task main()
 	// Apply just enough power to move backwards but not enough to drive the
 	// robot back up the ramp. This makes doubly sure that the robot is in a
 	// determined location (since we're aligning the robot up against the ramp).
-	Motor_SetPower(10, motor_L);
-	Motor_SetPower(10, motor_R_B);
-	Motor_SetPower(10, motor_R_A);
-	Time_Wait(500);
+	Motor_SetPower(15, motor_L);
+	Motor_SetPower(15, motor_R_B);
+	Motor_SetPower(15, motor_R_A);
+	Time_Wait(1500);
 	Motor_SetPower(0, motor_L);
 	Motor_SetPower(0, motor_R_B);
 	Motor_SetPower(0, motor_R_A);
@@ -190,34 +193,21 @@ task main()
 	// the tall rolling goal when we go to retrieve it. We then drive backwards.
 	// We make sure to leave some space for PID to overshoot and still not bump
 	// the goal (such that moves it farther from us).
-	DriveBackward(1200);
+	DriveBackward(800);
 	TurnLeft(30);
-	DriveBackward(4500);
-	TurnRight(105);
-	DriveBackward(3600);
+	DriveBackward(5500);
+	TurnRight(75);
+	DriveBackward(2000);
 
 	// Pick up goal:
 	// Start both the clamp motors, drive backward a bit, wait a bit to make sure
 	// we're clamped on solidly, then turn off the clamp motors.
-	Motor_SetPower(80, motor_clamp_L);
-	Motor_SetPower(80, motor_clamp_R);
-	DriveBackward(800);
-	Time_Wait(1600);
+	Motor_SetPower(100, motor_clamp_L);
+	Motor_SetPower(100, motor_clamp_R);
+	DriveBackward(1400);
+	Time_Wait(800);
 	Motor_SetPower(0, motor_clamp_L);
 	Motor_SetPower(0, motor_clamp_R);
-
-	// Raise lift and dump balls:
-	// We want to be safe and keep our center of gravity low for as long as possible,
-	// so only raise lift now. We're giving it a delay to get to the top, then giving
-	// the dumping servo plenty of time to dump the balls *and* close so that it
-	// doesn't get caught on the ball tube as the lift lowers.
-	Servo_SetPosition(servo_dump, pos_dump_open);
-	Time_Wait(1600);
-	Servo_SetPosition(servo_dump, pos_dump_closed);
-	Time_Wait(800);
-
-	// Lower lift.
-	lift_target = LIFT_BOTTOM;
 
 	// Tow the goal back to the parking zone:
 	// The first drive statement determines how close the robot drives to the ramp and
@@ -229,11 +219,22 @@ task main()
 	// then turn and enter the zone with the rolling goal in the back. (It only needs
 	// to be partially inside the zone.) Moving too far does have the risk of burning
 	// out motors, since the watchdog kicks in after a sizeable delay.
-	DriveForward(4500);
-	TurnLeft(45);
-	DriveForward(7000);
-	TurnRight(45);
-	DriveForward(4000);
+	DriveForward(3900);
+
+	// Raise lift and dump balls:
+	// We want to be safe and keep our center of gravity low for as long as possible,
+	// so only raise lift now. We're giving it a delay to get to the top, then giving
+	// the dumping servo plenty of time to dump the balls *and* close so that it
+	// doesn't get caught on the ball tube as the lift lowers.
+	DumpBall();
+
+	// Lower lift.
+	lift_target = LIFT_CENTER;
+
+	//TurnLeft(45);
+	//DriveForward(7000);
+	//TurnRight(45);
+	//DriveForward(4000);
 
 	// Take different routes depending on center goal position:
 	// (Currently this does not work "magic number"-wise.)
@@ -252,22 +253,18 @@ task main()
     // An unknkown goal position means we just center the rolling goal, or maybe just guess that it's
     // position 3, no crashing happens if it isn't.
 
-	switch (centerGoalPos) {                     //these are all conservative guesses so when we test we most likely wont crash
-		case CENTER_POS_UNKNOWN :                   //guesses that it is pos_1 since we won't crash into anything
-            TurnRight(45);
-            DriveForward(100);
+	switch (centerGoalPos) {		//these are all conservative guesses so when we test we most likely wont crash
+		case CENTER_POS_UNKNOWN :	//guesses that it is pos_1 since we won't crash into anything
+			lift_target = LIFT_BOTTOM;
+            TurnLeft(15);
+            DriveForward(9000);
             break;
 
 		case CENTER_POS_1 :			//goal faces the parking zone
             TurnLeft(45);
 		    DriveBackward(1000);
 
-            lift_target = LIFT_CENTER;
-            Time_Wait(3000);
-            Servo_SetPosition(servo_dump, pos_dump_open);
-            Time_Wait(1600);
-            Servo_SetPosition(servo_dump, pos_dump_closed);
-            Time_Wait(800);
+            DumpAuton();
 
             DriveForward(1000);
             TurnRight(90);
@@ -280,31 +277,21 @@ task main()
 		    TurnRight(90);
             DriveBackward(100);
 
-            lift_target = LIFT_CENTER;
-            Time_Wait(3000);
-            Servo_SetPosition(servo_dump, pos_dump_open);
-            Time_Wait(1600);
-            Servo_SetPosition(servo_dump, pos_dump_closed);
-            Time_Wait(800);
+            DumpAuton();
 
             TurnLeft(90);
             DriveForward(1400);
             TurnRight(45);
-            DriveForward(50);
+			DriveForward(50);
 
-            break;
+        	break;
 
-           	case CENTER_POS_3 :				//goal faces the side of the arena
+		case CENTER_POS_3 :				//goal faces the side of the arena
 		    DriveBackward(4000);
 		    TurnRight(135);
 		    DriveBackward(100);
 
-		    lift_target = LIFT_CENTER;
-            Time_Wait(3000);
-            Servo_SetPosition(servo_dump, pos_dump_open);
-            Time_Wait(1600);
-            Servo_SetPosition(servo_dump, pos_dump_closed);
-            Time_Wait(800);
+            DumpAuton();
 
             DriveForward(100);
             TurnLeft(135);
@@ -313,7 +300,6 @@ task main()
             DriveForward(50);
 
             break;
-
 	}
 
 	// Lower lift:
@@ -324,6 +310,22 @@ task main()
 		PlaySound(soundUpwardTones);
 		Time_Wait(1000);
 	}
+}
+
+void DumpBall()
+{
+	Servo_SetPosition(servo_dump, pos_dump_open);
+	Time_Wait(1600);
+	Servo_SetPosition(servo_dump, pos_dump_closed);
+	Time_Wait(600);
+}
+
+void DumpAuton()
+{
+	Servo_SetPosition(servo_dump, pos_dump_open);
+	Time_Wait(1600);
+	Servo_SetPosition(servo_dump, pos_dump_closed);
+	Time_Wait(800);
 }
 
 bool Drive(int encoder_count)
@@ -361,7 +363,7 @@ bool Drive(int encoder_count)
 	float power_L_prev = 0.0;
 	float power_R_prev = 0.0;
 
-	const float kP_turn_correct = 11.1;
+	const float kP_turn_correct = 5.1;
 	float heading_init = heading;
 	float heading_curr = heading_init;
 	float heading_error = 0.0;
@@ -388,9 +390,12 @@ bool Drive(int encoder_count)
 		power_L = Math_Limit(power_L, 70);
 		power_R = Math_Limit(power_R, 70);
 		int power_final = (int)round((power_L+power_R)/2.0);
-		//power_turn = Math_Limit(power_turn, power_final*0.6);
-		power_L += power_turn;
-		power_R -= power_turn;
+		power_turn = Math_Limit(power_turn, power_final*0.4);
+		if (encoder_count<0) {
+			power_turn *= -1;
+		}
+		power_L -= power_turn;
+		power_R += power_turn;
 		//power_L = power_final;
 		//power_R = power_final;
 
@@ -470,11 +475,12 @@ bool Turn(int degrees)
 		float kP_var = kP;
 		float kI_var = kI;
 		power = kP_var*error + kI_var*error_sum;
-		power = Math_Limit(power, 70.0);
+		power = Math_Limit(power, 65.0);
 
 		int power_L = (int)round(power);
 		power_L *= -1;
 		int power_R = (int)round(power);
+		power_R *= 1.6;
 
 		curr_angle_disp = heading_curr;
 		error_angle_disp = error;
@@ -622,9 +628,11 @@ task PID()
 		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
 
-		//if (Motor_GetPower(motor_lift_A)<20) { // motor_lift_A is opposite encoders
-		//	Motor_SetPower(-100, motor_assist);
-		//}
+		if (Motor_GetPower(motor_lift_B)<-10) { // motor_lift_A is opposite encoders
+			Motor_SetPower(-100, motor_assist);
+		} else {
+			Motor_SetPower(0, motor_assist);
+		}
 
 		Time_Wait(2);
 	}

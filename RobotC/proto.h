@@ -7,9 +7,9 @@ tMotor encoder_lift	= motor_lift_A;
 const int LIFT_BOTTOM	= 0;
 const int LIFT_LOW		= 1700;
 const int LIFT_MID		= 4300;
-const int LIFT_HIGH		= 6600;
-const int LIFT_CENTER	= 8700;
-const int LIFT_TOP		= 8800;
+const int LIFT_HIGH		= 7100;
+const int LIFT_CENTER	= 8900;
+const int LIFT_TOP		= 9000;
 
 const int LIFT_KILL_PICKUP = 950;
 
