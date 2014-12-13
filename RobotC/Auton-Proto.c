@@ -1,4 +1,5 @@
 #pragma config(Hubs,  S1, HTServo,  HTMotor,  HTMotor,  HTMotor)
+#pragma config(Sensor, S1,     ,               sensorI2CMuxController)
 #pragma config(Sensor, S2,     sensor_IR,      sensorI2CCustom)
 #pragma config(Sensor, S3,     sensor_color,   sensorCOLORFULL)
 #pragma config(Sensor, S4,     sensor_gyro,    sensorAnalogInactive)
@@ -12,7 +13,7 @@
 #pragma config(Motor,  mtr_S1_C4_1,     motor_R_A,     tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_2,     motor_R_B,     tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Servo,  srvo_S1_C1_1,    servo_dump,           tServoStandard)
-#pragma config(Servo,  srvo_S1_C1_2,    servo2,               tServoNone)
+#pragma config(Servo,  srvo_S1_C1_2,    servo_auton,          tServoStandard)
 #pragma config(Servo,  srvo_S1_C1_3,    servo3,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_4,    servo4,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_5,    servo5,               tServoNone)
@@ -162,10 +163,10 @@ task main()
 	// Apply just enough power to move backwards but not enough to drive the
 	// robot back up the ramp. This makes doubly sure that the robot is in a
 	// determined location (since we're aligning the robot up against the ramp).
-	Motor_SetPower(15, motor_L);
-	Motor_SetPower(15, motor_R_B);
-	Motor_SetPower(15, motor_R_A);
-	Time_Wait(1500);
+	Motor_SetPower(10, motor_L);
+	Motor_SetPower(10, motor_R_B);
+	Motor_SetPower(10, motor_R_A);
+	Time_Wait(1100);
 	Motor_SetPower(0, motor_L);
 	Motor_SetPower(0, motor_R_B);
 	Motor_SetPower(0, motor_R_A);
@@ -195,7 +196,7 @@ task main()
 	// the goal (such that moves it farther from us).
 	DriveBackward(800);
 	TurnLeft(30);
-	DriveBackward(5500);
+	DriveBackward(5700);
 	TurnRight(75);
 	DriveBackward(2000);
 
@@ -206,8 +207,6 @@ task main()
 	Motor_SetPower(100, motor_clamp_R);
 	DriveBackward(1400);
 	Time_Wait(800);
-	Motor_SetPower(0, motor_clamp_L);
-	Motor_SetPower(0, motor_clamp_R);
 
 	// Tow the goal back to the parking zone:
 	// The first drive statement determines how close the robot drives to the ramp and
@@ -219,7 +218,7 @@ task main()
 	// then turn and enter the zone with the rolling goal in the back. (It only needs
 	// to be partially inside the zone.) Moving too far does have the risk of burning
 	// out motors, since the watchdog kicks in after a sizeable delay.
-	DriveForward(3900);
+	DriveForward(3300);
 
 	// Raise lift and dump balls:
 	// We want to be safe and keep our center of gravity low for as long as possible,
@@ -254,53 +253,63 @@ task main()
     // position 3, no crashing happens if it isn't.
 
 	switch (centerGoalPos) {		//these are all conservative guesses so when we test we most likely wont crash
+		default :					//intentional fall-through
 		case CENTER_POS_UNKNOWN :	//guesses that it is pos_1 since we won't crash into anything
 			lift_target = LIFT_BOTTOM;
-            TurnLeft(15);
-            DriveForward(9000);
+			TurnLeft(50);
+			DriveForward(12000);
             break;
 
-		case CENTER_POS_1 :			//goal faces the parking zone
-            TurnLeft(45);
-		    DriveBackward(1000);
+		//case CENTER_POS_1 :			//goal faces the parking zone
+  //          TurnLeft(45);
+		//    DriveForward(2000);
+		//    TurnRight(90);
+		//    DriveForward(1600);
+		//    TurnLeft(90);
+		//    DriveBackward(600);
 
-            DumpAuton();
+  //          DumpAuton();
+  //          lift_target = LIFT_BOTTOM;
 
-            DriveForward(1000);
-            TurnRight(90);
-            DriveForward(50);
+  //          DriveForward(1600);
+  //          TurnRight(1350);
+  //          DriveBackward(500);
+  //          break;
 
-            break;
+		//case CENTER_POS_2 :				//goal faces corner
+		//	TurnLeft(45);
+		//    DriveForward(800);
+		//    TurnRight(45);
+  //          DriveForward(3000);
+  //          TurnRight(45);
+  //          DriveForward(1000);
+  //          TurnLeft(45);
+  //          DriveBackward(800);
 
-		case CENTER_POS_2 :				//goal faces corner
-		    DriveBackward(1400);
-		    TurnRight(90);
-            DriveBackward(100);
+  //          DumpAuton();
+		//	lift_target = LIFT_BOTTOM;
 
-            DumpAuton();
+  //          TurnRight(90);
+  //          DriveBackward(2400);
+  //      	break;
 
-            TurnLeft(90);
-            DriveForward(1400);
-            TurnRight(45);
-			DriveForward(50);
+		//case CENTER_POS_3 :				//goal faces the side of the arena
+		//    DriveBackward(4000);
+		//    TurnRight(135);
+		//    DriveBackward(100);
 
-        	break;
+  //          DumpAuton();
+  //          lift_target = LIFT_BOTTOM;
 
-		case CENTER_POS_3 :				//goal faces the side of the arena
-		    DriveBackward(4000);
-		    TurnRight(135);
-		    DriveBackward(100);
-
-            DumpAuton();
-
-            DriveForward(100);
-            TurnLeft(135);
-            DriveForward(4000);
-            TurnRight(45);
-            DriveForward(50);
-
-            break;
+  //          TurnRight(45);
+  //          DriveBackward(3000);
+  //          TurnRight(45);
+  //          DriveBackward(800);
+  //          break;
 	}
+
+	Motor_SetPower(0, motor_clamp_L);
+	Motor_SetPower(0, motor_clamp_R);
 
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid
@@ -322,9 +331,9 @@ void DumpBall()
 
 void DumpAuton()
 {
-	Servo_SetPosition(servo_dump, pos_dump_open);
+	Servo_SetPosition(servo_auton, pos_auton_open);
 	Time_Wait(1600);
-	Servo_SetPosition(servo_dump, pos_dump_closed);
+	Servo_SetPosition(servo_auton, pos_auton_closed);
 	Time_Wait(800);
 }
 

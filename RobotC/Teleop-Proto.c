@@ -1,4 +1,5 @@
 #pragma config(Hubs,  S1, HTServo,  HTMotor,  HTMotor,  HTMotor)
+#pragma config(Sensor, S1,     ,               sensorI2CMuxController)
 #pragma config(Sensor, S2,     sensor_IR,      sensorI2CCustom)
 #pragma config(Sensor, S3,     sensor_color,   sensorCOLORFULL)
 #pragma config(Sensor, S4,     sensor_gyro,    sensorAnalogInactive)
@@ -12,8 +13,8 @@
 #pragma config(Motor,  mtr_S1_C4_1,     motor_R_A,     tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_2,     motor_R_B,     tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Servo,  srvo_S1_C1_1,    servo_dump,           tServoStandard)
-#pragma config(Servo,  srvo_S1_C1_2,    servo_test_A,         tServoStandard)
-#pragma config(Servo,  srvo_S1_C1_3,    servo_test_B,         tServoStandard)
+#pragma config(Servo,  srvo_S1_C1_2,    servo_auton,          tServoStandard)
+#pragma config(Servo,  srvo_S1_C1_3,    servo3,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_4,    servo4,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_5,    servo5,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_6,    servo6,               tServoNone)
@@ -56,6 +57,9 @@ task main()
 	Motor_ResetEncoder(encoder_R);
 	Motor_ResetEncoder(encoder_lift);
 
+	Servo_SetPosition(servo_dump, pos_dump_closed);
+	Servo_SetPosition(servo_auton, pos_auton_closed);
+
 	HTIRS2setDSPMode(sensor_IR, DSP_1200);
 
 	Task_Spawn(PID);
@@ -65,8 +69,6 @@ task main()
 
 	while (true) {
 		int pos = 40;
-		Servo_SetPosition(servo_test_A, 128+pos);
-		Servo_SetPosition(servo_test_B, 128-pos);
 
 		Joystick_UpdateData();
 
@@ -147,6 +149,11 @@ task main()
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
 		Servo_SetPosition(servo_dump, dump_position);
+		if (Joystick_Button(BUTTON_RB, CONTROLLER_2)) {
+			Servo_SetPosition(servo_auton, pos_auton_open);
+		} else {
+			Servo_SetPosition(servo_auton, pos_auton_closed);
+		}
 
 		if (Motor_GetPower(motor_lift_B)<-10) {
 			Motor_SetPower(-100, motor_assist);

@@ -95,34 +95,40 @@ task main()
     // As always, no guarantees or returns or refunds. do change the numbers as
     // needed though.
 
-//TurnLeft(45);
+	lift_target = LIFT_HIGH;
 
-DriveBackward(4000);            // this bit is concerning since you commented it out in
-TurnLeft(45);                   // the ramp auton so im going to assume it works.
-DriveBackward(7000);
-TurnRight(45);
-DriveBackward(3900);
+	DriveBackward(2000);            // this bit is concerning since you commented it out in
+	TurnLeft(45);                   // the ramp auton so im going to assume it works.
+	DriveBackward(7000);
+	TurnRight(45);
+	DriveBackward(3900);
 
-Motor_SetPower(100, motor_clamp_L);
+	Motor_SetPower(100, motor_clamp_L);
 	Motor_SetPower(100, motor_clamp_R);
 	DriveBackward(1400);
 	Time_Wait(800);
 	Motor_SetPower(0, motor_clamp_L);
 	Motor_SetPower(0, motor_clamp_R);
 
+	DumpBall();
+	lift_target = LIFT_BOTTOM;
 
-lift_target = LIFT_HIGH;
-DumpBall();
-lift_target = LIFT_BOTTOM;
+	DriveForward(3900);
+	TurnLeft(45);
+	DriveForward(7000);
+	TurnRight(45);
+	DriveForward(4000);
+	TurnLeft(135);
+	DriveBackward(800);
 
-DriveForward(3900);
-TurnLeft(45);
-DriveForward(7000);
-TurnRight(45);
-DriveForward(4000);
-
-TurnRight(45);
-
+	// Lower lift:
+	// We need to be extra sure that the lift lowers completely. Do NOT get rid
+	// of the delay at the end!
+	lift_target = LIFT_BOTTOM;
+	while (true) {
+		PlaySound(soundUpwardTones);
+		Time_Wait(1000);
+	}
 }
 
 void DumpBall()
