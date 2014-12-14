@@ -27,6 +27,19 @@
 task Gyro();
 task PID();
 task Display();
+task Die();
+
+int lift_target = 0;
+
+task Die() {
+	//int timer_death = 0;
+	for (int i = 0; i<25; i++) {
+		Time_Wait(1000);
+	}
+	while (true) {
+		lift_target = LIFT_BOTTOM;
+	}
+}
 
 void DumpBall();
 void DumpAuton();
@@ -40,7 +53,6 @@ bool Drive(int encoder_count);
 bool Turn(int degrees);
 
 float heading = 0.0;
-int lift_target = 0;
 int power_lift = 0;
 int power_lift_temp = 0;
 bool is_lift_manual = false;
@@ -102,30 +114,33 @@ task main()
 
 	Servo_SetPosition(servo_dump, pos_dump_closed);
 
+	HTGYROstartCal(sensor_gyro);
+
 	Joystick_WaitForStart();
+	Task_Spawn(Die);
 	Time_Wait(500);
 
-	// Determine color of ramp:
-	// Currently unbelievably complicated. Could probably be alleviated by using
-	// an enum. Whatever. Still need to figure out what happens if data conflicts.
-	SensorType[sensor_color] = sensorCOLORRED;
-	if (SensorValue[sensor_color]>=detected_red) {
-		isRed = true;
-	}
-	SensorType[sensor_color] = sensorCOLORBLUE;
-	if (SensorValue[sensor_color]>=detected_blue) {
-		isBlue = true;
-	}
-	if (isRed==isBlue) {
-		isUnknown = true;
-	}
-	if (!isUnknown) {
-		if (isRed) {
-			color_threshold = detected_red;
-		} else {
-			color_threshold = detected_blue;
-		}
-	}
+	//// Determine color of ramp:
+	//// Currently unbelievably complicated. Could probably be alleviated by using
+	//// an enum. Whatever. Still need to figure out what happens if data conflicts.
+	//SensorType[sensor_color] = sensorCOLORRED;
+	//if (SensorValue[sensor_color]>=detected_red) {
+	//	isRed = true;
+	//}
+	//SensorType[sensor_color] = sensorCOLORBLUE;
+	//if (SensorValue[sensor_color]>=detected_blue) {
+	//	isBlue = true;
+	//}
+	//if (isRed==isBlue) {
+	//	isUnknown = true;
+	//}
+	//if (!isUnknown) {
+	//	if (isRed) {
+	//		color_threshold = detected_red;
+	//	} else {
+	//		color_threshold = detected_blue;
+	//	}
+	//}
 
 	// Drive off ramp (backwards):
 	// This portion is mostly wizardry (heuristic). First we drive off the ramp at
@@ -136,7 +151,7 @@ task main()
 	Motor_SetPower(ramp_power + 45, motor_L);
 	Motor_SetPower(ramp_power, motor_R_B);
 	Motor_SetPower(ramp_power, motor_R_A);
-	Time_Wait(2000);
+	Time_Wait(1700);
 	//ramp_power = -30;
 	//Motor_SetPower(ramp_power, motor_L);
 	//Motor_SetPower(ramp_power, motor_R_B);
@@ -156,8 +171,8 @@ task main()
 	// We correct the heading by turning the robot until the gyro reads that our
 	// angle is 0 again. This may not work 100% because the gyro might mess up
 	// the angle readings when pitch and roll aren't 0.
-	int correction_turn = heading;
-	TurnLeft(correction_turn);
+	//int correction_turn = heading;
+	//TurnLeft(correction_turn);
 
 	// Back up to bottom of ramp:
 	// Apply just enough power to move backwards but not enough to drive the
@@ -176,14 +191,14 @@ task main()
 	// beacons add linearly, we can determine the position of the center goal
 	// solely by aggregating the readings from each region.
 	Time_Wait(500);
-	HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
-	if (((IR_B+IR_C)>35) && (IR_B>15) && (IR_C>15)) {
-		centerGoalPos = CENTER_POS_3;
-	} else if (IR_B>25) {
-		centerGoalPos = CENTER_POS_2;
-	} else if ((IR_A + IR_B + IR_C)<10) {
-		centerGoalPos = CENTER_POS_1;
-	} // else the center position stays unknown.
+	//HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
+	//if (((IR_B+IR_C)>35) && (IR_B>15) && (IR_C>15)) {
+	//	centerGoalPos = CENTER_POS_3;
+	//} else if (IR_B>25) {
+	//	centerGoalPos = CENTER_POS_2;
+	//} else if ((IR_A + IR_B + IR_C)<10) {
+	//	centerGoalPos = CENTER_POS_1;
+	//} // else the center position stays unknown.
 
 	lift_target = LIFT_HIGH;
 
@@ -454,7 +469,7 @@ bool Turn(int degrees)
 
 	int timer_watchdog = 0;
 	Time_ClearTimer(timer_watchdog);
-	const float watchdog_degree_rate = 0.0139;
+	const float watchdog_degree_rate = 0.0279;
 	const float watchdog_base = 1800.0;
 	int time_limit = (int)round((float)abs(degrees)*watchdog_degree_rate+watchdog_base);
 	const float acceptable_error = 1.0;

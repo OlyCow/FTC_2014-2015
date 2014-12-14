@@ -98,6 +98,8 @@ task main()
 		}
 		if (isPickingUp == true) {
 			power_pickup = 100;
+		} else if (Motor_GetPower(motor_lift_B)<-10) {
+			power_pickup = -100;
 		} else {
 			power_pickup = 0;
 		}
@@ -155,10 +157,15 @@ task main()
 			Servo_SetPosition(servo_auton, pos_auton_closed);
 		}
 
-		if (Motor_GetPower(motor_lift_B)<-10) {
-			Motor_SetPower(-100, motor_assist);
-		} else {
-			Motor_SetPower(0, motor_assist);
+		while (Joystick_Button(BUTTON_JOYR, CONTROLLER_2)) {
+			Motor_SetPower(0, motor_L);
+			Motor_SetPower(0, motor_R_A);
+			Motor_SetPower(0, motor_R_B);
+			int power_temp_double = Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
+			//power_temp_double /= 2;
+			Motor_SetPower(-power_temp_double, motor_lift_A);
+			Motor_SetPower(power_temp_double, motor_lift_B);
+			Motor_ResetEncoder(motor_lift_A);
 		}
 
 		Time_Wait(15);
@@ -239,11 +246,11 @@ task PID()
 		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
 
-		if (Motor_GetPower(motor_lift_B)<-10) { // motor_lift_A is opposite encoders
-			Motor_SetPower(-100, motor_assist);
-		} else {
-			Motor_SetPower(0, motor_assist);
-		}
+		//if (Motor_GetPower(motor_lift_B)<-10) { // motor_lift_A is opposite encoders
+		//	Motor_SetPower(-100, motor_assist);
+		//} else {
+		//	Motor_SetPower(0, motor_assist);
+		//}
 
 		Time_Wait(2);
 	}
