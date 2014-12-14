@@ -21,6 +21,11 @@
 #include "../lib/MPU6050.h"
 #include "../lib/SPI-codes.h"
 
+//// SD CARD FATFS TESTING!!! --TODO: DELETE
+//#include "../lib/FatFs/ff.h"
+//FATFS FatFs;	// work area for each volume
+//FIL Fil;		// file object for each open file
+
 enum MuxLine {
 	MUX_1 = 0,
 	MUX_2,
@@ -65,19 +70,21 @@ volatile uint8_t t_overheat_alert	= 0x00; // 1 bit
 volatile uint8_t t_overheat_map		= 0x00; // 8 bits
 volatile uint8_t t_IR_alert			= 0x00; // 1 bit
 volatile uint8_t t_IR[MUX_NUM]		= {0,0,0,0,0,0,0,0}; // 7 bits each, 0~100
-// volatile uint8_t t_light_map_A		= 0x00;	// 8 bits
-// volatile uint8_t t_light_map_B		= 0x00;	// 8 bits
-// volatile uint8_t t_light_A[MUX_NUM]	= {0,0,0,0,0,0,0,0};	// 4 bits each
-// volatile uint8_t t_light_B[MUX_NUM]	= {0,0,0,0,0,0,0,0};	// 4 bits each
 
 // Constants.
 const double BIT_TO_GYRO = 500.0/32768.0; // Also in MPU-6050 Register Map "Gyroscope Measurements".
 // TODO: POSSIBLE SOURCE OF ERROR
 const double USEC_TO_SEC = 1.0/1000000.0;
 
+// SPI variables.
+volatile uint8_t byte_read = SPI_UNOWN;
+volatile uint8_t byte_write = SPI_UNOWN;
+
+// Functions.
 void initialize_io();
 void initialize_adc();
 void initialize_spi();
+void initialize_pcint();
 
 double update_rot(double rot, int vel, int vel_prev, double conversion_const);
 void setLED(MuxLine line, LedMode mode);
@@ -186,7 +193,15 @@ int main()
 	initialize_io();
 	initialize_adc();
 	initialize_spi();
-	SPDR = SPI_ACK_READY; // Means we're ready to receive data.
+	byte_write = SPI_ACK_READY;
+	initialize_pcint();
+
+	//// SD CARD DEBUGGING--DELETE! (TODO)
+	//unsigned int bw;
+	//f_mount(&FatFs, "", 0);
+	//f_open(&Fil, "hello.txt", FA_WRITE | FA_CREATE_ALWAYS);
+	//f_write(&Fil, "I AM A WIZARD\r\n", 15, &bw);
+	//f_close(&Fil);
 
 	// Initialize IMU.
 	i2c_init();
@@ -247,8 +262,7 @@ int main()
 	isReady = true;
 	sei(); // yay finally
 
-    while (true)
-    {
+    while (true) {
 		// Update system timer. TODO: Make this a class.
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 			dt = TCNT1;
@@ -517,109 +531,101 @@ int main()
 
 ISR(SPI_STC_vect)
 {
-	// SS' is active low.
-	while ((PINB & (1<<PINB2)) == 0) {
-		uint8_t read_byte = SPDR;
-		uint8_t write_byte = SPI_FILLER;
+	// NOTE: SPI_ACK_READY needs to be written to SPDR before this interrupt executes.
+	byte_read = SPDR;
+	switch(byte_read) {
+		case SPI_FILLER :
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_TRANSMIT_OVER :
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_RESET_MCU :
+			// TODO: watchdog stuff?
+			// apparently that's the correct way to reset
+			// remember to clear flags to avoid infinite reset looping
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_CHANGE_LED :
+			// TODO (no clue how to implement)
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_CLEAR_GYRO :
+			doResetGyro = true;
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_SET_IR_ON :
+			doPollIR = true;
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_SET_IR_OFF :
+			doPollIR = false;
+			byte_write = SPI_ACK_READY;
+			break;
 
-		switch(read_byte) {
-			case SPI_FILLER :
-				write_byte = SPI_ACK_READY;
-				break;
-			case SPI_TRANSMIT_OVER :
-				write_byte = SPI_ACK_READY;
-				break;
-			case SPI_RESET_MCU :
-				// TODO: watchdog stuff?
-				// apparently that's the correct way to reset
-				// remember to clear flags to avoid infinite reset looping
-				write_byte = SPI_ACK_READY;
-				break;
-			case SPI_CHANGE_LED :
-				// TODO
-				write_byte = SPI_ACK_READY;
-				break;
-			case SPI_CLEAR_GYRO :
-				doResetGyro = true;
-				write_byte = SPI_ACK_READY;
-				break;
-			case SPI_SET_IR_ON :
-				doPollIR = true;
-				write_byte = SPI_ACK_READY;
-				break;
-			case SPI_SET_IR_OFF :
-				doPollIR = false;
-				write_byte = SPI_ACK_READY;
-				break;
+		case SPI_REQ_CONFIRM :
+			byte_write = SPI_ACK_READY;
+			break;
+		case SPI_REQ_DEBUG_A :
+			byte_write = t_isPressedDebugA;
+			break;
+		case SPI_REQ_DEBUG_B :
+			byte_write = t_isPressedDebugB;
+			break;
+		case SPI_REQ_XY_LOW :
+			byte_write = t_XY_low;
+			break;
+		case SPI_REQ_XY_HIGH :
+			byte_write = t_XY_high;
+			break;
+		case SPI_REQ_Z_LOW :
+			byte_write = t_Z_low;
+			break;
+		case SPI_REQ_Z_HIGH :
+			byte_write = t_Z_high;
+			break;
+		case SPI_REQ_BUMP_MAP :
+			byte_write = t_bump_map;
+			break;
+		case SPI_REQ_OVERHEAT_ALERT :
+			byte_write = t_overheat_alert;
+			break;
+		case SPI_REQ_OVERHEAT_MAP :
+			byte_write = t_overheat_map;
+			break;
+		case SPI_REQ_IR_ALERT :
+			byte_write = t_IR_alert;
+			break;
+		case SPI_REQ_IR_1 :
+			byte_write = t_IR[MUX_1];
+			break;
+		case SPI_REQ_IR_2 :
+			byte_write = t_IR[MUX_2];
+			break;
+		case SPI_REQ_IR_3 :
+			byte_write = t_IR[MUX_3];
+			break;
+		case SPI_REQ_IR_4 :
+			byte_write = t_IR[MUX_4];
+			break;
+		case SPI_REQ_IR_5 :
+			byte_write = t_IR[MUX_5];
+			break;
+		case SPI_REQ_IR_6 :
+			byte_write = t_IR[MUX_6];
+			break;
+		case SPI_REQ_IR_7 :
+			byte_write = t_IR[MUX_7];
+			break;
+		case SPI_REQ_IR_8 :
+			byte_write = t_IR[MUX_8];
+			break;
 
-			case SPI_REQ_CONFIRM :
-				write_byte = SPI_ACK_READY;
-				break;
-			case SPI_REQ_DEBUG_A :
-				write_byte = t_isPressedDebugA;
-				break;
-			case SPI_REQ_DEBUG_B :
-				write_byte = t_isPressedDebugB;
-				break;
-			case SPI_REQ_XY_LOW :
-				write_byte = t_XY_low;
-				break;
-			case SPI_REQ_XY_HIGH :
-				write_byte = t_XY_high;
-				break;
-			case SPI_REQ_Z_LOW :
-				write_byte = t_Z_low;
-				break;
-			case SPI_REQ_Z_HIGH :
-				write_byte = t_Z_high;
-				break;
-			case SPI_REQ_BUMP_MAP :
-				write_byte = t_bump_map;
-				break;
-			case SPI_REQ_OVERHEAT_ALERT :
-				write_byte = t_overheat_alert;
-				break;
-			case SPI_REQ_OVERHEAT_MAP :
-				write_byte = t_overheat_map;
-				break;
-			case SPI_REQ_IR_ALERT :
-				write_byte = t_IR_alert;
-				break;
-			case SPI_REQ_IR_1 :
-				write_byte = t_IR[MUX_1];
-				break;
-			case SPI_REQ_IR_2 :
-				write_byte = t_IR[MUX_2];
-				break;
-			case SPI_REQ_IR_3 :
-				write_byte = t_IR[MUX_3];
-				break;
-			case SPI_REQ_IR_4 :
-				write_byte = t_IR[MUX_4];
-				break;
-			case SPI_REQ_IR_5 :
-				write_byte = t_IR[MUX_5];
-				break;
-			case SPI_REQ_IR_6 :
-				write_byte = t_IR[MUX_6];
-				break;
-			case SPI_REQ_IR_7 :
-				write_byte = t_IR[MUX_7];
-				break;
-			case SPI_REQ_IR_8 :
-				write_byte = t_IR[MUX_8];
-				break;
-
-			default :
-				write_byte = SPI_ERROR;
-				break;
-		}
-
-		SPDR = write_byte;
-		while ( !(SPSR & (1<<SPIF)) ) { ; } // wait for transfer to complete
-		// ^interrupts are turned off automatically inside an interrupt (default)
+		default :
+			byte_write = SPI_ERROR;
+			break;
 	}
-	//SPDR = SPI_ACK_READY; // SS' is high now so we're safe
+	SPDR = byte_write;
 }
 
 void initialize_io()
@@ -675,7 +681,7 @@ void initialize_io()
 		0<<PORTC3 |
 		0<<PORTC4 | // IMU has strong built-in pull-up
 		0<<PORTC5 | // IMU has strong built-in pull-up
-		0<<PORTC6 ; // TODO: figure out if this is necessary.
+		1<<PORTC6 ; // TODO: figure out if this is necessary.
 		// PORTC does NOT have a 7th bit.
 	PORTD =
 		1<<PORTD0 |
@@ -711,9 +717,18 @@ void initialize_spi()
 	SPCR |= 1<<SPIE; // Enable SPI interrupts
 	SPCR |= 0<<DORD; // MSB transmitted first
 	SPCR |= 0<<MSTR; // slave mode
-	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
+	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent across all MCUs
 	SPCR |= 1<<SPE; // Enable SPI
 	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
+	
+	SPDR = SPI_ACK_READY; // Means we're ready to receive data.
+}
+
+void initialize_pcint()
+{
+	//PCICR |= 1<<PCIE0; // Enable PCINT0 interrupts
+	//PCMSK0 |= 1<<PCINT2; // Unmask PCINT2 ('SS / PB2)
+	//// PCICR and PCMSK0 both default to 0.
 }
 
 double update_rot(double rot, int vel, int vel_prev, double conversion_const)

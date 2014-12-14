@@ -8,6 +8,7 @@ const uint8_t SPI_REQ_CONFIRM	= 0x02;
 const uint8_t SPI_TRANSMIT_OVER	= 0x03;
 const uint8_t SPI_ACK_READY		= 0x04;
 const uint8_t SPI_ACK_DATA_REQ	= 0x05;
+const uint8_t SPI_UNOWN			= 0x06;
 
 // MCU_B control codes.
 const uint8_t SPI_RESET_MCU		= 0x10;
