@@ -1,4 +1,5 @@
 #pragma config(Hubs,  S1, HTServo,  HTMotor,  HTMotor,  HTMotor)
+#pragma config(Sensor, S1,     ,               sensorI2CMuxController)
 #pragma config(Sensor, S2,     sensor_IR,      sensorI2CCustom)
 #pragma config(Sensor, S3,     sensor_color,   sensorCOLORFULL)
 #pragma config(Sensor, S4,     sensor_gyro,    sensorAnalogInactive)
@@ -12,7 +13,7 @@
 #pragma config(Motor,  mtr_S1_C4_1,     motor_R_A,     tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_2,     motor_R_B,     tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Servo,  srvo_S1_C1_1,    servo_dump,           tServoStandard)
-#pragma config(Servo,  srvo_S1_C1_2,    servo2,               tServoNone)
+#pragma config(Servo,  srvo_S1_C1_2,    servo_auton,          tServoStandard)
 #pragma config(Servo,  srvo_S1_C1_3,    servo3,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_4,    servo4,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_5,    servo5,               tServoNone)
@@ -25,6 +26,7 @@ task PID();
 task Display();
 
 int heading = 0;
+int lift_pos = 0;
 int lift_target = 0;
 int power_lift = 0;
 int power_lift_temp = 0;
@@ -55,6 +57,9 @@ task main()
 	Motor_ResetEncoder(encoder_R);
 	Motor_ResetEncoder(encoder_lift);
 
+	Servo_SetPosition(servo_dump, pos_dump_closed);
+	Servo_SetPosition(servo_auton, pos_auton_closed);
+
 	HTIRS2setDSPMode(sensor_IR, DSP_1200);
 
 	Task_Spawn(PID);
@@ -63,18 +68,20 @@ task main()
 	Joystick_WaitForStart();
 
 	while (true) {
+		int pos = 40;
+
 		Joystick_UpdateData();
 
 		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_1);
 		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_1);
 		power_lift_temp = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_2);
 
-		int current_pos = Motor_GetEncoder(encoder_lift);
-		if (current_pos<LIFT_BOTTOM) {
+		lift_pos = Motor_GetEncoder(encoder_lift);
+		if (lift_pos<LIFT_BOTTOM) {
 			if (power_lift_temp<0) {
 				power_lift_temp = 0;
 			}
-		} else if (current_pos>LIFT_TOP) {
+		} else if (lift_pos>LIFT_TOP) {
 			if (power_lift_temp>0) {
 				power_lift_temp = 0;
 			}
@@ -91,6 +98,8 @@ task main()
 		}
 		if (isPickingUp == true) {
 			power_pickup = 100;
+		} else if (Motor_GetPower(motor_lift_B)<-10) {
+			power_pickup = -100;
 		} else {
 			power_pickup = 0;
 		}
@@ -126,6 +135,10 @@ task main()
 			lift_target = LIFT_HIGH;
 		}
 
+		if (lift_pos > LIFT_KILL_PICKUP) {
+			isPickingUp = false;
+		}
+
 		light_intensity = SensorValue[sensor_color];
 		HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
 
@@ -138,6 +151,22 @@ task main()
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
 		Servo_SetPosition(servo_dump, dump_position);
+		if (Joystick_Button(BUTTON_RB, CONTROLLER_2)) {
+			Servo_SetPosition(servo_auton, pos_auton_open);
+		} else {
+			Servo_SetPosition(servo_auton, pos_auton_closed);
+		}
+
+		while (Joystick_Button(BUTTON_JOYR, CONTROLLER_2)) {
+			Motor_SetPower(0, motor_L);
+			Motor_SetPower(0, motor_R_A);
+			Motor_SetPower(0, motor_R_B);
+			int power_temp_double = Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
+			//power_temp_double /= 2;
+			Motor_SetPower(-power_temp_double, motor_lift_A);
+			Motor_SetPower(power_temp_double, motor_lift_B);
+			Motor_ResetEncoder(motor_lift_A);
+		}
 
 		Time_Wait(15);
 	}
@@ -157,7 +186,7 @@ task PID()
 	Time_ClearTimer(timer_loop);
 	int dt = Time_GetTime(timer_loop);
 
-	int lift_pos = Motor_GetEncoder(encoder_lift);
+	lift_pos = Motor_GetEncoder(encoder_lift);
 
 	float error = 0.0;
 	float error_prev = 0.0;
@@ -210,12 +239,18 @@ task PID()
 			lift_target = lift_pos;
 			power_lift = power_lift_temp;
 		}
-		if (abs(power_lift)<10) {
+		if (abs(power_lift)<5) {
 			power_lift = 0;
 		}
 
 		Motor_SetPower(-power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
+
+		//if (Motor_GetPower(motor_lift_B)<-10) { // motor_lift_A is opposite encoders
+		//	Motor_SetPower(-100, motor_assist);
+		//} else {
+		//	Motor_SetPower(0, motor_assist);
+		//}
 
 		Time_Wait(2);
 	}
@@ -244,7 +279,7 @@ task Display()
 			case DISP_FCS :
 				break;
 			case DISP_ENCODERS :
-				nxtDisplayTextLine(0, "Lift:  %+6i", Motor_GetEncoder(encoder_lift));
+				nxtDisplayTextLine(0, "Lift:  %+6i", lift_pos);
 				nxtDisplayTextLine(1, "Tgt:   %+6i", lift_target);
 				nxtDisplayTextLine(2, "Pwr:   %+6i", power_lift);
 				nxtDisplayTextLine(3, "Mtr L: %+6i", Motor_GetEncoder(encoder_L));

@@ -1,5 +1,4 @@
 #pragma config(Hubs,  S1, HTServo,  HTMotor,  HTMotor,  HTMotor)
-#pragma config(Sensor, S1,     ,               sensorI2CMuxController)
 #pragma config(Sensor, S2,     sensor_IR,      sensorI2CCustom)
 #pragma config(Sensor, S3,     sensor_color,   sensorCOLORFULL)
 #pragma config(Sensor, S4,     sensor_gyro,    sensorAnalogInactive)
@@ -13,7 +12,7 @@
 #pragma config(Motor,  mtr_S1_C4_1,     motor_R_A,     tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_2,     motor_R_B,     tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Servo,  srvo_S1_C1_1,    servo_dump,           tServoStandard)
-#pragma config(Servo,  srvo_S1_C1_2,    servo_auton,          tServoStandard)
+#pragma config(Servo,  srvo_S1_C1_2,    servo2,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_3,    servo3,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_4,    servo4,               tServoNone)
 #pragma config(Servo,  srvo_S1_C1_5,    servo5,               tServoNone)
@@ -27,19 +26,6 @@
 task Gyro();
 task PID();
 task Display();
-task Die();
-
-int lift_target = 0;
-
-task Die() {
-	//int timer_death = 0;
-	for (int i = 0; i<25; i++) {
-		Time_Wait(1000);
-	}
-	while (true) {
-		lift_target = LIFT_BOTTOM;
-	}
-}
 
 void DumpBall();
 void DumpAuton();
@@ -53,6 +39,7 @@ bool Drive(int encoder_count);
 bool Turn(int degrees);
 
 float heading = 0.0;
+int lift_target = 0;
 int power_lift = 0;
 int power_lift_temp = 0;
 bool is_lift_manual = false;
@@ -97,234 +84,42 @@ CenterGoalPos centerGoalPos = CENTER_POS_UNKNOWN;
 
 task main()
 {
-	bool isRed = false;
-	bool isBlue = false;
-	bool isUnknown = true;
-	int color_threshold = 0;
-
-	Motor_ResetEncoder(encoder_L);
-	Motor_ResetEncoder(encoder_R);
-	Motor_ResetEncoder(encoder_lift);
-
-	HTIRS2setDSPMode(sensor_IR, DSP_1200);
-
-	Task_Spawn(Display);
-	Task_Spawn(Gyro);
-	Task_Spawn(PID);
-
-	Servo_SetPosition(servo_dump, pos_dump_closed);
-
-	HTGYROstartCal(sensor_gyro);
-
-	Joystick_WaitForStart();
-	Task_Spawn(Die);
-	Time_Wait(500);
-
-	//// Determine color of ramp:
-	//// Currently unbelievably complicated. Could probably be alleviated by using
-	//// an enum. Whatever. Still need to figure out what happens if data conflicts.
-	//SensorType[sensor_color] = sensorCOLORRED;
-	//if (SensorValue[sensor_color]>=detected_red) {
-	//	isRed = true;
-	//}
-	//SensorType[sensor_color] = sensorCOLORBLUE;
-	//if (SensorValue[sensor_color]>=detected_blue) {
-	//	isBlue = true;
-	//}
-	//if (isRed==isBlue) {
-	//	isUnknown = true;
-	//}
-	//if (!isUnknown) {
-	//	if (isRed) {
-	//		color_threshold = detected_red;
-	//	} else {
-	//		color_threshold = detected_blue;
-	//	}
-	//}
-
-	// Drive off ramp (backwards):
-	// This portion is mostly wizardry (heuristic). First we drive off the ramp at
-	// full speed to minimize the amount of time spent in an unbalanced position,
-	// then slow down for the ramped portion of the ramp, and stop moving forward
-	// when the color sensor determines that we are just off of the ramp.
-	int ramp_power = -100;
-	Motor_SetPower(ramp_power + 45, motor_L);
-	Motor_SetPower(ramp_power, motor_R_B);
-	Motor_SetPower(ramp_power, motor_R_A);
-	Time_Wait(1700);
-	//ramp_power = -30;
-	//Motor_SetPower(ramp_power, motor_L);
-	//Motor_SetPower(ramp_power, motor_R_B);
-	//Motor_SetPower(ramp_power, motor_R_A);
-	//Time_Wait(1800);
-	// TODO: WHAT HAPPENS HERE??? DETECT COLOR CHANGE OR SOMETHING?
-	Motor_SetPower(0, motor_L);
-	Motor_SetPower(0, motor_R_B);
-	Motor_SetPower(0, motor_R_A);
-	Time_Wait(500);
-
-	// Correct the heading of the robot:
-	// After coming off the ramp the robot will (probably) be at an angle. As
-	// as the robot isn't stranded on the ramp, the displacement should be small
-	// enough such that we can correct it and still be reasonably close to being
-	// on the correct path.
-	// We correct the heading by turning the robot until the gyro reads that our
-	// angle is 0 again. This may not work 100% because the gyro might mess up
-	// the angle readings when pitch and roll aren't 0.
-	//int correction_turn = heading;
-	//TurnLeft(correction_turn);
-
-	// Back up to bottom of ramp:
-	// Apply just enough power to move backwards but not enough to drive the
-	// robot back up the ramp. This makes doubly sure that the robot is in a
-	// determined location (since we're aligning the robot up against the ramp).
-	Motor_SetPower(10, motor_L);
-	Motor_SetPower(10, motor_R_B);
-	Motor_SetPower(10, motor_R_A);
-	Time_Wait(1100);
-	Motor_SetPower(0, motor_L);
-	Motor_SetPower(0, motor_R_B);
-	Motor_SetPower(0, motor_R_A);
-
-	// Sense IR, determine position of center goal:
-	// Due to the way the IR beacons are placed, if the signals from the two (R/B)
-	// beacons add linearly, we can determine the position of the center goal
-	// solely by aggregating the readings from each region.
-	Time_Wait(500);
-	//HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
-	//if (((IR_B+IR_C)>35) && (IR_B>15) && (IR_C>15)) {
-	//	centerGoalPos = CENTER_POS_3;
-	//} else if (IR_B>25) {
-	//	centerGoalPos = CENTER_POS_2;
-	//} else if ((IR_A + IR_B + IR_C)<10) {
-	//	centerGoalPos = CENTER_POS_1;
-	//} // else the center position stays unknown.
+    // so this wants the robot starting where the normal auton finishes
+    // or uncomment the turnleft(45) and start parallel with the wall
+    // and change numbers to match if you're feeling adventurous.
+    // does the backwards of the end of ramp auton to get to the goals,
+    // then does the last bit of ramp auton. Nobody's gonna read this since
+    // we're scrapping this robot anyway. I didn't feel like going through
+    // to check what you did to brutefix the *hardware* issue, so I assumed
+    // that these work in terms of doing what they advertise.
+    // As always, no guarantees or returns or refunds. do change the numbers as
+    // needed though.
 
 	lift_target = LIFT_HIGH;
 
-	// Move into position to pick up rolling goal:
-	// The first drive command moves us about flush with the tile just before the
-	// medium rolling goal (going off memory here; I may be completely off).
-	// The second drive command moves us back far enough so that we line up with
-	// the tall rolling goal when we go to retrieve it. We then drive backwards.
-	// We make sure to leave some space for PID to overshoot and still not bump
-	// the goal (such that moves it farther from us).
-	DriveBackward(800);
-	TurnLeft(30);
-	DriveBackward(5700);
-	TurnRight(75);
-	DriveBackward(2000);
+	DriveBackward(2000);            // this bit is concerning since you commented it out in
+	TurnLeft(45);                   // the ramp auton so im going to assume it works.
+	DriveBackward(7000);
+	TurnRight(45);
+	DriveBackward(3900);
 
-	// Pick up goal:
-	// Start both the clamp motors, drive backward a bit, wait a bit to make sure
-	// we're clamped on solidly, then turn off the clamp motors.
 	Motor_SetPower(100, motor_clamp_L);
 	Motor_SetPower(100, motor_clamp_R);
 	DriveBackward(1400);
 	Time_Wait(800);
-
-	// Tow the goal back to the parking zone:
-	// The first drive statement determines how close the robot drives to the ramp and
-	// the center goal. In one of the positions the robot drives very close to the
-	// center goal (when the kickstands face the parking zones) because there isn't a
-	// lot of clearance. However, it is more dangerous to drive close to the ramp,
-	// since there is the risk of turning and having the goal knocked out of the clamp.
-	// Then we drive back far enough to line ourselves up with the parking zone,
-	// then turn and enter the zone with the rolling goal in the back. (It only needs
-	// to be partially inside the zone.) Moving too far does have the risk of burning
-	// out motors, since the watchdog kicks in after a sizeable delay.
-	DriveForward(3300);
-
-	// Raise lift and dump balls:
-	// We want to be safe and keep our center of gravity low for as long as possible,
-	// so only raise lift now. We're giving it a delay to get to the top, then giving
-	// the dumping servo plenty of time to dump the balls *and* close so that it
-	// doesn't get caught on the ball tube as the lift lowers.
-	DumpBall();
-
-	// Lower lift.
-	lift_target = LIFT_CENTER;
-
-	//TurnLeft(45);
-	//DriveForward(7000);
-	//TurnRight(45);
-	//DriveForward(4000);
-
-	// Take different routes depending on center goal position:
-	// (Currently this does not work "magic number"-wise.)
-	// There's probably a better way to do the whole lift thing. Not to mention, using
-	// the servo on the main hopper is prolly gonna change depending on how it is decided
-	// to put the center goal ball in. Not to mention, at the start of this switch statement
-	// the robot is facing the arena side at a 45 degree angle and towing a rolling goal
-	// which is staying on through teleop. Dropping it and picking it back up isn't too
-	// practical in terms of feasibility. Something may have to be done with the above code
-	// in order to avoid spinning and pushing against the side of the arena with the rolling goal.
-
-    // All 3 cases mostly do the same thing. Drive up to the center goal, dump the ball and
-    // drive back. Then align with the side of the arena and drive forwards a bit to make sure
-    // that the rolling goal is inside the parking zone. Depending on what happens, we might need
-    // to implement a small turn in position 1 to not bump into the ramp as we back up.
-    // An unknkown goal position means we just center the rolling goal, or maybe just guess that it's
-    // position 3, no crashing happens if it isn't.
-
-	switch (centerGoalPos) {		//these are all conservative guesses so when we test we most likely wont crash
-		default :					//intentional fall-through
-		case CENTER_POS_UNKNOWN :	//guesses that it is pos_1 since we won't crash into anything
-			lift_target = LIFT_BOTTOM;
-			TurnLeft(50);
-			DriveForward(12000);
-            break;
-
-		//case CENTER_POS_1 :			//goal faces the parking zone
-  //          TurnLeft(45);
-		//    DriveForward(2000);
-		//    TurnRight(90);
-		//    DriveForward(1600);
-		//    TurnLeft(90);
-		//    DriveBackward(600);
-
-  //          DumpAuton();
-  //          lift_target = LIFT_BOTTOM;
-
-  //          DriveForward(1600);
-  //          TurnRight(1350);
-  //          DriveBackward(500);
-  //          break;
-
-		//case CENTER_POS_2 :				//goal faces corner
-		//	TurnLeft(45);
-		//    DriveForward(800);
-		//    TurnRight(45);
-  //          DriveForward(3000);
-  //          TurnRight(45);
-  //          DriveForward(1000);
-  //          TurnLeft(45);
-  //          DriveBackward(800);
-
-  //          DumpAuton();
-		//	lift_target = LIFT_BOTTOM;
-
-  //          TurnRight(90);
-  //          DriveBackward(2400);
-  //      	break;
-
-		//case CENTER_POS_3 :				//goal faces the side of the arena
-		//    DriveBackward(4000);
-		//    TurnRight(135);
-		//    DriveBackward(100);
-
-  //          DumpAuton();
-  //          lift_target = LIFT_BOTTOM;
-
-  //          TurnRight(45);
-  //          DriveBackward(3000);
-  //          TurnRight(45);
-  //          DriveBackward(800);
-  //          break;
-	}
-
 	Motor_SetPower(0, motor_clamp_L);
 	Motor_SetPower(0, motor_clamp_R);
+
+	DumpBall();
+	lift_target = LIFT_BOTTOM;
+
+	DriveForward(3900);
+	TurnLeft(45);
+	DriveForward(7000);
+	TurnRight(45);
+	DriveForward(4000);
+	TurnLeft(135);
+	DriveBackward(800);
 
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid
@@ -346,9 +141,9 @@ void DumpBall()
 
 void DumpAuton()
 {
-	Servo_SetPosition(servo_auton, pos_auton_open);
+	Servo_SetPosition(servo_dump, pos_dump_open);
 	Time_Wait(1600);
-	Servo_SetPosition(servo_auton, pos_auton_closed);
+	Servo_SetPosition(servo_dump, pos_dump_closed);
 	Time_Wait(800);
 }
 
@@ -469,7 +264,7 @@ bool Turn(int degrees)
 
 	int timer_watchdog = 0;
 	Time_ClearTimer(timer_watchdog);
-	const float watchdog_degree_rate = 0.0279;
+	const float watchdog_degree_rate = 0.0139;
 	const float watchdog_base = 1800.0;
 	int time_limit = (int)round((float)abs(degrees)*watchdog_degree_rate+watchdog_base);
 	const float acceptable_error = 1.0;

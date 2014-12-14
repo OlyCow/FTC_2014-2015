@@ -21,6 +21,11 @@
 #include "../lib/MPU6050.h"
 #include "../lib/SPI-codes.h"
 
+//// SD CARD FATFS TESTING!!! --TODO: DELETE
+//#include "../lib/FatFs/ff.h"
+//FATFS FatFs;	// work area for each volume
+//FIL Fil;		// file object for each open file
+
 enum MuxLine {
 	MUX_1 = 0,
 	MUX_2,
@@ -190,6 +195,13 @@ int main()
 	initialize_spi();
 	byte_write = SPI_ACK_READY;
 	initialize_pcint();
+
+	//// SD CARD DEBUGGING--DELETE! (TODO)
+	//unsigned int bw;
+	//f_mount(&FatFs, "", 0);
+	//f_open(&Fil, "hello.txt", FA_WRITE | FA_CREATE_ALWAYS);
+	//f_write(&Fil, "I AM A WIZARD\r\n", 15, &bw);
+	//f_close(&Fil);
 
 	// Initialize IMU.
 	i2c_init();
@@ -705,7 +717,7 @@ void initialize_spi()
 	SPCR |= 1<<SPIE; // Enable SPI interrupts
 	SPCR |= 0<<DORD; // MSB transmitted first
 	SPCR |= 0<<MSTR; // slave mode
-	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent
+	SPCR |= 0<<CPOL | 0<<CPHA; // SPI Mode 0; just needs to be consistent across all MCUs
 	SPCR |= 1<<SPE; // Enable SPI
 	// SPR0, SPR1, and SPI2X have no effect on slave (only master), and all default to 0.
 	
