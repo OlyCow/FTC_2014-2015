@@ -32,11 +32,10 @@
 #pragma config(Servo,  srvo_S2_C3_6,    servo18,              tServoNone)
 
 #include "includes.h"
+#include "final.h"
 
 task PID();
 task Display();
-
-tMotor encoder_lift = motor_LT;
 
 int lift_pos = 0;
 int lift_target = 0;
@@ -49,9 +48,6 @@ float term_D = 0.0;
 float power_lift = 0.0;
 float power_lift_temp = 0.0;
 
-const int LIFT_BOTTOM 	= 100;
-const int LIFT_TOP		= 8000;
-
 task main()
 {
 	typedef enum MotorDirection {
@@ -62,9 +58,6 @@ task main()
 
 	initializeGlobalVariables();
 
-	const int servo_dump_closed	= 140;
-	const int servo_dump_open	= 120;
-
 	MotorDirection pickup_direction = DIRECTION_NONE;
 	MotorDirection clamp_direction = DIRECTION_NONE;
 
@@ -73,10 +66,11 @@ task main()
 	float power_pickup	= 0.0;
 	float power_clamp	= 0.0;
 
-	Servo_SetPosition(servo_dump, servo_dump_closed);
-
-	Servo_SetPosition(servo_pickup_L, 127+15); // top: 69
-	Servo_SetPosition(servo_pickup_R, 128-15);
+	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+	Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
+	Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
+	Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
+	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
 
 	//Task_Spawn(PID);
 	Task_Spawn(Display);
@@ -85,8 +79,8 @@ task main()
 	while (true) {
 		Joystick_UpdateData();
 
-		Servo_SetPosition(servo_hopper_T, 128-100);
-		Servo_SetPosition(servo_hopper_B, 128+100);
+		Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
+		Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
 
 		is_lift_manual = true;
 		power_lift_temp = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_2);
@@ -117,9 +111,9 @@ task main()
 		}
 
 		if (Joystick_Button(BUTTON_Y)) {
-			Servo_SetPosition(servo_dump, servo_dump_open);
+			Servo_SetPosition(servo_dump, pos_servo_dump_open);
 		} else {
-			Servo_SetPosition(servo_dump, servo_dump_closed);
+			Servo_SetPosition(servo_dump, pos_servo_dump_closed);
 		}
 
 		switch (pickup_direction) {
@@ -152,6 +146,9 @@ task main()
 		Motor_SetPower(power_pickup, motor_pickup);
 		Motor_SetPower(power_clamp, motor_clamp_L);
 		Motor_SetPower(power_clamp, motor_clamp_R);
+
+		Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
+		Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
 	}
 }
 
@@ -186,11 +183,11 @@ task PID()
 		lift_pos = Motor_GetEncoder(encoder_lift);
 
 		if (is_lift_manual == false) {
-			if (lift_target<LIFT_BOTTOM) {
-				lift_target = LIFT_BOTTOM;
+			if (lift_target<pos_lift_bottom) {
+				lift_target = pos_lift_bottom;
 			}
-			if (lift_target>LIFT_TOP) {
-				lift_target = LIFT_TOP;
+			if (lift_target>pos_lift_top) {
+				lift_target = pos_lift_top;
 			}
 			error = lift_target - lift_pos;
 			if (error > 0) {
