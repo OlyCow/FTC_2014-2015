@@ -6,12 +6,12 @@
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  mtr_S1_C1_1,     motor_RB,      tmotorTetrix, openLoop, reversed)
 #pragma config(Motor,  mtr_S1_C1_2,     motor_RT,      tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C2_1,     motor_LT,      tmotorTetrix, openLoop, encoder)
-#pragma config(Motor,  mtr_S1_C2_2,     motor_LB,      tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C2_1,     motor_LT,      tmotorTetrix, openLoop, reversed, encoder)
+#pragma config(Motor,  mtr_S1_C2_2,     motor_LB,      tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C3_1,     motor_lift_A,  tmotorTetrix, openLoop, reversed)
 #pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C4_1,     motor_lift_C,  tmotorTetrix, openLoop, reversed)
-#pragma config(Motor,  mtr_S1_C4_2,     motor_pickup,  tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C4_1,     motor_pickup,  tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C4_2,     motor_lift_C,  tmotorTetrix, openLoop, reversed)
 #pragma config(Servo,  srvo_S2_C1_1,    servo_dump,           tServoStandard)
 #pragma config(Servo,  srvo_S2_C1_2,    servo_turntable,      tServoStandard)
 #pragma config(Servo,  srvo_S2_C1_3,    servo9,               tServoNone)
@@ -59,14 +59,27 @@ task main()
 		DIRECTION_IN,
 		DIRECTION_OUT
 	};
+	typedef enum HopperPos {
+		HOPPER_DOWN = 0,
+		HOPPER_CENTER,
+		HOPPER_GOAL
+	};
 
 	initializeGlobalVariables();
 
-	const int servo_dump_closed	= 140;
-	const int servo_dump_open	= 120;
+	const int servo_dump_closed		= 202;
+	const int servo_dump_open		= 171;
+	const int servo_pickup_L_closed	= 128;
+	const int servo_pickup_L_open	= 128;
+	const int servo_pickup_R_closed	= 128;
+	const int servo_pickup_R_open	= 128;
+	const int servo_hopper_bottom	= 98;
+	const int servo_hopper_center	= 94;
+	const int servo_hopper_goal		= 80;
 
 	MotorDirection pickup_direction = DIRECTION_NONE;
 	MotorDirection clamp_direction = DIRECTION_NONE;
+	HopperPos hopper_pos = HOPPER_DOWN;
 
 	float power_L		= 0.0;
 	float power_R		= 0.0;
@@ -74,6 +87,10 @@ task main()
 	float power_clamp	= 0.0;
 
 	Servo_SetPosition(servo_dump, servo_dump_closed);
+	//Servo_SetPosition(servo_pickup_L, servo_pickup_L_closed);
+	//Servo_SetPosition(servo_pickup_R, servo_pickup_R_closed);
+	Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_bottom);
+	Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_bottom);
 
 	Task_Spawn(PID);
 	Task_Spawn(Display);
@@ -81,9 +98,6 @@ task main()
 
 	while (true) {
 		Joystick_UpdateData();
-
-		Servo_SetPosition(servo_hopper_T, 128-100);
-		Servo_SetPosition(servo_hopper_B, 128+100);
 
 		is_lift_manual = true;
 		power_lift_temp = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_2);
@@ -117,6 +131,34 @@ task main()
 			Servo_SetPosition(servo_dump, servo_dump_open);
 		} else {
 			Servo_SetPosition(servo_dump, servo_dump_closed);
+		}
+		if (Joystick_ButtonPressed(BUTTON_X)) {
+			switch (hopper_pos) {
+				case HOPPER_DOWN :
+					hopper_pos = HOPPER_GOAL;
+					break;
+				case HOPPER_CENTER :
+					hopper_pos = HOPPER_DOWN;
+					break;
+				case HOPPER_GOAL :
+					hopper_pos = HOPPER_CENTER;
+					break;
+			}
+		}
+
+		switch (hopper_pos) {
+			case HOPPER_DOWN :
+				Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_bottom);
+				Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_bottom);
+				break;
+			case HOPPER_CENTER :
+				Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_center);
+				Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_center);
+				break;
+			case HOPPER_GOAL :
+				Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_goal);
+				Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_goal);
+				break;
 		}
 
 		switch (pickup_direction) {
