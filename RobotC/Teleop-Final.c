@@ -1,7 +1,6 @@
 #pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTMotor)
 #pragma config(Hubs,  S2, HTServo,  HTServo,  HTServo,  none)
-#pragma config(Sensor, S1,     ,               sensorI2CMuxController)
-#pragma config(Sensor, S2,     ,               sensorI2CMuxController)
+#pragma config(Sensor, S3,     sensor_gyro,    sensorAnalogInactive)
 #pragma config(Motor,  motorA,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  mtr_S1_C1_1,     motor_RB,      tmotorTetrix, openLoop, reversed)
@@ -34,17 +33,20 @@
 #include "includes.h"
 #include "final.h"
 
+task Gyro();
 task PID();
 task Display();
 
+float heading = 0.0;
 int lift_pos = 0;
 int lift_target = 0;
 bool is_lift_manual = true;
 bool isDown = false;
+bool isReset = false;
 
-float term_P = 0.0;
-float term_I = 0.0;
-float term_D = 0.0;
+float term_P_lift = 0.0;
+float term_I_lift = 0.0;
+float term_D_lift = 0.0;
 float power_lift = 0.0;
 float power_lift_temp = 0.0;
 
@@ -55,12 +57,19 @@ task main()
 		DIRECTION_IN,
 		DIRECTION_OUT
 	};
+	typedef enum PickupPos {
+		PICKUP_UP = 0,
+		PICKUP_RETRACT,
+		PICKUP_LARGE,
+		PICKUP_SMALL
+	};
 
 	initializeGlobalVariables();
 
 	MotorDirection pickup_direction = DIRECTION_NONE;
 	MotorDirection pickup_direction_prev = DIRECTION_NONE;
 	MotorDirection clamp_direction = DIRECTION_NONE;
+	PickupPos pickup_pos = PICKUP_LARGE;
 	int servo_hopper_pos = pos_servo_hopper_down;
 	int servo_dump_pos = pos_servo_dump_closed;
 
@@ -77,6 +86,7 @@ task main()
 
 	Motor_ResetEncoder(encoder_lift);
 
+	Task_Spawn(Gyro);
 	Task_Spawn(PID);
 	Task_Spawn(Display);
 	Joystick_WaitForStart();
@@ -89,6 +99,11 @@ task main()
 			is_lift_manual = true;
 		} else {
 			is_lift_manual = false;
+		}
+		if (Joystick_Button(BUTTON_JOYL, CONTROLLER_2) == true) {
+			isReset = true;
+		} else {
+			isReset = false;
 		}
 
 		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y);
@@ -111,6 +126,17 @@ task main()
 		}
 		if (Joystick_ButtonReleased(BUTTON_Y)) {
 			pickup_direction = pickup_direction_prev;
+		}
+
+		if (Joystick_ButtonPressed(BUTTON_LB) || Joystick_ButtonPressed(BUTTON_RB)) {
+			switch (pickup_pos) {
+				case PICKUP_LARGE :
+					pickup_pos = PICKUP_RETRACT;
+					break;
+				default :
+					pickup_pos = PICKUP_LARGE;
+					break;
+			}
 		}
 
 		if (Joystick_ButtonPressed(BUTTON_X, CONTROLLER_2)) {
@@ -157,23 +183,9 @@ task main()
 			clamp_direction = DIRECTION_NONE;
 		}
 
-		if (power_pickup > 50) {
-			if (Joystick_Button(BUTTON_RT) || Joystick_Button(BUTTON_LT)) {
-				servo_dump_pos = pos_servo_dump_closed;
-			} else {
-				servo_dump_pos = pos_servo_dump_open;
-			}
-		} else {
-			if (Joystick_Button(BUTTON_RT) || Joystick_Button(BUTTON_LT)) {
-				servo_dump_pos = pos_servo_dump_open;
-			} else {
-				servo_dump_pos = pos_servo_dump_closed;
-			}
-		}
-
 		if (Joystick_Button(BUTTON_RT) || Joystick_Button(BUTTON_LT)) {
 			if (lift_pos > pos_dump_safety) {
-				servo_dump_pos = pos_servo_dump_open;
+				servo_dump_pos = pos_servo_dump_open_dump;
 			} else {
 				servo_dump_pos = pos_servo_dump_closed;
 			}
@@ -182,13 +194,12 @@ task main()
 				servo_dump_pos = pos_servo_dump_closed;
 			} else {
 				if (power_pickup > 50) {
-					servo_dump_pos = pos_servo_dump_open;
+					servo_dump_pos = pos_servo_dump_open_feed;
 				} else {
 					servo_dump_pos = pos_servo_dump_closed;
 				}
 			}
 		}
-
 
 		if (Joystick_ButtonPressed(BUTTON_X)) {
 			switch (servo_hopper_pos) {
@@ -208,6 +219,12 @@ task main()
 				default :
 					servo_hopper_pos = pos_servo_hopper_down;
 					break;
+			}
+		}
+
+		if (lift_pos > pos_hopper_safety_up) {
+			if (pickup_direction==DIRECTION_IN) {
+				pickup_direction = DIRECTION_OUT;
 			}
 		}
 
@@ -243,29 +260,75 @@ task main()
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
 		Servo_SetPosition(servo_dump, servo_dump_pos);
-		if (lift_pos<pos_hopper_safety) {
-			Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
-			Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
+		if (power_lift < 5) {
+			if (lift_pos < pos_hopper_safety_down) {
+				Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
+				Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
+			} else {
+				Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_pos);
+				Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_pos);
+			}
 		} else {
-			Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_pos);
-			Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_pos);
+			if (lift_pos < pos_hopper_safety_up) {
+				Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
+				Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
+			} else {
+				Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_pos);
+				Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_pos);
+			}
 		}
-		Servo_SetPosition(servo_pickup_L, 128 + pos_servo_pickup_large);
-		Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
+		switch (pickup_pos) {
+			case PICKUP_UP :
+				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_up);
+				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_up);
+				break;
+			case PICKUP_RETRACT :
+				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_retract);
+				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_retract);
+				break;
+			case PICKUP_LARGE :
+				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
+				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
+				break;
+			case PICKUP_SMALL :
+				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_small);
+				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_small);
+				break;
+		}
 
 		Time_Wait(5);
 	}
 }
 
+task Gyro()
+{
+	HTGYROstartCal(sensor_gyro);
+	float vel_curr = 0.0;
+	float vel_prev = 0.0;
+	float dt = 0.0;
+	int timer_gyro = 0;
+	Time_ClearTimer(timer_gyro);
+
+	while (true) {
+		vel_prev = vel_curr;
+		dt = (float)Time_GetTime(timer_gyro)/(float)1000.0; // msec to sec
+		Time_ClearTimer(timer_gyro);
+		vel_curr = (float)HTGYROreadRot(sensor_gyro);
+		vel_curr *= -1;
+		heading += ((float)vel_prev+(float)vel_curr)*(float)0.5*(float)dt;
+		Time_Wait(1);
+	}
+}
+
 task PID()
 {
-	const float kP_up = 0.06;
+	const float kP_up = 0.067;
 	const float kI_up = 0.013;
 	const float kD_up = 0.0;
-	const float kP_down = 0.03;
-	const float kI_down = 0.012;
+	const float kP_down = 0.01;
+	const float kI_down = 0.004;
 	const float kD_down = 0.0;
-	const float I_term_decay_rate = 0.8;
+	const float I_term_decay_rate = 0.85;
 
 	int timer_loop = 0;
 	Time_ClearTimer(timer_loop);
@@ -304,34 +367,38 @@ task PID()
 			error_sum += error * (float)dt;
 			error_rate = (error - error_prev) / (float)dt;
 
-			term_P = error;
-			term_I = error_sum;
-			term_D = error_rate;
+			term_P_lift = error;
+			term_I_lift = error_sum;
+			term_D_lift = error_rate;
 			switch (isDown) {
 				case true :
-					term_P *= kP_down;
-					term_I *= kI_down;
-					term_D *= kD_down;
+					term_P_lift *= kP_down;
+					term_I_lift *= kI_down;
+					term_D_lift *= kD_down;
 					break;
 				case false :
-					term_P *= kP_up;
-					term_I *= kI_up;
-					term_D *= kD_up;
+					term_P_lift *= kP_up;
+					term_I_lift *= kI_up;
+					term_D_lift *= kD_up;
 					break;
 			}
-			power_lift = term_P + term_I + term_D;
+			power_lift = term_P_lift + term_I_lift + term_D_lift;
 		} else {
 			lift_target = lift_pos;
 			power_lift = power_lift_temp;
 		}
-		if (abs(power_lift)<15) {
+		if (abs(power_lift)<10) {
 			power_lift = 0;
 		}
 
-		if (power_lift>0 && lift_pos>pos_lift_top) {
-			power_lift = 0;
-		} else if (power_lift<0 && lift_pos<pos_lift_bottom) {
-			power_lift = 0;
+		if (isReset == false) {
+			if (power_lift>0 && lift_pos>pos_lift_top) {
+				power_lift = 0;
+			} else if (power_lift<0 && lift_pos<pos_lift_bottom) {
+				power_lift = 0;
+			}
+		} else {
+			Motor_ResetEncoder(encoder_lift);
 		}
 
 		Motor_SetPower(power_lift, motor_lift_A);
@@ -368,22 +435,15 @@ task Display()
 				nxtDisplayTextLine(0, "Lift:  %+6i", lift_pos);
 				nxtDisplayTextLine(1, "Tgt:   %+6i", lift_target);
 				nxtDisplayTextLine(2, "Pwr:   %+6i", power_lift);
-				//nxtDisplayTextLine(3, "Mtr L: %+6i", Motor_GetEncoder(encoder_L));
-				//nxtDisplayTextLine(4, "Mtr R: %+6i", Motor_GetEncoder(encoder_R));
+				nxtDisplayTextLine(3, "Dist:  %+6i", Motor_GetEncoder(encoder_dist));
 				break;
-			//case DISP_SENSORS :
-			//	nxtDisplayTextLine(0, "Angle: %3d", heading);
-			//	nxtDisplayTextLine(1, "IR A:  %3d", IR_A);
-			//	nxtDisplayTextLine(2, "IR B:  %3d", IR_B);
-			//	nxtDisplayTextLine(3, "IR C:  %3d", IR_C);
-			//	nxtDisplayTextLine(4, "IR D:  %3d", IR_D);
-			//	nxtDisplayTextLine(5, "IR E:  %3d", IR_E);
-			//	nxtDisplayTextLine(6, "Light: %3d", light_intensity);
-			//	break;
+			case DISP_SENSORS :
+				nxtDisplayTextLine(0, "Angle: %3d", heading);
+				break;
 			case DISP_PID :
-				nxtDisplayTextLine(0, "P: %+7d", term_P);
-				nxtDisplayTextLine(1, "I: %+7d", term_I);
-				nxtDisplayTextLine(2, "D: %+7d", term_D);
+				nxtDisplayTextLine(0, "P: %+7d", term_P_lift);
+				nxtDisplayTextLine(1, "I: %+7d", term_I_lift);
+				nxtDisplayTextLine(2, "D: %+7d", term_D_lift);
 				if (is_lift_manual) {
 					nxtDisplayTextLine(3, "MANUAL");
 				} else {
