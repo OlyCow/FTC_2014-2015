@@ -151,33 +151,56 @@ task main()
 	// Start raising lift early.
 	lift_target = pos_lift_high;
 
+	// Drive forward a little (until the robot is completely out of the
+	// ramp zone?) then turn 30 deg (not 45 to make the path shorter)
+	// get ready to pick up the rolling goal.
+	// NOTE: Try to undershoot a bit on the last section so that PID
+	// when the battery is full won't accidentally bump the rolling
+	// goal forward.
 	DriveBackward(800);
 	TurnLeft(30);
 	DriveBackward(5000);
 	TurnRight(75);
 	DriveBackward(2000);
 
+	// Set the servo positions multiple times (because sometimes I2C
+	// messages get dropped and the servo doesn't actually do anything.
+	// This might also be caused by ferrite chokes or metal shavings
+	// inside the I2C sockets.
 	for (int i=0; i<10; i++) {
 		Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_goal);
 		Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_goal);
 	}
 
+	// Turn on the clamp and pick up the rolling goal.
+	// NOTE: You can increase the delay to make sure the rolling goal
+	// gets picked up. For example: The robot may have bumped the
+	// rolling goal such that the clamp is barely touching the base
+	// of the goal. In this case, having the clamp run for longer may
+	// actually pick it up.
 	Motor_SetPower(100, motor_clamp_L);
 	Motor_SetPower(100, motor_clamp_R);
 	DriveBackward(1300);
 	Time_Wait(600);
 	DriveForward(3300);
 
+	// Dump balls in the rolling goal.
 	Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
 	Time_Wait(1000);
 	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
 
+	// These servos MUST be lowered before the lift lowers (or the hopper
+	// will die)! Again, set them multiple times to make sure there aren't
+	// any messages which get dropped.
+	// NOTE: Increase the delay if you want to make extra sure that the
+	// hopper servo closes all the way.
 	for (int i=0; i<10; i++) {
 		Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
 		Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
 	}
 	Time_Wait(3000);
 
+	// Now we can start lowering the lift.
 	lift_target = pos_lift_bottom;
 
 	TurnLeft(50);
