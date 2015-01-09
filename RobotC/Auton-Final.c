@@ -80,6 +80,15 @@ task main()
 	Motor_ResetEncoder(encoder_dist);
 	Motor_ResetEncoder(encoder_lift);
 
+	// All servos must be set to default position before "waitForStart"
+	// to alleviate servo twitching. This also counts as the initialization
+	// routine for the servos (only one command sent to each servo).
+	// NOTE: If the refs call us out for having the servos move to two
+	// different positions, tell them it's because the servos respond to
+	// a garbage value in the controllers before actually responding to
+	// our commands (and that there's nothing we can do about it). You
+	// can also show them our code and prove that we only send one command
+	// to each servo before the matches start.
 	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
 	Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
 	Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
@@ -92,6 +101,12 @@ task main()
 	Joystick_WaitForStart();
 	Time_Wait(500);
 
+	// Move down the ramp at full power (time-based dead reckoning).
+	// NOTE: The commented out section would have broken the "move
+	// down ramp" sequence into two parts: a fast part (to get over
+	// the bump) and a slow part (to stay accurate). Currently the
+	// times are NOT calibrated (i.e. a wild guess). Don't use the
+	// commented out section unless our robot gets off by a lot.
 	int ramp_power = -100;
 	Motor_SetPower(ramp_power, motor_LT);
 	Motor_SetPower(ramp_power, motor_LB);
@@ -104,16 +119,25 @@ task main()
 	//Motor_SetPower(ramp_power, motor_RT);
 	//Motor_SetPower(ramp_power, motor_RB);
 	//Time_Wait(800);
-	// TODO: WHAT HAPPENS HERE??? DETECT COLOR CHANGE OR SOMETHING?
+	// TODO: If we were to detect color changes, we'd do it here.
+	// Unfortunately it seems like we're just going with dead reckoning.
 	Motor_SetPower(0, motor_LT);
 	Motor_SetPower(0, motor_LB);
 	Motor_SetPower(0, motor_RT);
 	Motor_SetPower(0, motor_RB);
 	Time_Wait(500);
 
+	// Quick correction turn. The turn is set to our current heading
+	// and in the opposite direction to counteract any drift we gained
+	// from driving on the ramp.
 	int correction_turn = heading;
 	TurnLeft(correction_turn);
 
+	// Drive backward slowly. This power should be slow enough that the
+	// robot will not drive up the ramp if it hits it, but not so slow
+	// such that the robot won't even drive.
+	// NOTE: You can increase the time if the robot doesn't back up far
+	// enough. This is still time-based dead reckoning.
 	Motor_SetPower(15, motor_LT);
 	Motor_SetPower(15, motor_LB);
 	Motor_SetPower(15, motor_RT);
@@ -124,6 +148,7 @@ task main()
 	Motor_SetPower(0, motor_RT);
 	Motor_SetPower(0, motor_RB);
 
+	// Start raising lift early.
 	lift_target = pos_lift_high;
 
 	DriveBackward(800);
