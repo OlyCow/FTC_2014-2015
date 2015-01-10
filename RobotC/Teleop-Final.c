@@ -150,8 +150,9 @@ task main()
 			hogCPU();
 			servo_hopper_pos = pos_servo_hopper_down;
 
-			lift_target = pos_lift_bottom;
+
 			is_lift_manual = false;
+			lift_target = pos_lift_bottom;
 
 			Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_pos);
 			Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_pos);
