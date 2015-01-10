@@ -92,8 +92,7 @@ task main()
 	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
 	Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
 	Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
-	Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
-	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
+
 
 	Task_Spawn(Gyro);
 	Task_Spawn(PID);
@@ -112,7 +111,7 @@ task main()
 	Motor_SetPower(ramp_power, motor_LB);
 	Motor_SetPower(ramp_power, motor_RT);
 	Motor_SetPower(ramp_power, motor_RB);
-	Time_Wait(1400);
+	Time_Wait(1600);
 	//ramp_power = -20;
 	//Motor_SetPower(ramp_power, motor_LT);
 	//Motor_SetPower(ramp_power, motor_LB);
@@ -130,8 +129,9 @@ task main()
 	// Quick correction turn. The turn is set to our current heading
 	// and in the opposite direction to counteract any drift we gained
 	// from driving on the ramp.
-	int correction_turn = heading;
-	TurnLeft(correction_turn);
+
+	//int correction_turn = heading;
+	//TurnLeft(correction_turn);
 
 	// Drive backward slowly. This power should be slow enough that the
 	// robot will not drive up the ramp if it hits it, but not so slow
@@ -142,7 +142,7 @@ task main()
 	Motor_SetPower(15, motor_LB);
 	Motor_SetPower(15, motor_RT);
 	Motor_SetPower(15, motor_RB);
-	Time_Wait(800);
+	Time_Wait(700);
 	Motor_SetPower(0, motor_LT);
 	Motor_SetPower(0, motor_LB);
 	Motor_SetPower(0, motor_RT);
@@ -151,11 +151,16 @@ task main()
 	// Start raising lift early.
 	lift_target = pos_lift_high;
 
-	DriveBackward(800);
-	TurnLeft(30);
-	DriveBackward(5000);
-	TurnRight(75);
+	DriveBackward(1500);
+	TurnLeft(45);
+
+
+	Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
+	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
+
 	DriveBackward(2000);
+	TurnRight(90);
+	DriveBackward(1500);
 
 	for (int i=0; i<10; i++) {
 		Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_goal);
@@ -180,8 +185,14 @@ task main()
 
 	lift_target = pos_lift_bottom;
 
-	TurnLeft(50);
-	DriveForward(12000);
+	/*
+
+	TurnLeft(45);
+	DriveForward(5000);
+	TurnLeft(120);
+	DriveForward(100);
+
+	*/
 
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid
@@ -189,10 +200,9 @@ task main()
 	Motor_SetPower(0, motor_clamp_L);
 	Motor_SetPower(0, motor_clamp_R);
 	lift_target = pos_lift_bottom;
-	while (true) {
-		PlaySound(soundUpwardTones);
-		Time_Wait(1000);
-	}
+//	while (true) {
+//		PlaySound(soundUpwardTones);
+//		Time_Wait(1000);	}
 }
 
 bool DriveForward(int encoder_count)
