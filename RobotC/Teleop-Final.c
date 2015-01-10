@@ -148,11 +148,9 @@ task main()
 			Motor_SetPower(0, motor_lift_B);
 			Motor_SetPower(0, motor_lift_C);
 			hogCPU();
-			servo_hopper_pos = pos_servo_hopper_down;
-
 			lift_target = pos_lift_bottom;
 			is_lift_manual = false;
-
+			servo_hopper_pos = pos_servo_hopper_down;
 			Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_pos);
 			Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_pos);
 			int timer_temp = 0;
