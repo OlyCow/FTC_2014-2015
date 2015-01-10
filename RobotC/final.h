@@ -10,6 +10,7 @@ const int pos_lift_medium			= 1200;
 const int pos_lift_high				= 2700;
 const int pos_lift_center			= 5500;
 const int pos_lift_top				= 5500;
+const int pos_hopper_safety_above	= 1400;
 const int pos_hopper_safety_up		= 1000;
 const int pos_hopper_safety_down	= 1500;
 const int pos_dump_safety			= 100;
