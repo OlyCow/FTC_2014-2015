@@ -125,7 +125,11 @@ task main()
 			switch (pickup_direction) {
 				case DIRECTION_NONE :
 				case DIRECTION_OUT :
-					pickup_direction = DIRECTION_IN;
+					if (lift_pos > pos_hopper_safety_up) {
+						pickup_direction = DIRECTION_NONE;
+					} else {
+						pickup_direction = DIRECTION_IN;
+					}
 					break;
 				case DIRECTION_IN :
 					pickup_direction = DIRECTION_NONE;
@@ -213,7 +217,9 @@ task main()
 		}
 		if (Joystick_ButtonPressed(BUTTON_B)) {
 			switch (servo_hopper_pos) {
+				// Intentional fall-through:
 				case pos_servo_hopper_down :
+				case pos_servo_hopper_goal :
 					servo_hopper_pos = pos_servo_hopper_center;
 					hopper_target = HOPPER_CENTER;
 					break;
