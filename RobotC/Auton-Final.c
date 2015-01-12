@@ -159,8 +159,9 @@ task main()
 	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
 
 	DriveBackward(2000);
-	TurnRight(90);
+	TurnRight(82);
 	DriveBackward(1500);
+
 
 	for (int i=0; i<10; i++) {
 		Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_goal);
@@ -170,12 +171,15 @@ task main()
 	Motor_SetPower(100, motor_clamp_L);
 	Motor_SetPower(100, motor_clamp_R);
 	DriveBackward(1300);
-	Time_Wait(600);
-	DriveForward(3300);
+	Time_Wait(900);					//wait for arm to stop shaking
 
 	Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
 	Time_Wait(1000);
 	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+
+//DriveForward(3300);
+
+
 
 	for (int i=0; i<10; i++) {
 		Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
@@ -200,9 +204,10 @@ task main()
 	Motor_SetPower(0, motor_clamp_L);
 	Motor_SetPower(0, motor_clamp_R);
 	lift_target = pos_lift_bottom;
-//	while (true) {
-//		PlaySound(soundUpwardTones);
-//		Time_Wait(1000);	}
+
+while (true) {
+PlaySound(soundUpwardTones);
+	Time_Wait(1000);	}
 }
 
 bool DriveForward(int encoder_count)
@@ -236,7 +241,6 @@ bool Drive(int encoder_count)
 	const float watchdog_base = 2000.0;
 	int time_limit = (int)round((float)abs(encoder_count*watchdog_encoder_rate)+watchdog_base);
 	const int acceptable_error = 200;
-
 	const int finish_limit = 750; // msec
 	bool isFinishing = false;
 	int timer_finish = 0;
