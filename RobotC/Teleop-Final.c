@@ -312,7 +312,7 @@ task Hopper()
 						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 					}
 					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<3000) {
+					while (Time_GetTime(timer_hopper)<2000) {
 						if (lift_pos < pos_hopper_safety_down) {
 							isLiftFrozen = true;
 						} else {
@@ -331,7 +331,7 @@ task Hopper()
 						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
 					}
 					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<3000) {
+					while (Time_GetTime(timer_hopper)<1500) {
 						Time_Wait(10);
 					}
 					isLiftFrozen = false;
