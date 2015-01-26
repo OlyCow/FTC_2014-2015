@@ -92,8 +92,8 @@ task main()
 	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
 	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
 	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-	Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
-	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
+	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+	Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
 
 	Motor_ResetEncoder(encoder_lift);
 
@@ -273,20 +273,20 @@ task main()
 		//Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_pos);
 		switch (pickup_pos) {
 			case PICKUP_UP :
-				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_up);
-				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_up);
+				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_up);
+				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_up);
 				break;
 			case PICKUP_RETRACT :
-				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_retract);
-				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_retract);
+				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_retract);
+				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_retract);
 				break;
 			case PICKUP_LARGE :
-				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
-				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
+				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
 				break;
 			case PICKUP_SMALL :
-				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_small);
-				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_small);
+				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_small);
+				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_small);
 				break;
 		}
 
