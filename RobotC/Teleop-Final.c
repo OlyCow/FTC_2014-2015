@@ -17,7 +17,7 @@
 #pragma config(Servo,  srvo_S2_C1_4,    servo10,              tServoNone)
 #pragma config(Servo,  srvo_S2_C1_5,    servo11,              tServoNone)
 #pragma config(Servo,  srvo_S2_C1_6,    servo12,              tServoNone)
-#pragma config(Servo,  srvo_S2_C2_1,    servo_hopper_T,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_1,    servo_hopper_A,       tServoStandard)
 #pragma config(Servo,  srvo_S2_C2_2,    servo_hopper_B,       tServoStandard)
 #pragma config(Servo,  srvo_S2_C2_3,    servo3,               tServoNone)
 #pragma config(Servo,  srvo_S2_C2_4,    servo4,               tServoNone)
@@ -90,10 +90,10 @@ task main()
 	float power_clamp	= 0.0;
 
 	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-	Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
-	Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
-	Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
-	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
+	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+	Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
 
 	Motor_ResetEncoder(encoder_lift);
 
@@ -273,20 +273,20 @@ task main()
 		//Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_pos);
 		switch (pickup_pos) {
 			case PICKUP_UP :
-				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_up);
-				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_up);
+				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_up);
+				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_up);
 				break;
 			case PICKUP_RETRACT :
-				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_retract);
-				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_retract);
+				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_retract);
+				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_retract);
 				break;
 			case PICKUP_LARGE :
-				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
-				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
+				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
 				break;
 			case PICKUP_SMALL :
-				Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_small);
-				Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_small);
+				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_small);
+				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_small);
 				break;
 		}
 
@@ -308,11 +308,11 @@ task Hopper()
 						is_lift_manual = false;
 					}
 					for (int i=0; i<10; i++) {
-						Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
-						Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
+						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 					}
 					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<3000) {
+					while (Time_GetTime(timer_hopper)<2000) {
 						if (lift_pos < pos_hopper_safety_down) {
 							isLiftFrozen = true;
 						} else {
@@ -327,11 +327,11 @@ task Hopper()
 					break;
 				case HOPPER_CENTER :
 					for (int i=0; i<10; i++) {
-						Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_center);
-						Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_center);
+						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
+						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
 					}
 					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<3000) {
+					while (Time_GetTime(timer_hopper)<1500) {
 						Time_Wait(10);
 					}
 					isLiftFrozen = false;
@@ -346,8 +346,8 @@ task Hopper()
 						Time_Wait(10);
 					}
 					for (int i=0; i<10; i++) {
-						Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_goal);
-						Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_goal);
+						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
+						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
 					}
 					Time_ClearTimer(timer_hopper);
 					while (Time_GetTime(timer_hopper)<3000) {
