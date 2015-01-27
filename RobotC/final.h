@@ -18,12 +18,12 @@ const int pos_dump_safety			= 100;
 const int pos_servo_dump_closed		= 202;
 const int pos_servo_dump_open_feed	= 171;
 const int pos_servo_dump_open_dump	= 158;
-const int pos_servo_hopper_down		= 38;
-const int pos_servo_hopper_center	= 120;
-const int pos_servo_hopper_goal		= 247;
+const int pos_servo_hopper_down		= 22;
+const int pos_servo_hopper_center	= 105;
+const int pos_servo_hopper_goal		= 237;
 const int pos_servo_pickup_up		= 69;	//servo_pickup_L (129+); servo_pickup_R (127-)
 const int pos_servo_pickup_retract	= 52;
-const int pos_servo_pickup_large	= 13;
+const int pos_servo_pickup_large	= 14;
 const int pos_servo_pickup_small	= 10;
 
 #endif // FINAL_H
