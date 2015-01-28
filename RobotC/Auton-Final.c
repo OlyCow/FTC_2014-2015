@@ -1,6 +1,7 @@
 #pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTMotor)
 #pragma config(Hubs,  S2, HTServo,  HTServo,  HTServo,  none)
 #pragma config(Sensor, S3,     sensor_gyro,    sensorAnalogInactive)
+#pragma config(Sensor, S4,     sensor_IR,      sensorI2CCustom9V)
 #pragma config(Motor,  motorA,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  mtr_S1_C1_1,     motor_RB,      tmotorTetrix, openLoop, reversed, encoder)
@@ -17,7 +18,7 @@
 #pragma config(Servo,  srvo_S2_C1_4,    servo10,              tServoNone)
 #pragma config(Servo,  srvo_S2_C1_5,    servo11,              tServoNone)
 #pragma config(Servo,  srvo_S2_C1_6,    servo12,              tServoNone)
-#pragma config(Servo,  srvo_S2_C2_1,    servo_hopper_T,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_1,    servo_hopper_A,       tServoStandard)
 #pragma config(Servo,  srvo_S2_C2_2,    servo_hopper_B,       tServoStandard)
 #pragma config(Servo,  srvo_S2_C2_3,    servo3,               tServoNone)
 #pragma config(Servo,  srvo_S2_C2_4,    servo4,               tServoNone)
@@ -77,6 +78,8 @@ task main()
 {
 	initializeGlobalVariables();
 
+	const int delay_settle = 400; // msec
+
 	Motor_ResetEncoder(encoder_L);
 	Motor_ResetEncoder(encoder_R);
 	Motor_ResetEncoder(encoder_lift);
@@ -91,7 +94,7 @@ task main()
 	// can also show them our code and prove that we only send one command
 	// to each servo before the matches start.
 	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-	Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
+	Servo_SetPosition(servo_hopper_A, 128 + pos_servo_hopper_down);
 	Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
 
 
@@ -114,24 +117,15 @@ task main()
 	Motor_SetPower(ramp_power, motor_RT);
 	Motor_SetPower(ramp_power, motor_RB);
 	Time_Wait(1600);
-	//ramp_power = -20;
-	//Motor_SetPower(ramp_power, motor_LT);
-	//Motor_SetPower(ramp_power, motor_LB);
-	//Motor_SetPower(ramp_power, motor_RT);
-	//Motor_SetPower(ramp_power, motor_RB);
-	//Time_Wait(800);
-	// TODO: If we were to detect color changes, we'd do it here.
-	// Unfortunately it seems like we're just going with dead reckoning.
 	Motor_SetPower(0, motor_LT);
 	Motor_SetPower(0, motor_LB);
 	Motor_SetPower(0, motor_RT);
 	Motor_SetPower(0, motor_RB);
-	Time_Wait(500);
+	Time_Wait(delay_settle);
 
-	// Quick correction turn. The turn is set to our current heading
-	// and in the opposite direction to counteract any drift we gained
-	// from driving on the ramp.
-
+	// Minor correction turn. The turn is equal to our current heading
+	// (in the opposite direction) to counteract any error we gained
+	// while driving down the ramp.
 	int correction_turn = heading;
 	TurnLeft(correction_turn);
 
@@ -166,7 +160,7 @@ task main()
 
 
 	for (int i=0; i<10; i++) {
-		Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_goal);
+		Servo_SetPosition(servo_hopper_A, 128 + pos_servo_hopper_goal);
 		Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_goal);
 	}
 
@@ -184,7 +178,7 @@ task main()
 
 
 	for (int i=0; i<10; i++) {
-		Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
+		Servo_SetPosition(servo_hopper_A, 128 + pos_servo_hopper_down);
 		Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
 	}
 	Time_Wait(3000);
