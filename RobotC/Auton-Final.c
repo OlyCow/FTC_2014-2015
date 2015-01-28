@@ -3,12 +3,12 @@
 #pragma config(Sensor, S3,     sensor_gyro,    sensorAnalogInactive)
 #pragma config(Motor,  motorA,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
-#pragma config(Motor,  mtr_S1_C1_1,     motor_RB,      tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C1_1,     motor_RB,      tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Motor,  mtr_S1_C1_2,     motor_RT,      tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C2_1,     motor_LT,      tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Motor,  mtr_S1_C2_2,     motor_LB,      tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C3_1,     motor_lift_A,  tmotorTetrix, openLoop, reversed)
-#pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop, encoder)
 #pragma config(Motor,  mtr_S1_C4_1,     motor_pickup,  tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_2,     motor_lift_C,  tmotorTetrix, openLoop, reversed)
 #pragma config(Servo,  srvo_S2_C1_1,    servo_dump,           tServoStandard)
@@ -77,7 +77,8 @@ task main()
 {
 	initializeGlobalVariables();
 
-	Motor_ResetEncoder(encoder_dist);
+	Motor_ResetEncoder(encoder_L);
+	Motor_ResetEncoder(encoder_R);
 	Motor_ResetEncoder(encoder_lift);
 
 	// All servos must be set to default position before "waitForStart"
@@ -98,6 +99,7 @@ task main()
 	Task_Spawn(PID);
 	Task_Spawn(Display);
 	Joystick_WaitForStart();
+	heading = 0;
 	Time_Wait(500);
 
 	// Move down the ramp at full power (time-based dead reckoning).
@@ -130,8 +132,8 @@ task main()
 	// and in the opposite direction to counteract any drift we gained
 	// from driving on the ramp.
 
-	//int correction_turn = heading;
-	//TurnLeft(correction_turn);
+	int correction_turn = heading;
+	TurnLeft(correction_turn);
 
 	// Drive backward slowly. This power should be slow enough that the
 	// robot will not drive up the ramp if it hits it, but not so slow
@@ -189,15 +191,6 @@ task main()
 
 	lift_target = pos_lift_bottom;
 
-	/*
-
-	TurnLeft(45);
-	DriveForward(5000);
-	TurnLeft(120);
-	DriveForward(100);
-
-	*/
-
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid
 	// of the delay at the end!
@@ -205,9 +198,10 @@ task main()
 	Motor_SetPower(0, motor_clamp_R);
 	lift_target = pos_lift_bottom;
 
-while (true) {
-PlaySound(soundUpwardTones);
-	Time_Wait(1000);	}
+	while (true) {
+		PlaySound(soundUpwardTones);
+		Time_Wait(1000);
+	}
 }
 
 bool DriveForward(int encoder_count)
@@ -250,8 +244,8 @@ bool Drive(int encoder_count)
 	const float kI = 0.0047;
 	const float I_term_decay_rate = 0.91;
 
-	int count_init = Motor_GetEncoder(encoder_dist);
-	int pos_dist = Motor_GetEncoder(encoder_dist) - count_init;
+	int count_init = Motor_GetEncoder(encoder_R);
+	int pos_dist = Motor_GetEncoder(encoder_R) - count_init;
 	int error = 0;
 	float error_sum = 0.0;
 	float power = 0.0;
@@ -259,7 +253,7 @@ bool Drive(int encoder_count)
 
 	while (true) {
 		power_prev = power;
-		pos_dist = Motor_GetEncoder(encoder_dist) - count_init;
+		pos_dist = Motor_GetEncoder(encoder_R) - count_init;
 		error = pos_dist - encoder_count;
 		error_sum *= I_term_decay_rate;
 		error_sum += error;
@@ -520,7 +514,7 @@ task Display()
 				nxtDisplayTextLine(0, "Lift:  %+6i", Motor_GetEncoder(encoder_lift));
 				nxtDisplayTextLine(1, "  Tgt: %+6i", lift_target);
 				nxtDisplayTextLine(2, "  Pwr: %+6i", power_lift);
-				nxtDisplayTextLine(3, "Dist:  %+6i", Motor_GetEncoder(encoder_dist));
+				nxtDisplayTextLine(3, "Dist:  %+6i", Motor_GetEncoder(encoder_L));
 				break;
 			case DISP_SENSORS :
 				nxtDisplayTextLine(0, "Angle: %3d", heading);

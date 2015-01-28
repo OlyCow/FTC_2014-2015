@@ -2,7 +2,8 @@
 #define FINAL_H
 
 const tMotor encoder_lift	= motor_LT;
-const tMotor encoder_dist	= motor_lift_B;
+const tMotor encoder_L		= motor_lift_B;
+const tMotor encoder_R		= motor_RB;
 
 const int pos_lift_bottom			= 0;
 const int pos_lift_low				= 1200;
