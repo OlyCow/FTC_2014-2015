@@ -125,16 +125,16 @@ task main()
 	// Start raising lift early.
 	lift_target = pos_lift_high;
 
-	DriveBackward(1500);
+	DriveBackward(2770);
 	TurnLeft(45);
 
 
 	Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
 	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
 
-	DriveBackward(2000);
+	DriveBackward(2300);
 	TurnRight(82);
-	DriveBackward(1500);
+	DriveBackward(1550);
 
 
 	for (int i=0; i<10; i++) {
@@ -144,7 +144,7 @@ task main()
 
 	Motor_SetPower(100, motor_clamp_L);
 	Motor_SetPower(100, motor_clamp_R);
-	DriveBackward(1300);
+	DriveBackward(1500);
 	Time_Wait(900);					//wait for arm to stop shaking
 
 	Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
@@ -170,8 +170,8 @@ task main()
 	Motor_SetPower(0, motor_clamp_R);
 	lift_target = pos_lift_bottom;
 
-//DriveForward(1000);
-//DriveBackward(1000);
+	
+
 	while (true) {
 		PlaySound(soundUpwardTones);
 		Time_Wait(1000);
