@@ -61,9 +61,9 @@ bool Drive(int encoder_count)
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 0.0133;
-	const float kI = 0.0047;
-	const float I_term_decay_rate = 0.91;
+	const float kP = 0.01343;
+	const float kI = 0.0038;
+	const float I_term_decay_rate = 0.813;
 
 	int count_init = Motor_GetEncoder(encoder_R);
 	int pos_dist = Motor_GetEncoder(encoder_R) - count_init;
@@ -128,19 +128,19 @@ bool Turn(int degrees)
 
 	int timer_watchdog = 0;
 	Time_ClearTimer(timer_watchdog);
-	const float watchdog_degree_rate = 0.0279;
-	const float watchdog_base = 1800.0;
+	const float watchdog_degree_rate = 60.0;
+	const float watchdog_base = 500.0;
 	int time_limit = (int)round((float)abs(degrees)*watchdog_degree_rate+watchdog_base);
-	const float acceptable_error = 1.0;
+	const float acceptable_error = 0.5;
 
 	const int finish_limit = 1250; // msec
 	bool isFinishing = false;
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 7.2;
-	const float kI = 0.14;
-	const float I_term_decay_rate = 0.94;
+	const float kP = 7.6;
+	const float kI = 0.94;
+	const float I_term_decay_rate = 0.97;
 
 	float heading_init = heading;
 	float heading_curr = heading;
@@ -154,11 +154,16 @@ bool Turn(int degrees)
 		heading_curr = heading - heading_init;
 		error = heading_curr - (float)degrees;
 		error_sum *= I_term_decay_rate;
-		error_sum += error;
+		if (error > 15) {
+			error_sum += error;
+		}
 		float kP_var = kP;
 		float kI_var = kI;
 		power = kP_var*error + kI_var*error_sum;
-		power = Math_Limit(power, 80.0);
+		power = Math_Limit(power, 85.0);
+		if (abs(power)<10.0) {
+			power = sgn(power) * 10.0;
+		}
 
 		int power_L = (int)round(power);
 		power_L *= -1;
