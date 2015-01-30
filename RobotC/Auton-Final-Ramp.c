@@ -170,6 +170,8 @@ task main()
 	Motor_SetPower(0, motor_clamp_R);
 	lift_target = pos_lift_bottom;
 
+//DriveForward(1000);
+//DriveBackward(1000);
 	while (true) {
 		PlaySound(soundUpwardTones);
 		Time_Wait(1000);

@@ -1,6 +1,8 @@
 #ifndef FINAL_H
 #define FINAL_H
 
+void initializeRobotVariables();
+
 const tMotor encoder_lift	= motor_LT;
 const tMotor encoder_L		= motor_lift_B;
 const tMotor encoder_R		= motor_RB;
@@ -26,5 +28,27 @@ const int pos_servo_pickup_up		= 69;	//servo_pickup_L (129+); servo_pickup_R (12
 const int pos_servo_pickup_retract	= 52;
 const int pos_servo_pickup_large	= 14;
 const int pos_servo_pickup_small	= 10;
+
+void initializeRobotVariables()
+{
+	// All servos must be set to default position before "waitForStart"
+	// to alleviate servo twitching. This also counts as the initialization
+	// routine for the servos (only one command sent to each servo).
+	// NOTE: If the refs call us out for having the servos move to two
+	// different positions, tell them it's because the servos respond to
+	// a garbage value in the controllers before actually responding to
+	// our commands (and that there's nothing we can do about it). You
+	// can also show them our code and prove that we only send one command
+	// to each servo before the matches start.
+	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+	Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
+
+	Motor_ResetEncoder(encoder_L);
+	Motor_ResetEncoder(encoder_R);
+	Motor_ResetEncoder(encoder_lift);
+}
 
 #endif // FINAL_H

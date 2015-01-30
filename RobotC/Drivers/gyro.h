@@ -37,7 +37,11 @@ float HTGYROreadRot(tSensors link) {
 		SetSensorType(link, sensorAnalogInactive);
 		wait1Msec(100);
 	}
-	return (SensorValue[link]-HTGYRO_offsets[link][0]);
+	float vel = SensorValue[link]-HTGYRO_offsets[link][0];
+	if (abs(vel-0.0)<1.0) {
+		vel = 0.0;
+	}
+	return vel;
 }
 
 // Calibrate gyro by calculating the average offset of 25

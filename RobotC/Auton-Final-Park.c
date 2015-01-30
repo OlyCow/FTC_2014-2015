@@ -71,9 +71,6 @@ task main()
 	// our commands (and that there's nothing we can do about it). You
 	// can also show them our code and prove that we only send one command
 	// to each servo before the matches start.
-	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-	Servo_SetPosition(servo_hopper_A, 128 + pos_servo_hopper_down);
-	Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
 
 	Task_Spawn(Gyro);
 	Task_Spawn(PID);
@@ -82,8 +79,8 @@ task main()
 	heading = 0.0;
 	Time_Wait(delay_settle);
 
-	// stuff
-	TurnLeft(90);
+	//
+	DriveForward
 
 	lift_target = pos_lift_bottom;
 
@@ -96,7 +93,7 @@ task main()
 
 	while (true) {
 		PlaySound(soundUpwardTones);
-		Time_Wait(1000);
+		Time_Wait(800);
 	}
 }
 
@@ -228,13 +225,15 @@ task Display()
 			case DISP_FCS :
 				break;
 			case DISP_ENCODERS :
-				nxtDisplayTextLine(0, "Lift:  %+6i", Motor_GetEncoder(encoder_lift));
-				nxtDisplayTextLine(1, "  Tgt: %+6i", lift_target);
-				nxtDisplayTextLine(2, "  Pwr: %+6i", power_lift);
-				nxtDisplayTextLine(3, "Dist:  %+6i", Motor_GetEncoder(encoder_L));
+				nxtDisplayTextLine(0, "Lift: %+6i", Motor_GetEncoder(encoder_lift));
+				nxtDisplayTextLine(1, " Tgt: %+6i", lift_target);
+				nxtDisplayTextLine(2, " Pwr: %+6i", power_lift);
+				nxtDisplayTextLine(3, "Dist: %+6i", Motor_GetEncoder(encoder_L));
 				break;
 			case DISP_SENSORS :
 				nxtDisplayTextLine(0, "Angle: %3d", heading);
+				nxtDisplayTextLine(1, "Raw  : %3d", HTGYROreadRot(sensor_gyro));
+				nxtDisplayTextLine(2, "Cal  : %3d", HTGYROreadCal(sensor_gyro));
 				break;
 			case DISP_PID_LIFT :
 				nxtDisplayTextLine(0, "P: %+7d", term_P_lift);

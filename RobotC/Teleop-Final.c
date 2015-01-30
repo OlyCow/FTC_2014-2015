@@ -508,7 +508,7 @@ task Display()
 				nxtDisplayTextLine(0, "Lift:  %+6i", lift_pos);
 				nxtDisplayTextLine(1, "Tgt:   %+6i", lift_target);
 				nxtDisplayTextLine(2, "Pwr:   %+6i", power_lift);
-				nxtDisplayTextLine(3, "Dist:  %+6i", Motor_GetEncoder(encoder_dist));
+				nxtDisplayTextLine(3, "Dist:  %+6i", 0);
 				break;
 			case DISP_SENSORS :
 				nxtDisplayTextLine(0, "Angle: %3d", heading);

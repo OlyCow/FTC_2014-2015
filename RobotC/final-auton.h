@@ -52,18 +52,18 @@ bool Drive(int encoder_count)
 
 	int timer_watchdog = 0;
 	Time_ClearTimer(timer_watchdog);
-	const float watchdog_encoder_rate = 1.736;
-	const float watchdog_base = 2000.0;
+	const float watchdog_encoder_rate = 2.3;
+	const float watchdog_base = 1000.0;
 	int time_limit = (int)round((float)abs(encoder_count*watchdog_encoder_rate)+watchdog_base);
-	const int acceptable_error = 200;
+	const int acceptable_error = 150;
 	const int finish_limit = 750; // msec
 	bool isFinishing = false;
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 0.01343;
-	const float kI = 0.0038;
-	const float I_term_decay_rate = 0.813;
+	const float kP = 0.01178;
+	const float kI = 0.00445;
+	const float I_term_decay_rate = 0.87;
 
 	int count_init = Motor_GetEncoder(encoder_R);
 	int pos_dist = Motor_GetEncoder(encoder_R) - count_init;
@@ -79,7 +79,12 @@ bool Drive(int encoder_count)
 		error_sum *= I_term_decay_rate;
 		error_sum += error;
 		power = kP*error + kI*error_sum;
-		power = Math_Limit(power, 85);
+		power = Math_Limit(power, 85.0);
+		if (abs(power)<10.0) {
+			power = 0.0;
+		} else if (abs(power)<25.0) {
+			power = sgn(power) * 25.0;
+		}
 
 		pos_dist_disp = pos_dist;
 		error_dist_disp = (float)(error);
@@ -128,18 +133,18 @@ bool Turn(int degrees)
 
 	int timer_watchdog = 0;
 	Time_ClearTimer(timer_watchdog);
-	const float watchdog_degree_rate = 60.0;
-	const float watchdog_base = 500.0;
+	const float watchdog_degree_rate = 0.06;
+	const float watchdog_base = 750.0;
 	int time_limit = (int)round((float)abs(degrees)*watchdog_degree_rate+watchdog_base);
 	const float acceptable_error = 0.5;
 
-	const int finish_limit = 1250; // msec
+	const int finish_limit = 1000; // msec
 	bool isFinishing = false;
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
 	const float kP = 7.6;
-	const float kI = 0.94;
+	const float kI = 0.98;
 	const float I_term_decay_rate = 0.97;
 
 	float heading_init = heading;
@@ -162,7 +167,9 @@ bool Turn(int degrees)
 		power = kP_var*error + kI_var*error_sum;
 		power = Math_Limit(power, 85.0);
 		if (abs(power)<10.0) {
-			power = sgn(power) * 10.0;
+			power = 0.0;
+		} else if (abs(power)<25.0) {
+			power = sgn(power) * 25.0;
 		}
 
 		int power_L = (int)round(power);
