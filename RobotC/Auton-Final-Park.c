@@ -12,20 +12,20 @@
 #pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop, encoder)
 #pragma config(Motor,  mtr_S1_C4_1,     motor_pickup,  tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_2,     motor_lift_C,  tmotorTetrix, openLoop, reversed)
-#pragma config(Servo,  srvo_S2_C1_1,    servo_dump,           tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_2,    servo_turntable,      tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_3,    servo9,               tServoNone)
-#pragma config(Servo,  srvo_S2_C1_4,    servo10,              tServoNone)
-#pragma config(Servo,  srvo_S2_C1_5,    servo11,              tServoNone)
-#pragma config(Servo,  srvo_S2_C1_6,    servo12,              tServoNone)
-#pragma config(Servo,  srvo_S2_C2_1,    servo_hopper_A,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_2,    servo_hopper_B,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_3,    servo3,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_4,    servo4,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_5,    servo5,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_6,    servo6,               tServoNone)
-#pragma config(Servo,  srvo_S2_C3_1,    servo_pickup_L,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C3_2,    servo_pickup_R,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_1,    servo_hopper_A,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_2,    servo_hopper_B,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_3,    servo3,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_4,    servo4,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_5,    servo5,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_6,    servo6,               tServoNone)
+#pragma config(Servo,  srvo_S2_C2_1,    servo_dump,           tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_2,    servo_pickup_L,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_3,    servo_pickup_R,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_4,    servo10,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_5,    servo11,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_6,    servo12,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_1,    servo_turntable,      tServoStandard)
+#pragma config(Servo,  srvo_S2_C3_2,    servo14,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_3,    servo15,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_4,    servo16,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_5,    servo17,              tServoNone)
@@ -52,6 +52,10 @@ int IR_C = 0;
 int IR_D = 0;
 int IR_E = 0;
 
+// close 77D 67C
+// diag 107C
+// far 65C
+
 float term_P_lift = 0.0;
 float term_I_lift = 0.0;
 float term_D_lift = 0.0;
@@ -60,7 +64,16 @@ float power_lift_temp = 0.0;
 
 task main()
 {
+	typedef enum GoalPos {
+		GOAL_UNKNOWN = -1,
+		GOAL_CLOSE,
+		GOAL_DIAG,
+		GOAL_FAR
+	};
+	GoalPos goalPos = GOAL_UNKNOWN;
+
 	initializeGlobalVariables();
+	initializeRobotVariables();
 
 	const int delay_settle = 400; // msec
 
@@ -71,11 +84,90 @@ task main()
 	heading = 0.0;
 	Time_Wait(delay_settle);
 
-	//
-	DriveForward(3300);
-	bool goodTurn = TurnRight(295);
-	//DriveForward(1800);
+	DriveForward(1950);
 	HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
+
+	if (IR_D > 50) {
+		goalPos = GOAL_CLOSE;
+	} else if (IR_C > 80) {
+		goalPos = GOAL_DIAG;
+	} else if (IR_C > 20) {
+		goalPos = GOAL_FAR;
+	}
+
+	lift_target = pos_lift_center;
+	Time_Wait(1500);
+
+	switch (goalPos) {
+		case GOAL_CLOSE :
+			PlaySound(soundBeepBeep);
+			for (int i=0; i<10; i++) {
+				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
+				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
+			}
+			TurnRight(25);
+			DriveForward(1500);
+			Time_Wait(delay_settle);
+			Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
+			Time_Wait(200);
+			DriveBackward(2200);
+			Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+			for (int i=0; i<10; i++) {
+				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+			}
+			Time_Wait(delay_settle);
+			break;
+		case GOAL_DIAG :
+			PlaySound(soundDownwardTones);
+			for (int i=0; i<10; i++) {
+				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
+				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
+			}
+			TurnLeft(45);
+			DriveForward(1600);
+			TurnRight(90);
+			DriveForward(900);
+			Time_Wait(delay_settle);
+			Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
+			Time_Wait(200);
+			DriveBackward(2000);
+			Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+			for (int i=0; i<10; i++) {
+				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+			}
+			Time_Wait(delay_settle);
+			break;
+		case GOAL_FAR :
+			PlaySound(soundLowBuzz);
+			for (int i=0; i<10; i++) {
+				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
+				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
+			}
+			TurnLeft(30);
+			DriveForward(3300);
+			TurnRight(105);
+			DriveForward(650);
+			Time_Wait(delay_settle);
+			Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
+			Time_Wait(200);
+			DriveBackward(700);
+			TurnLeft(45);
+			Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+			for (int i=0; i<10; i++) {
+				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+			}
+			Time_Wait(delay_settle);
+			DriveBackward(3000);
+			break;
+		default :
+			PlaySound(soundShortBlip);
+			Time_Wait(500);
+			DriveBackward(1950);
+			break;
+	}
 
 	lift_target = pos_lift_bottom;
 
@@ -87,9 +179,7 @@ task main()
 	lift_target = pos_lift_bottom;
 
 	while (true) {
-		if (goodTurn) {
-			PlaySound(soundUpwardTones);
-		}
+		PlaySound(soundUpwardTones);
 		Time_Wait(800);
 	}
 }
@@ -231,10 +321,10 @@ task Display()
 				nxtDisplayTextLine(0, "Angle: %3d", heading);
 				nxtDisplayTextLine(1, "Raw  : %3d", HTGYROreadRot(sensor_gyro));
 				nxtDisplayTextLine(2, "IR-A : %3d", IR_A);
-				nxtDisplayTextLine(2, "IR-B : %3d", IR_B);
-				nxtDisplayTextLine(2, "IR-C : %3d", IR_C);
-				nxtDisplayTextLine(2, "IR-D : %3d", IR_D);
-				nxtDisplayTextLine(2, "IR-E : %3d", IR_E);
+				nxtDisplayTextLine(3, "IR-B : %3d", IR_B);
+				nxtDisplayTextLine(4, "IR-C : %3d", IR_C);
+				nxtDisplayTextLine(5, "IR-D : %3d", IR_D);
+				nxtDisplayTextLine(6, "IR-E : %3d", IR_E);
 				break;
 			case DISP_PID_LIFT :
 				nxtDisplayTextLine(0, "P: %+7d", term_P_lift);
