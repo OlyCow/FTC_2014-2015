@@ -1,6 +1,7 @@
 #pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTMotor)
 #pragma config(Hubs,  S2, HTServo,  HTServo,  HTServo,  none)
 #pragma config(Sensor, S3,     sensor_gyro,    sensorAnalogInactive)
+#pragma config(Sensor, S4,     sensor_IR,      sensorI2CCustom9V)
 #pragma config(Motor,  motorA,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  mtr_S1_C1_1,     motor_RB,      tmotorTetrix, openLoop, reversed, encoder)
@@ -11,20 +12,20 @@
 #pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop, encoder)
 #pragma config(Motor,  mtr_S1_C4_1,     motor_pickup,  tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_2,     motor_lift_C,  tmotorTetrix, openLoop, reversed)
-#pragma config(Servo,  srvo_S2_C1_1,    servo_dump,           tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_2,    servo_turntable,      tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_3,    servo9,               tServoNone)
-#pragma config(Servo,  srvo_S2_C1_4,    servo10,              tServoNone)
-#pragma config(Servo,  srvo_S2_C1_5,    servo11,              tServoNone)
-#pragma config(Servo,  srvo_S2_C1_6,    servo12,              tServoNone)
-#pragma config(Servo,  srvo_S2_C2_1,    servo_hopper_A,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_2,    servo_hopper_B,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_3,    servo3,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_4,    servo4,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_5,    servo5,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_6,    servo6,               tServoNone)
-#pragma config(Servo,  srvo_S2_C3_1,    servo_pickup_L,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C3_2,    servo_pickup_R,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_1,    servo_hopper_A,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_2,    servo_hopper_B,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_3,    servo3,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_4,    servo4,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_5,    servo5,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_6,    servo6,               tServoNone)
+#pragma config(Servo,  srvo_S2_C2_1,    servo_dump,           tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_2,    servo_pickup_L,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_3,    servo_pickup_R,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_4,    servo10,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_5,    servo11,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_6,    servo12,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_1,    servo_turntable,      tServoStandard)
+#pragma config(Servo,  srvo_S2_C3_2,    servo14,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_3,    servo15,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_4,    servo16,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_5,    servo17,              tServoNone)
@@ -76,6 +77,7 @@ task main()
 	};
 
 	initializeGlobalVariables();
+	initializeRobotVariables();
 
 	MotorDirection pickup_direction = DIRECTION_NONE;
 	MotorDirection pickup_direction_prev = DIRECTION_NONE;
@@ -88,12 +90,6 @@ task main()
 	float power_R		= 0.0;
 	float power_pickup	= 0.0;
 	float power_clamp	= 0.0;
-
-	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
-	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
-	Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
 
 	Motor_ResetEncoder(encoder_lift);
 
@@ -274,19 +270,19 @@ task main()
 		switch (pickup_pos) {
 			case PICKUP_UP :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_up);
-				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_up);
+				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_up);
 				break;
 			case PICKUP_RETRACT :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_retract);
-				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_retract);
+				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_retract);
 				break;
 			case PICKUP_LARGE :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
-				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
+				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
 				break;
 			case PICKUP_SMALL :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_small);
-				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_small);
+				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_small);
 				break;
 		}
 
