@@ -55,12 +55,9 @@ float power_lift_temp = 0.0;
 task main()
 {
 	initializeGlobalVariables();
+	initializeRobotVariables();
 
 	const int delay_settle = 400; // msec
-
-	Motor_ResetEncoder(encoder_L);
-	Motor_ResetEncoder(encoder_R);
-	Motor_ResetEncoder(encoder_lift);
 
 	// All servos must be set to default position before "waitForStart"
 	// to alleviate servo twitching. This also counts as the initialization
@@ -71,10 +68,6 @@ task main()
 	// our commands (and that there's nothing we can do about it). You
 	// can also show them our code and prove that we only send one command
 	// to each servo before the matches start.
-	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-	Servo_SetPosition(servo_hopper_A, 128 + pos_servo_hopper_down);
-	Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
-
 
 	Task_Spawn(Gyro);
 	Task_Spawn(PID);
@@ -83,83 +76,80 @@ task main()
 	heading = 0;
 	Time_Wait(500);
 
-	// Move down the ramp at full power (time-based dead reckoning).
-	// NOTE: The commented out section would have broken the "move
-	// down ramp" sequence into two parts: a fast part (to get over
-	// the bump) and a slow part (to stay accurate). Currently the
-	// times are NOT calibrated (i.e. a wild guess). Don't use the
-	// commented out section unless our robot gets off by a lot.
-	int ramp_power = -100;
-	Motor_SetPower(ramp_power, motor_LT);
-	Motor_SetPower(ramp_power, motor_LB);
-	Motor_SetPower(ramp_power, motor_RT);
-	Motor_SetPower(ramp_power, motor_RB);
-	Time_Wait(1600);
-	Motor_SetPower(0, motor_LT);
-	Motor_SetPower(0, motor_LB);
-	Motor_SetPower(0, motor_RT);
-	Motor_SetPower(0, motor_RB);
-	Time_Wait(delay_settle);
+	//// Move down the ramp at full power (time-based dead reckoning).
+	//// NOTE: The commented out section would have broken the "move
+	//// down ramp" sequence into two parts: a fast part (to get over
+	//// the bump) and a slow part (to stay accurate). Currently the
+	//// times are NOT calibrated (i.e. a wild guess). Don't use the
+	//// commented out section unless our robot gets off by a lot.
+	//int ramp_power = -100;
+	//Motor_SetPower(ramp_power, motor_LT);
+	//Motor_SetPower(ramp_power, motor_LB);
+	//Motor_SetPower(ramp_power, motor_RT);
+	//Motor_SetPower(ramp_power, motor_RB);
+	//Time_Wait(1600);
+	//Motor_SetPower(0, motor_LT);
+	//Motor_SetPower(0, motor_LB);
+	//Motor_SetPower(0, motor_RT);
+	//Motor_SetPower(0, motor_RB);
+	//Time_Wait(delay_settle);
 
-	// Minor correction turn. The turn is equal to our current heading
-	// (in the opposite direction) to counteract any error we gained
-	// while driving down the ramp.
-	int correction_turn = heading;
-	TurnLeft(correction_turn);
+	//// Minor correction turn. The turn is equal to our current heading
+	//// (in the opposite direction) to counteract any error we gained
+	//// while driving down the ramp.
+	//int correction_turn = heading;
+	//TurnLeft(correction_turn);
 
-	// Drive backward slowly. This power should be slow enough that the
-	// robot will not drive up the ramp if it hits it, but not so slow
-	// such that the robot won't even drive.
-	// NOTE: You can increase the time if the robot doesn't back up far
-	// enough. This is still time-based dead reckoning.
-	Motor_SetPower(15, motor_LT);
-	Motor_SetPower(15, motor_LB);
-	Motor_SetPower(15, motor_RT);
-	Motor_SetPower(15, motor_RB);
-	Time_Wait(700);
-	Motor_SetPower(0, motor_LT);
-	Motor_SetPower(0, motor_LB);
-	Motor_SetPower(0, motor_RT);
-	Motor_SetPower(0, motor_RB);
+	//// Drive backward slowly. This power should be slow enough that the
+	//// robot will not drive up the ramp if it hits it, but not so slow
+	//// such that the robot won't even drive.
+	//// NOTE: You can increase the time if the robot doesn't back up far
+	//// enough. This is still time-based dead reckoning.
+	//Motor_SetPower(15, motor_LT);
+	//Motor_SetPower(15, motor_LB);
+	//Motor_SetPower(15, motor_RT);
+	//Motor_SetPower(15, motor_RB);
+	//Time_Wait(800);
+	//Motor_SetPower(0, motor_LT);
+	//Motor_SetPower(0, motor_LB);
+	//Motor_SetPower(0, motor_RT);
+	//Motor_SetPower(0, motor_RB);
 
-	// Start raising lift early.
-	lift_target = pos_lift_high;
+	//// Start raising lift early.
+	//lift_target = pos_lift_high;
 
-	DriveBackward(2770);
-	TurnLeft(45);
+	//DriveBackward(700);
+	//TurnLeft(30);
 
+	////Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+	////Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
 
-	Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
-	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
-
-	DriveBackward(2300);
-	TurnRight(82);
-	DriveBackward(1550);
-
-
-	for (int i=0; i<10; i++) {
-		Servo_SetPosition(servo_hopper_A, 128 + pos_servo_hopper_goal);
-		Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_goal);
-	}
-
-	Motor_SetPower(100, motor_clamp_L);
-	Motor_SetPower(100, motor_clamp_R);
-	DriveBackward(1500);
-	Time_Wait(900);					//wait for arm to stop shaking
-
-	Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
-	Time_Wait(1000);
-	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-
-//DriveForward(3300);
+	//DriveBackward(2450);
+	//TurnRight(105);
+	//DriveBackward(1450);
 
 
+	//for (int i=0; i<10; i++) {
+	//	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
+	//	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
+	//}
 
-	for (int i=0; i<10; i++) {
-		Servo_SetPosition(servo_hopper_A, 128 + pos_servo_hopper_down);
-		Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
-	}
-	Time_Wait(3000);
+	//Motor_SetPower(100, motor_clamp_L);
+	//Motor_SetPower(100, motor_clamp_R);
+	//DriveBackward(900);
+	//Time_Wait(900); //wait for arm to stop shaking
+
+	//Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
+	//Time_Wait(600);
+	//Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+
+	//for (int i=0; i<10; i++) {
+	//	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+	//	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+	//}
+	//Time_Wait(3000);
+
+	TurnRight(90);
 
 	lift_target = pos_lift_bottom;
 
@@ -170,7 +160,7 @@ task main()
 	Motor_SetPower(0, motor_clamp_R);
 	lift_target = pos_lift_bottom;
 
-	
+
 
 	while (true) {
 		PlaySound(soundUpwardTones);

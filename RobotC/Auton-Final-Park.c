@@ -46,6 +46,12 @@ bool isDown = false;
 
 #include "final-auton.h"
 
+int IR_A = 0;
+int IR_B = 0;
+int IR_C = 0;
+int IR_D = 0;
+int IR_E = 0;
+
 float term_P_lift = 0.0;
 float term_I_lift = 0.0;
 float term_D_lift = 0.0;
@@ -58,20 +64,6 @@ task main()
 
 	const int delay_settle = 400; // msec
 
-	Motor_ResetEncoder(encoder_L);
-	Motor_ResetEncoder(encoder_R);
-	Motor_ResetEncoder(encoder_lift);
-
-	// All servos must be set to default position before "waitForStart"
-	// to alleviate servo twitching. This also counts as the initialization
-	// routine for the servos (only one command sent to each servo).
-	// NOTE: If the refs call us out for having the servos move to two
-	// different positions, tell them it's because the servos respond to
-	// a garbage value in the controllers before actually responding to
-	// our commands (and that there's nothing we can do about it). You
-	// can also show them our code and prove that we only send one command
-	// to each servo before the matches start.
-
 	Task_Spawn(Gyro);
 	Task_Spawn(PID);
 	Task_Spawn(Display);
@@ -80,7 +72,10 @@ task main()
 	Time_Wait(delay_settle);
 
 	//
-	DriveForward
+	DriveForward(3300);
+	bool goodTurn = TurnRight(295);
+	//DriveForward(1800);
+	HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
 
 	lift_target = pos_lift_bottom;
 
@@ -92,7 +87,9 @@ task main()
 	lift_target = pos_lift_bottom;
 
 	while (true) {
-		PlaySound(soundUpwardTones);
+		if (goodTurn) {
+			PlaySound(soundUpwardTones);
+		}
 		Time_Wait(800);
 	}
 }
@@ -233,7 +230,11 @@ task Display()
 			case DISP_SENSORS :
 				nxtDisplayTextLine(0, "Angle: %3d", heading);
 				nxtDisplayTextLine(1, "Raw  : %3d", HTGYROreadRot(sensor_gyro));
-				nxtDisplayTextLine(2, "Cal  : %3d", HTGYROreadCal(sensor_gyro));
+				nxtDisplayTextLine(2, "IR-A : %3d", IR_A);
+				nxtDisplayTextLine(2, "IR-B : %3d", IR_B);
+				nxtDisplayTextLine(2, "IR-C : %3d", IR_C);
+				nxtDisplayTextLine(2, "IR-D : %3d", IR_D);
+				nxtDisplayTextLine(2, "IR-E : %3d", IR_E);
 				break;
 			case DISP_PID_LIFT :
 				nxtDisplayTextLine(0, "P: %+7d", term_P_lift);

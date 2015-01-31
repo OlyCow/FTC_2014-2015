@@ -52,7 +52,7 @@ bool Drive(int encoder_count)
 
 	int timer_watchdog = 0;
 	Time_ClearTimer(timer_watchdog);
-	const float watchdog_encoder_rate = 2.3;
+	const float watchdog_encoder_rate = 5.3;
 	const float watchdog_base = 1000.0;
 	int time_limit = (int)round((float)abs(encoder_count*watchdog_encoder_rate)+watchdog_base);
 	const int acceptable_error = 150;
@@ -133,7 +133,7 @@ bool Turn(int degrees)
 
 	int timer_watchdog = 0;
 	Time_ClearTimer(timer_watchdog);
-	const float watchdog_degree_rate = 0.06;
+	const float watchdog_degree_rate = 6000.0; //TODO: YES
 	const float watchdog_base = 750.0;
 	int time_limit = (int)round((float)abs(degrees)*watchdog_degree_rate+watchdog_base);
 	const float acceptable_error = 0.5;
