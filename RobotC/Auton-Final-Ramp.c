@@ -12,20 +12,20 @@
 #pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop, encoder)
 #pragma config(Motor,  mtr_S1_C4_1,     motor_pickup,  tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_2,     motor_lift_C,  tmotorTetrix, openLoop, reversed)
-#pragma config(Servo,  srvo_S2_C1_1,    servo_dump,           tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_2,    servo_turntable,      tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_3,    servo9,               tServoNone)
-#pragma config(Servo,  srvo_S2_C1_4,    servo10,              tServoNone)
-#pragma config(Servo,  srvo_S2_C1_5,    servo11,              tServoNone)
-#pragma config(Servo,  srvo_S2_C1_6,    servo12,              tServoNone)
-#pragma config(Servo,  srvo_S2_C2_1,    servo_hopper_A,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_2,    servo_hopper_B,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_3,    servo3,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_4,    servo4,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_5,    servo5,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_6,    servo6,               tServoNone)
-#pragma config(Servo,  srvo_S2_C3_1,    servo_pickup_L,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C3_2,    servo_pickup_R,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_1,    servo_hopper_A,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_2,    servo_hopper_B,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_3,    servo3,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_4,    servo4,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_5,    servo5,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_6,    servo6,               tServoNone)
+#pragma config(Servo,  srvo_S2_C2_1,    servo_dump,           tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_2,    servo_pickup_L,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_3,    servo_pickup_R,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_4,    servo10,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_5,    servo11,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_6,    servo12,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_1,    servo_turntable,      tServoStandard)
+#pragma config(Servo,  srvo_S2_C3_2,    servo14,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_3,    servo15,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_4,    servo16,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_5,    servo17,              tServoNone)
@@ -76,82 +76,82 @@ task main()
 	heading = 0;
 	Time_Wait(500);
 
-	//// Move down the ramp at full power (time-based dead reckoning).
-	//// NOTE: The commented out section would have broken the "move
-	//// down ramp" sequence into two parts: a fast part (to get over
-	//// the bump) and a slow part (to stay accurate). Currently the
-	//// times are NOT calibrated (i.e. a wild guess). Don't use the
-	//// commented out section unless our robot gets off by a lot.
-	//int ramp_power = -100;
-	//Motor_SetPower(ramp_power, motor_LT);
-	//Motor_SetPower(ramp_power, motor_LB);
-	//Motor_SetPower(ramp_power, motor_RT);
-	//Motor_SetPower(ramp_power, motor_RB);
-	//Time_Wait(1600);
-	//Motor_SetPower(0, motor_LT);
-	//Motor_SetPower(0, motor_LB);
-	//Motor_SetPower(0, motor_RT);
-	//Motor_SetPower(0, motor_RB);
-	//Time_Wait(delay_settle);
+	// Move down the ramp at full power (time-based dead reckoning).
+	// NOTE: The commented out section would have broken the "move
+	// down ramp" sequence into two parts: a fast part (to get over
+	// the bump) and a slow part (to stay accurate). Currently the
+	// times are NOT calibrated (i.e. a wild guess). Don't use the
+	// commented out section unless our robot gets off by a lot.
+	int ramp_power = -90;
+	Motor_SetPower(ramp_power, motor_LT);
+	Motor_SetPower(ramp_power, motor_LB);
+	Motor_SetPower(ramp_power, motor_RT);
+	Motor_SetPower(ramp_power, motor_RB);
+	Time_Wait(1700);
+	Motor_SetPower(0, motor_LT);
+	Motor_SetPower(0, motor_LB);
+	Motor_SetPower(0, motor_RT);
+	Motor_SetPower(0, motor_RB);
+	Time_Wait(delay_settle);
 
-	//// Minor correction turn. The turn is equal to our current heading
-	//// (in the opposite direction) to counteract any error we gained
-	//// while driving down the ramp.
-	//int correction_turn = heading;
-	//TurnLeft(correction_turn);
+	// Minor correction turn. The turn is equal to our current heading
+	// (in the opposite direction) to counteract any error we gained
+	// while driving down the ramp.
+	int correction_turn = heading;
+	TurnLeft(correction_turn);
 
-	//// Drive backward slowly. This power should be slow enough that the
-	//// robot will not drive up the ramp if it hits it, but not so slow
-	//// such that the robot won't even drive.
-	//// NOTE: You can increase the time if the robot doesn't back up far
-	//// enough. This is still time-based dead reckoning.
-	//Motor_SetPower(15, motor_LT);
-	//Motor_SetPower(15, motor_LB);
-	//Motor_SetPower(15, motor_RT);
-	//Motor_SetPower(15, motor_RB);
-	//Time_Wait(800);
-	//Motor_SetPower(0, motor_LT);
-	//Motor_SetPower(0, motor_LB);
-	//Motor_SetPower(0, motor_RT);
-	//Motor_SetPower(0, motor_RB);
+	// Drive backward slowly. This power should be slow enough that the
+	// robot will not drive up the ramp if it hits it, but not so slow
+	// such that the robot won't even drive.
+	// NOTE: You can increase the time if the robot doesn't back up far
+	// enough. This is still time-based dead reckoning.
+	Motor_SetPower(15, motor_LT);
+	Motor_SetPower(15, motor_LB);
+	Motor_SetPower(15, motor_RT);
+	Motor_SetPower(15, motor_RB);
+	Time_Wait(1200);
+	Motor_SetPower(0, motor_LT);
+	Motor_SetPower(0, motor_LB);
+	Motor_SetPower(0, motor_RT);
+	Motor_SetPower(0, motor_RB);
 
-	//// Start raising lift early.
-	//lift_target = pos_lift_high;
+	// Start raising lift early.
+	lift_target = pos_lift_high;
 
-	//DriveBackward(700);
-	//TurnLeft(30);
+	DriveBackward(900);
+	TurnLeft(30);
 
-	////Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
-	////Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
+	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+	Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
 
-	//DriveBackward(2450);
-	//TurnRight(105);
-	//DriveBackward(1450);
+	DriveBackward(2450);
+	TurnRight(75);
+	DriveBackward(1750);
 
+	for (int i=0; i<10; i++) {
+		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
+		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
+	}
 
-	//for (int i=0; i<10; i++) {
-	//	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
-	//	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
-	//}
+	Motor_SetPower(100, motor_clamp_L);
+	Motor_SetPower(100, motor_clamp_R);
+	DriveBackward(900);
+	Time_Wait(900); //wait for arm to stop shaking
 
-	//Motor_SetPower(100, motor_clamp_L);
-	//Motor_SetPower(100, motor_clamp_R);
-	//DriveBackward(900);
-	//Time_Wait(900); //wait for arm to stop shaking
+	Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
+	Time_Wait(600);
+	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
 
-	//Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
-	//Time_Wait(600);
-	//Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+	for (int i=0; i<10; i++) {
+		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+	}
 
-	//for (int i=0; i<10; i++) {
-	//	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
-	//	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-	//}
-	//Time_Wait(3000);
-
-	TurnRight(90);
-
+	TurnLeft(15);
+	DriveForward(4000);
 	lift_target = pos_lift_bottom;
+	DriveForward(5000);
+	TurnLeft(155);
 
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid
@@ -159,8 +159,6 @@ task main()
 	Motor_SetPower(0, motor_clamp_L);
 	Motor_SetPower(0, motor_clamp_R);
 	lift_target = pos_lift_bottom;
-
-
 
 	while (true) {
 		PlaySound(soundUpwardTones);
