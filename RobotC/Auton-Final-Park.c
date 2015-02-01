@@ -125,7 +125,7 @@ task main()
 				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
 			}
 			TurnLeft(45);
-			DriveForward(1600);
+			DriveForward(1700);
 			TurnRight(90);
 			DriveForward(900);
 			Time_Wait(delay_settle);
