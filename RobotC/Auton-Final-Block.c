@@ -84,96 +84,16 @@ task main()
 	heading = 0.0;
 	Time_Wait(delay_settle);
 
-	DriveForward(1950);
-	HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
+	Motor_SetPower(-100, motor_clamp_L);
+	Motor_SetPower(-100, motor_clamp_R);
 
-	if (IR_D > 50) {
-		goalPos = GOAL_CLOSE;
-	} else if (IR_C > 80) {
-		goalPos = GOAL_DIAG;
-	} else if (IR_C > 20) {
-		goalPos = GOAL_FAR;
-	}
+	DriveBackward(3320);
+	TurnLeft(360);
 
-	lift_target = pos_lift_center;
-	Time_Wait(1500);
-
-	switch (goalPos) {
-		case GOAL_CLOSE :
-			PlaySound(soundBeepBeep);
-			for (int i=0; i<10; i++) {
-				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
-				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
-			}
-			TurnRight(25);
-			DriveForward(1500);
-			Time_Wait(delay_settle);
-			Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
-			Time_Wait(200);
-			DriveBackward(2200);
-			Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-			for (int i=0; i<10; i++) {
-				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
-				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-			}
-
-			Time_Wait(delay_settle);
-			break;
-		case GOAL_DIAG :
-			PlaySound(soundDownwardTones);
-			for (int i=0; i<10; i++) {
-				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
-				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
-			}
-			TurnLeft(45);
-			DriveForward(1400);
-			TurnRight(90);
-			DriveForward(750);
-			Time_Wait(delay_settle);
-			Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
-			Time_Wait(200);
-			DriveBackward(2000);
-			Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-			for (int i=0; i<10; i++) {
-				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
-				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-			}
-			Time_Wait(delay_settle);
-			break;
-		case GOAL_FAR :
-			PlaySound(soundLowBuzz);
-			for (int i=0; i<10; i++) {
-				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
-				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
-			}
-			TurnLeft(30);
-			DriveForward(3300);
-			TurnRight(105);
-			DriveForward(650);
-			Time_Wait(delay_settle);
-			Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
-			Time_Wait(200);
-			DriveBackward(700);
-			TurnLeft(45);
-			Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-			for (int i=0; i<10; i++) {
-				Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
-				Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-			}
-			Time_Wait(delay_settle);
-			DriveBackward(3000);
-			break;
-		default :
-			PlaySound(soundShortBlip);
-			Time_Wait(500);
-			DriveBackward(1950);
-			break;
-	}
+	lift_target = pos_lift_bottom;
 
 	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
 	Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
-	Time_Wait(3000);
-	lift_target = pos_lift_bottom;
 
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid

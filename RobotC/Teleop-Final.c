@@ -140,7 +140,7 @@ task main()
 			pickup_direction = pickup_direction_prev;
 		}
 
-		if (Joystick_ButtonPressed(BUTTON_LB) || Joystick_ButtonPressed(BUTTON_RB)) {
+		if (Joystick_ButtonPressed(BUTTON_LB) && Joystick_ButtonPressed(BUTTON_RB)) {
 			switch (pickup_pos) {
 				case PICKUP_LARGE :
 					pickup_pos = PICKUP_RETRACT;
@@ -181,7 +181,7 @@ task main()
 			clamp_direction = DIRECTION_NONE;
 		}
 
-		if (Joystick_Button(BUTTON_RT) || Joystick_Button(BUTTON_LT)) {
+		if (Joystick_Button(BUTTON_RT) || Joystick_Button(BUTTON_LT) || Joystick_Button(BUTTON_RT, CONTROLLER_2) || Joystick_Button(BUTTON_LT, CONTROLLER_2)) {
 			if (lift_pos > pos_dump_safety) {
 				servo_dump_pos = pos_servo_dump_open_dump;
 			} else {
@@ -262,6 +262,10 @@ task main()
 		Motor_SetPower(power_pickup, motor_pickup);
 		Motor_SetPower(power_clamp, motor_clamp_L);
 		Motor_SetPower(power_clamp, motor_clamp_R);
+
+		if (Joystick_Button(BUTTON_BACK)) {
+			servo_dump_pos = pos_servo_dump_open_feed;
+		}
 
 		Servo_SetPosition(servo_dump, servo_dump_pos);
 		// NOTE: These should be set in the "Hopper" task.
