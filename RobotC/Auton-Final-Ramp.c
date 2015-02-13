@@ -125,7 +125,7 @@ task main()
 	Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
 
 	DriveBackward(2450);
-	TurnRight(75);
+	TurnRight(60);
 	DriveBackward(1750);
 
 	for (int i=0; i<10; i++) {
