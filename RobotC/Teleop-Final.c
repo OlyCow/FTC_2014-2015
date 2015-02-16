@@ -1,3 +1,4 @@
+
 #pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTMotor)
 #pragma config(Hubs,  S2, HTServo,  HTServo,  HTServo,  none)
 #pragma config(Sensor, S3,     sensor_gyro,    sensorAnalogInactive)
@@ -87,9 +88,7 @@ task main()
 	int servo_dump_pos = pos_servo_dump_closed;
 
 	float power_L		= 0.0;
-	float power_LT		= 0.0;
 	float power_R		= 0.0;
-	float power_RT		= 0.0;
 	float power_pickup	= 0.0;
 	float power_clamp	= 0.0;
 
@@ -118,19 +117,6 @@ task main()
 
 		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y);
 		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y);
-
-		// Begin Tobin's sketchy stuff. Ernest, I'm not sure if it's better to multiply by negative 1 here or reverse the config at the top. I didn't want to mess with the configuration too much in case reversing it there screws up the encoder.
-		if (Joystick_Direction(DIRECTION_B)) {
-			power_LT = power_L;
-			power_RT = power_R;
-
-		}
-		else{
-			power_LT = power_L * -1;
-			power_RT = power_R * -1;
-		}
-
-		// End the sketch!
 
 		if (Joystick_ButtonPressed(BUTTON_A)) {
 			switch (pickup_direction) {
@@ -270,10 +256,10 @@ task main()
 				break;
 		}
 
-		Motor_SetPower(power_LT, motor_LT);
+		Motor_SetPower(power_L, motor_LT);
 		Motor_SetPower(power_L, motor_LB);
 		Motor_SetPower(power_R, motor_RT);
-		Motor_SetPower(power_RT, motor_RB);
+		Motor_SetPower(power_R, motor_RB);
 		Motor_SetPower(power_pickup, motor_pickup);
 		Motor_SetPower(power_clamp, motor_clamp_L);
 		Motor_SetPower(power_clamp, motor_clamp_R);
@@ -309,21 +295,21 @@ task Hopper()
 {
 	Joystick_WaitForStart();
 	while (true) {
-		if (hopper_pos != hopper_target) {
-			int timer_hopper = 0;
-			int lift_target_prev = lift_target;
+		if (hopper_pos != hopper_target) { // if the hopper has to go somewhere
+			int timer_hopper = 0; // timer = 0; this is set here rather than inside the case
+			int lift_target_prev = lift_target; // prev target is where the lift was supposed to be going before the hopper thing was called
 			switch (hopper_target) {
 				case HOPPER_DOWN :
 					if (lift_target_prev < pos_hopper_safety_down) {
 						lift_target = pos_hopper_safety_above;
 						is_lift_manual = false;
 					}
-					for (int i=0; i<10; i++) {
+					for (int i=0; i<10; i++) { // set the servos to the down position ten times (it doesn't always work with fewer tries)
 						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
 						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 					}
 					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<2000) {
+					while (Time_GetTime(timer_hopper)<2000) { //stop lift moving for two seconds
 						if (lift_pos < pos_hopper_safety_down) {
 							isLiftFrozen = true;
 						} else {
@@ -332,36 +318,36 @@ task Hopper()
 						Time_Wait(10);
 					}
 					isLiftFrozen = false;
-					lift_target = lift_target_prev;
+					lift_target = lift_target_prev; // put the lift where it is supposed to be. this might actually be kinda screwy
 					is_lift_manual = false;
-					hopper_pos = HOPPER_DOWN;
+					hopper_pos = HOPPER_DOWN;  // ends the conditional above; the hopper as arrived
 					break;
 				case HOPPER_CENTER :
-					for (int i=0; i<10; i++) {
+					for (int i=0; i<10; i++) { // set servos to center position ten times
 						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
 						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
 					}
 					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<1500) {
+					while (Time_GetTime(timer_hopper)<1500) { // wait for 1.5 seconds
 						Time_Wait(10);
 					}
-					isLiftFrozen = false;
-					hopper_pos = HOPPER_CENTER;
+					isLiftFrozen = false; //unfreeze lift - were is it frozen?
+					hopper_pos = HOPPER_CENTER; // it got there
 					break;
 				case HOPPER_GOAL :
-					if (lift_target_prev < pos_hopper_safety_up) {
+					if (lift_target_prev < pos_hopper_safety_up) { // if the position the lift was supposed to be going to is below the safety position, set it to above the safety position. this shouldn't happen very often.
 						lift_target = pos_hopper_safety_above;
 						is_lift_manual = false;
 					}
-					while (lift_pos < pos_hopper_safety_up) {
+					while (lift_pos < pos_hopper_safety_up) { // wait for the lift to raise aboev the safety position before carrying on.
 						Time_Wait(10);
 					}
-					for (int i=0; i<10; i++) {
+					for (int i=0; i<10; i++) { // signal ten times
 						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
 						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
 					}
 					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<3000) {
+					while (Time_GetTime(timer_hopper)<3000) { //don't let the lift be lowered back below the safety position for 3 seconds.
 						if (lift_pos < pos_hopper_safety_up) {
 							isLiftFrozen = true;
 						} else {
@@ -372,7 +358,7 @@ task Hopper()
 					isLiftFrozen = false;
 					lift_target = lift_target_prev;
 					is_lift_manual = false;
-					hopper_pos = HOPPER_GOAL;
+					hopper_pos = HOPPER_GOAL; // we made it!
 					break;
 			}
 		}
