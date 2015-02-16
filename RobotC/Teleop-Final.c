@@ -264,7 +264,7 @@ task main()
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
 		Servo_SetPosition(servo_dump, servo_dump_pos);
-		// NOTE: These should be set in the "Hopper" task.
+		// NOTE: Hopper servos should be set in the "Hopper" task.
 		//Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_pos);
 		//Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_pos);
 		switch (pickup_pos) {
@@ -338,9 +338,9 @@ task Hopper()
 						lift_target = pos_hopper_safety_above;
 						is_lift_manual = false;
 					}
-					while (lift_pos < pos_hopper_safety_up) {
-						Time_Wait(10);
-					}
+					//while (lift_pos < pos_hopper_safety_up) {
+					//	Time_Wait(10);
+					//}
 					for (int i=0; i<10; i++) {
 						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
 						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
