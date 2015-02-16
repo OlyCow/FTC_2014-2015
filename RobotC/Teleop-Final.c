@@ -87,9 +87,7 @@ task main()
 	int servo_dump_pos = pos_servo_dump_closed;
 
 	float power_L		= 0.0;
-	float power_LT		= 0.0;
 	float power_R		= 0.0;
-	float power_RT		= 0.0;
 	float power_pickup	= 0.0;
 	float power_clamp	= 0.0;
 
@@ -118,19 +116,6 @@ task main()
 
 		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y);
 		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y);
-
-		// Begin Tobin's sketchy stuff. Ernest, I'm not sure if it's better to multiply by negative 1 here or reverse the config at the top. I didn't want to mess with the configuration too much in case reversing it there screws up the encoder.
-		if (Joystick_Direction(DIRECTION_B)) {
-			power_LT = power_L;
-			power_RT = power_R;
-
-		}
-		else{
-			power_LT = power_L * -1;
-			power_RT = power_R * -1;
-		}
-
-		// End the sketch!
 
 		if (Joystick_ButtonPressed(BUTTON_A)) {
 			switch (pickup_direction) {
@@ -270,10 +255,10 @@ task main()
 				break;
 		}
 
-		Motor_SetPower(power_LT, motor_LT);
+		Motor_SetPower(power_L, motor_LT);
 		Motor_SetPower(power_L, motor_LB);
 		Motor_SetPower(power_R, motor_RT);
-		Motor_SetPower(power_RT, motor_RB);
+		Motor_SetPower(power_R, motor_RB);
 		Motor_SetPower(power_pickup, motor_pickup);
 		Motor_SetPower(power_clamp, motor_clamp_L);
 		Motor_SetPower(power_clamp, motor_clamp_R);
