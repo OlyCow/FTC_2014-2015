@@ -1,35 +1,37 @@
-#pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTMotor)
-#pragma config(Hubs,  S2, HTServo,  HTServo,  HTServo,  none)
+#pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  none)
+#pragma config(Hubs,  S2, HTMotor,  HTServo,  HTServo,  HTServo)
+#pragma config(Sensor, S1,     ,               sensorI2CMuxController)
+#pragma config(Sensor, S2,     ,               sensorI2CMuxController)
 #pragma config(Sensor, S3,     sensor_gyro,    sensorAnalogInactive)
 #pragma config(Sensor, S4,     sensor_IR,      sensorI2CCustom9V)
 #pragma config(Motor,  motorA,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
-#pragma config(Motor,  mtr_S1_C1_1,     motor_RB,      tmotorTetrix, openLoop, reversed, encoder)
-#pragma config(Motor,  mtr_S1_C1_2,     motor_RT,      tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C2_1,     motor_LT,      tmotorTetrix, openLoop, encoder)
-#pragma config(Motor,  mtr_S1_C2_2,     motor_LB,      tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C3_1,     motor_lift_A,  tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop, reversed, encoder)
-#pragma config(Motor,  mtr_S1_C4_1,     motor_pickup,  tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C4_2,     motor_lift_C,  tmotorTetrix, openLoop)
-#pragma config(Servo,  srvo_S2_C1_1,    servo_hopper_A,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_2,    servo_hopper_B,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_3,    servo3,               tServoNone)
-#pragma config(Servo,  srvo_S2_C1_4,    servo4,               tServoNone)
-#pragma config(Servo,  srvo_S2_C1_5,    servo5,               tServoNone)
-#pragma config(Servo,  srvo_S2_C1_6,    servo6,               tServoNone)
+#pragma config(Motor,  mtr_S1_C1_1,     motor_lift_A,  tmotorTetrix, openLoop, reversed, encoder)
+#pragma config(Motor,  mtr_S1_C1_2,     motor_lift_B,  tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C2_1,     motor_pickup_L, tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C2_2,     motor_pickup_R, tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C3_1,     motor_LT,      tmotorTetrix, openLoop, encoder)
+#pragma config(Motor,  mtr_S1_C3_2,     motor_LB,      tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S2_C1_1,     motor_RT,      tmotorTetrix, openLoop, reversed, encoder)
+#pragma config(Motor,  mtr_S2_C1_2,     motor_RB,      tmotorTetrix, openLoop)
 #pragma config(Servo,  srvo_S2_C2_1,    servo_dump,           tServoStandard)
 #pragma config(Servo,  srvo_S2_C2_2,    servo_pickup_L,       tServoStandard)
 #pragma config(Servo,  srvo_S2_C2_3,    servo_pickup_R,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_4,    servo10,              tServoNone)
-#pragma config(Servo,  srvo_S2_C2_5,    servo11,              tServoNone)
-#pragma config(Servo,  srvo_S2_C2_6,    servo12,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_4,    servo4,               tServoNone)
+#pragma config(Servo,  srvo_S2_C2_5,    servo5,               tServoNone)
+#pragma config(Servo,  srvo_S2_C2_6,    servo6,               tServoNone)
 #pragma config(Servo,  srvo_S2_C3_1,    servo_turntable,      tServoStandard)
-#pragma config(Servo,  srvo_S2_C3_2,    servo14,              tServoNone)
-#pragma config(Servo,  srvo_S2_C3_3,    servo15,              tServoNone)
-#pragma config(Servo,  srvo_S2_C3_4,    servo16,              tServoNone)
-#pragma config(Servo,  srvo_S2_C3_5,    servo17,              tServoNone)
-#pragma config(Servo,  srvo_S2_C3_6,    servo18,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_2,    servo8,               tServoNone)
+#pragma config(Servo,  srvo_S2_C3_3,    servo9,               tServoNone)
+#pragma config(Servo,  srvo_S2_C3_4,    servo10,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_5,    servo11,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_6,    servo12,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_1,    servo_hopper_A,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C4_2,    servo_hopper_B,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C4_3,    servo15,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_4,    servo16,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_5,    servo17,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_6,    servo18,              tServoNone)
 
 #include "includes.h"
 #include "final.h"
@@ -259,7 +261,8 @@ task main()
 		Motor_SetPower(power_L, motor_LB);
 		Motor_SetPower(power_R, motor_RT);
 		Motor_SetPower(power_R, motor_RB);
-		Motor_SetPower(power_pickup, motor_pickup);
+		Motor_SetPower(power_pickup, motor_pickup_L);
+		Motor_SetPower(power_pickup, motor_pickup_R);
 		Motor_SetPower(power_clamp, motor_clamp_L);
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
@@ -472,7 +475,6 @@ task PID()
 
 		Motor_SetPower(power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
-		Motor_SetPower(power_lift, motor_lift_C);
 
 		Time_Wait(2);
 	}

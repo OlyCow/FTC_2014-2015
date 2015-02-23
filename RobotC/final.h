@@ -3,14 +3,14 @@
 
 void initializeRobotVariables();
 
-const tMotor encoder_lift	= motor_LT;
-const tMotor encoder_L		= motor_lift_B;
-const tMotor encoder_R		= motor_RB;
+const tMotor encoder_lift	= motor_lift_A;
+const tMotor encoder_L		= motor_LT;
+const tMotor encoder_R		= motor_RT;
 
 const int pos_lift_bottom			= 0;
 const int pos_lift_low				= 933;
 const int pos_lift_medium			= 933;
-const int pos_lift_high				= 2139;
+const int pos_lift_high				= 1519;
 const int pos_lift_center			= 4356;
 const int pos_lift_top				= 4356;
 const int pos_hopper_safety_above	= 1089;
