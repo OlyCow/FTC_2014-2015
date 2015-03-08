@@ -22,9 +22,9 @@ const int pos_servo_dump_closed		= 202;
 const int pos_servo_dump_open_feed	= 171;
 const int pos_servo_dump_open_dump	= 158;
 const int pos_servo_dump_open_small	= 160;
-const int pos_servo_hopper_down		= 22;
+const int pos_servo_hopper_down		= 16;
 const int pos_servo_hopper_center	= 120;
-const int pos_servo_hopper_goal		= 237;
+const int pos_servo_hopper_goal		= 235;
 const int pos_servo_pickup_up		= 72;	//servo_pickup_L (129+); servo_pickup_R (127-)
 const int pos_servo_pickup_retract	= 52;
 const int pos_servo_pickup_large	= 29;
@@ -46,6 +46,7 @@ void initializeRobotVariables()
 	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_up);
 	Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_up);
+	Servo_SetPosition(servo_turntable, 128);
 
 	HTIRS2setDSPMode(sensor_IR, DSP_1200);
 
