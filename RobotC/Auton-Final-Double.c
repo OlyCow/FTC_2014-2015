@@ -1,30 +1,31 @@
 #pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTMotor)
 #pragma config(Hubs,  S2, HTServo,  HTServo,  HTServo,  none)
 #pragma config(Sensor, S3,     sensor_gyro,    sensorAnalogInactive)
+#pragma config(Sensor, S4,     sensor_IR,      sensorI2CCustom9V)
 #pragma config(Motor,  motorA,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
-#pragma config(Motor,  mtr_S1_C1_1,     motor_RB,      tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C1_1,     motor_RB,      tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Motor,  mtr_S1_C1_2,     motor_RT,      tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C2_1,     motor_LT,      tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Motor,  mtr_S1_C2_2,     motor_LB,      tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C3_1,     motor_lift_A,  tmotorTetrix, openLoop, reversed)
-#pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop, encoder)
 #pragma config(Motor,  mtr_S1_C4_1,     motor_pickup,  tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C4_2,     motor_lift_C,  tmotorTetrix, openLoop, reversed)
-#pragma config(Servo,  srvo_S2_C1_1,    servo_dump,           tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_2,    servo_turntable,      tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_3,    servo9,               tServoNone)
-#pragma config(Servo,  srvo_S2_C1_4,    servo10,              tServoNone)
-#pragma config(Servo,  srvo_S2_C1_5,    servo11,              tServoNone)
-#pragma config(Servo,  srvo_S2_C1_6,    servo12,              tServoNone)
-#pragma config(Servo,  srvo_S2_C2_1,    servo_hopper_T,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_2,    servo_hopper_B,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_3,    servo3,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_4,    servo4,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_5,    servo5,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_6,    servo6,               tServoNone)
-#pragma config(Servo,  srvo_S2_C3_1,    servo_pickup_L,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C3_2,    servo_pickup_R,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_1,    servo_hopper_A,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_2,    servo_hopper_B,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_3,    servo3,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_4,    servo4,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_5,    servo5,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_6,    servo6,               tServoNone)
+#pragma config(Servo,  srvo_S2_C2_1,    servo_dump,           tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_2,    servo_pickup_L,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_3,    servo_pickup_R,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_4,    servo10,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_5,    servo11,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_6,    servo12,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_1,    servo_turntable,      tServoStandard)
+#pragma config(Servo,  srvo_S2_C3_2,    servo14,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_3,    servo15,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_4,    servo16,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_5,    servo17,              tServoNone)
@@ -37,19 +38,13 @@ task Gyro();
 task PID();
 task Display();
 
-bool DriveForward(int encoder_count);
-bool DriveBackward(int encoder_count);
-bool TurnLeft(int degrees);
-bool TurnRight(int degrees);
-
-bool Drive(int encoder_count);
-bool Turn(int degrees);
-
 float heading = 0.0;
 int lift_pos = 0;
 int lift_target = 0;
 bool is_lift_manual = false;
 bool isDown = false;
+
+#include "final-auton.h"
 
 float term_P_lift = 0.0;
 float term_I_lift = 0.0;
@@ -57,28 +52,12 @@ float term_D_lift = 0.0;
 float power_lift = 0.0;
 float power_lift_temp = 0.0;
 
-int target_dist_disp = 0;
-int pos_dist_disp = 0;
-float error_dist_disp = 0.0;
-float error_sum_dist_disp = 0.0;
-float power_dist_disp = 0.0;
-float term_P_dist = 0.0;
-float term_I_dist = 0.0;
-
-int target_angle_disp = 0;
-int curr_angle_disp = 0;
-float error_angle_disp = 0.0;
-float error_sum_angle_disp = 0.0;
-float power_angle_disp = 0.0;
-float term_P_angle = 0.0;
-float term_I_angle = 0.0;
-
 task main()
 {
 	initializeGlobalVariables();
+	initializeRobotVariables();
 
-	Motor_ResetEncoder(encoder_dist);
-	Motor_ResetEncoder(encoder_lift);
+	const int delay_settle = 400; // msec
 
 	// All servos must be set to default position before "waitForStart"
 	// to alleviate servo twitching. This also counts as the initialization
@@ -89,15 +68,12 @@ task main()
 	// our commands (and that there's nothing we can do about it). You
 	// can also show them our code and prove that we only send one command
 	// to each servo before the matches start.
-	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-	Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
-	Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
-
 
 	Task_Spawn(Gyro);
 	Task_Spawn(PID);
 	Task_Spawn(Display);
 	Joystick_WaitForStart();
+	heading = 0;
 	Time_Wait(500);
 
 	// Move down the ramp at full power (time-based dead reckoning).
@@ -106,32 +82,23 @@ task main()
 	// the bump) and a slow part (to stay accurate). Currently the
 	// times are NOT calibrated (i.e. a wild guess). Don't use the
 	// commented out section unless our robot gets off by a lot.
-	int ramp_power = -100;
+	int ramp_power = -90;
 	Motor_SetPower(ramp_power, motor_LT);
 	Motor_SetPower(ramp_power, motor_LB);
 	Motor_SetPower(ramp_power, motor_RT);
 	Motor_SetPower(ramp_power, motor_RB);
-	Time_Wait(1600);
-	//ramp_power = -20;
-	//Motor_SetPower(ramp_power, motor_LT);
-	//Motor_SetPower(ramp_power, motor_LB);
-	//Motor_SetPower(ramp_power, motor_RT);
-	//Motor_SetPower(ramp_power, motor_RB);
-	//Time_Wait(800);
-	// TODO: If we were to detect color changes, we'd do it here.
-	// Unfortunately it seems like we're just going with dead reckoning.
+	Time_Wait(1800);
 	Motor_SetPower(0, motor_LT);
 	Motor_SetPower(0, motor_LB);
 	Motor_SetPower(0, motor_RT);
 	Motor_SetPower(0, motor_RB);
-	Time_Wait(500);
+	Time_Wait(delay_settle);
 
-	// Quick correction turn. The turn is set to our current heading
-	// and in the opposite direction to counteract any drift we gained
-	// from driving on the ramp.
-
-	//int correction_turn = heading;
-	//TurnLeft(correction_turn);
+	// Minor correction turn. The turn is equal to our current heading
+	// (in the opposite direction) to counteract any error we gained
+	// while driving down the ramp.
+	int correction_turn = heading;
+	TurnLeft(correction_turn);
 
 	// Drive backward slowly. This power should be slow enough that the
 	// robot will not drive up the ramp if it hits it, but not so slow
@@ -142,61 +109,74 @@ task main()
 	Motor_SetPower(15, motor_LB);
 	Motor_SetPower(15, motor_RT);
 	Motor_SetPower(15, motor_RB);
-	Time_Wait(700);
+	Time_Wait(800);
 	Motor_SetPower(0, motor_LT);
 	Motor_SetPower(0, motor_LB);
 	Motor_SetPower(0, motor_RT);
 	Motor_SetPower(0, motor_RB);
 
 	// Start raising lift early.
-	lift_target = pos_lift_high;
+	lift_target = pos_lift_medium;
+	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+	Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
 
-	DriveBackward(1500);
-	TurnLeft(45);
-
-
-	Servo_SetPosition(servo_pickup_L, 127 + pos_servo_pickup_large);
-	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_large);
-
-	DriveBackward(2000);
-	TurnRight(82);
-	DriveBackward(1500);
-
-
+	DriveBackward(1600);
 	for (int i=0; i<10; i++) {
-		Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_goal);
-		Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_goal);
+		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
+		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
 	}
 
 	Motor_SetPower(100, motor_clamp_L);
 	Motor_SetPower(100, motor_clamp_R);
-	DriveBackward(1300);
-	Time_Wait(900);					//wait for arm to stop shaking
+	DriveBackward(1200);
+	Time_Wait(900); //wait for arm to stop shaking
+
+	Servo_SetPosition(servo_dump, pos_servo_dump_open_small);
+	Time_Wait(600);
+	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+	lift_target = pos_lift_high;
+
+	Motor_SetPower(-100, motor_clamp_L);
+	Motor_SetPower(-100, motor_clamp_R);
+	DriveForward(800);
+	Time_Wait(delay_settle);
+	Motor_SetPower(0, motor_clamp_L);
+	Motor_SetPower(0, motor_clamp_R);
+
+	TurnLeft(30);
+	DriveBackward(2000);
+	TurnRight(75);
+	DriveBackward(1500);
+
+	Motor_SetPower(100, motor_clamp_L);
+	Motor_SetPower(100, motor_clamp_R);
+	DriveBackward(900);
+	Time_Wait(900); //wait for arm to stop shaking
 
 	Servo_SetPosition(servo_dump, pos_servo_dump_open_dump);
-	Time_Wait(1000);
+	Time_Wait(600);
 	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
 
-//DriveForward(3300);
-
-
-
 	for (int i=0; i<10; i++) {
-		Servo_SetPosition(servo_hopper_T, 128 + pos_servo_hopper_down);
-		Servo_SetPosition(servo_hopper_B, 128 - pos_servo_hopper_down);
+		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 	}
-	Time_Wait(3000);
+
+	TurnLeft(15);
+	DriveForward(2000);
 
 	lift_target = pos_lift_bottom;
 
-	/*
+	TurnLeft(15);
+	DriveForward(4000);
+	TurnLeft(105);
 
-	TurnLeft(45);
-	DriveForward(5000);
-	TurnLeft(120);
-	DriveForward(100);
+	for (int i=0; i<10; i++) {
+		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+	}
 
-	*/
+	lift_target = pos_lift_bottom;
 
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid
@@ -205,188 +185,12 @@ task main()
 	Motor_SetPower(0, motor_clamp_R);
 	lift_target = pos_lift_bottom;
 
-while (true) {
-PlaySound(soundUpwardTones);
-	Time_Wait(1000);	}
-}
 
-bool DriveForward(int encoder_count)
-{
-	int temp_count = encoder_count * -1;
-	return Drive(temp_count);
-}
-bool DriveBackward(int encoder_count)
-{
-	return Drive(encoder_count);
-}
-bool TurnLeft(int degrees)
-{
-	int temp_degrees = degrees * -1;
-	return Turn(temp_degrees);
-}
-bool TurnRight(int degrees)
-{
-	return Turn(degrees);
-}
-
-bool Drive(int encoder_count)
-{
-	target_dist_disp = encoder_count;
-
-	bool isSuccess = false;
-
-	int timer_watchdog = 0;
-	Time_ClearTimer(timer_watchdog);
-	const float watchdog_encoder_rate = 1.736;
-	const float watchdog_base = 2000.0;
-	int time_limit = (int)round((float)abs(encoder_count*watchdog_encoder_rate)+watchdog_base);
-	const int acceptable_error = 200;
-	const int finish_limit = 750; // msec
-	bool isFinishing = false;
-	int timer_finish = 0;
-	Time_ClearTimer(timer_finish);
-
-	const float kP = 0.0133;
-	const float kI = 0.0047;
-	const float I_term_decay_rate = 0.91;
-
-	int count_init = Motor_GetEncoder(encoder_dist);
-	int pos_dist = Motor_GetEncoder(encoder_dist) - count_init;
-	int error = 0;
-	float error_sum = 0.0;
-	float power = 0.0;
-	float power_prev = 0.0;
 
 	while (true) {
-		power_prev = power;
-		pos_dist = Motor_GetEncoder(encoder_dist) - count_init;
-		error = pos_dist - encoder_count;
-		error_sum *= I_term_decay_rate;
-		error_sum += error;
-		power = kP*error + kI*error_sum;
-		power = Math_Limit(power, 85);
-
-		pos_dist_disp = pos_dist;
-		error_dist_disp = (float)(error);
-		error_sum_dist_disp = error_sum;
-		power_dist_disp = (float)power;
-
-		Motor_SetPower(power, motor_LT);
-		Motor_SetPower(power, motor_LB);
-		Motor_SetPower(power, motor_RT);
-		Motor_SetPower(power, motor_RB);
-
-		if (abs(error) < acceptable_error) {
-			if (isFinishing == false) {
-				Time_ClearTimer(timer_finish);
-			}
-			isFinishing = true;
-		} else {
-			isFinishing = false;
-		}
-
-		if ((isFinishing == true)&&(Time_GetTime(timer_finish)>finish_limit)) {
-			isSuccess = true;
-			break;
-		}
-		if ((isFinishing == false)&&(Time_GetTime(timer_watchdog)>time_limit)) {
-			isSuccess = false;
-			break;
-		}
-
-		Time_Wait(2);
+		PlaySound(soundUpwardTones);
+		Time_Wait(1000);
 	}
-
-	Motor_SetPower(0, motor_LT);
-	Motor_SetPower(0, motor_LB);
-	Motor_SetPower(0, motor_RT);
-	Motor_SetPower(0, motor_RB);
-
-	return isSuccess;
-}
-
-bool Turn(int degrees)
-{
-	target_angle_disp = degrees;
-
-	bool isSuccess = false;
-
-	int timer_watchdog = 0;
-	Time_ClearTimer(timer_watchdog);
-	const float watchdog_degree_rate = 0.0279;
-	const float watchdog_base = 1800.0;
-	int time_limit = (int)round((float)abs(degrees)*watchdog_degree_rate+watchdog_base);
-	const float acceptable_error = 1.0;
-
-	const int finish_limit = 1250; // msec
-	bool isFinishing = false;
-	int timer_finish = 0;
-	Time_ClearTimer(timer_finish);
-
-	const float kP = 7.2;
-	const float kI = 0.14;
-	const float I_term_decay_rate = 0.94;
-
-	float heading_init = heading;
-	float heading_curr = heading;
-	float error = 0.0;
-	float error_sum = 0.0;
-	float power = 0.0;
-	float power_prev = 0.0;
-
-	while (true) {
-		power_prev = power;
-		heading_curr = heading - heading_init;
-		error = heading_curr - (float)degrees;
-		error_sum *= I_term_decay_rate;
-		error_sum += error;
-		float kP_var = kP;
-		float kI_var = kI;
-		power = kP_var*error + kI_var*error_sum;
-		power = Math_Limit(power, 80.0);
-
-		int power_L = (int)round(power);
-		power_L *= -1;
-		int power_R = (int)round(power);
-		power_R *= 1;
-
-		curr_angle_disp = heading_curr;
-		error_angle_disp = error;
-		error_sum_angle_disp = error_sum;
-		power_angle_disp = power;
-
-		Motor_SetPower(power_L, motor_LT);
-		Motor_SetPower(power_L, motor_LB);
-		Motor_SetPower(power_R, motor_RT);
-		Motor_SetPower(power_R, motor_RB);
-
-		if (abs(error)<acceptable_error) {
-			if (isFinishing == false) {
-				Time_ClearTimer(timer_finish);
-			}
-			isFinishing = true;
-		} else {
-			isFinishing = false;
-		}
-
-		if ((isFinishing == true)&&(Time_GetTime(timer_finish)>finish_limit)) {
-			isSuccess = true;
-			break;
-		}
-		if ((isFinishing == false)&&(Time_GetTime(timer_watchdog)>time_limit)) {
-			isSuccess = false;
-			break;
-		}
-
-		Time_Wait(2);
-	}
-
-	Motor_SetPower(0, motor_LT);
-	Motor_SetPower(0, motor_LB);
-	Motor_SetPower(0, motor_RT);
-	Motor_SetPower(0, motor_RB);
-
-	return isSuccess;
 }
 
 task Gyro()
@@ -520,7 +324,7 @@ task Display()
 				nxtDisplayTextLine(0, "Lift:  %+6i", Motor_GetEncoder(encoder_lift));
 				nxtDisplayTextLine(1, "  Tgt: %+6i", lift_target);
 				nxtDisplayTextLine(2, "  Pwr: %+6i", power_lift);
-				nxtDisplayTextLine(3, "Dist:  %+6i", Motor_GetEncoder(encoder_dist));
+				nxtDisplayTextLine(3, "Dist:  %+6i", Motor_GetEncoder(encoder_L));
 				break;
 			case DISP_SENSORS :
 				nxtDisplayTextLine(0, "Angle: %3d", heading);

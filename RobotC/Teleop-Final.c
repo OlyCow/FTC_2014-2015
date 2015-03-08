@@ -1,34 +1,41 @@
-#pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTMotor)
-#pragma config(Hubs,  S2, HTServo,  HTServo,  HTServo,  none)
+#pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTServo)
+#pragma config(Hubs,  S2, HTMotor,  HTServo,  HTServo,  HTServo)
 #pragma config(Sensor, S3,     sensor_gyro,    sensorAnalogInactive)
+#pragma config(Sensor, S4,     sensor_IR,      sensorI2CCustom9V)
 #pragma config(Motor,  motorA,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
-#pragma config(Motor,  mtr_S1_C1_1,     motor_RB,      tmotorTetrix, openLoop, reversed)
-#pragma config(Motor,  mtr_S1_C1_2,     motor_RT,      tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C2_1,     motor_LT,      tmotorTetrix, openLoop, reversed, encoder)
-#pragma config(Motor,  mtr_S1_C2_2,     motor_LB,      tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C3_1,     motor_lift_A,  tmotorTetrix, openLoop, reversed)
-#pragma config(Motor,  mtr_S1_C3_2,     motor_lift_B,  tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C4_1,     motor_pickup,  tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C4_2,     motor_lift_C,  tmotorTetrix, openLoop, reversed)
-#pragma config(Servo,  srvo_S2_C1_1,    servo_dump,           tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_2,    servo_turntable,      tServoStandard)
-#pragma config(Servo,  srvo_S2_C1_3,    servo9,               tServoNone)
-#pragma config(Servo,  srvo_S2_C1_4,    servo10,              tServoNone)
-#pragma config(Servo,  srvo_S2_C1_5,    servo11,              tServoNone)
-#pragma config(Servo,  srvo_S2_C1_6,    servo12,              tServoNone)
-#pragma config(Servo,  srvo_S2_C2_1,    servo_hopper_A,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_2,    servo_hopper_B,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C2_3,    servo3,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_4,    servo4,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_5,    servo5,               tServoNone)
-#pragma config(Servo,  srvo_S2_C2_6,    servo6,               tServoNone)
-#pragma config(Servo,  srvo_S2_C3_1,    servo_pickup_L,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C3_2,    servo_pickup_R,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C3_3,    servo15,              tServoNone)
-#pragma config(Servo,  srvo_S2_C3_4,    servo16,              tServoNone)
-#pragma config(Servo,  srvo_S2_C3_5,    servo17,              tServoNone)
-#pragma config(Servo,  srvo_S2_C3_6,    servo18,              tServoNone)
+#pragma config(Motor,  mtr_S1_C1_1,     motor_lift_A,  tmotorTetrix, openLoop, reversed, encoder)
+#pragma config(Motor,  mtr_S1_C1_2,     motor_lift_B,  tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C2_1,     motor_pickup_O, tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C2_2,     motor_pickup_I, tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C3_1,     motor_LT,      tmotorTetrix, openLoop, encoder)
+#pragma config(Motor,  mtr_S1_C3_2,     motor_LB,      tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S2_C1_1,     motor_RT,      tmotorTetrix, openLoop, reversed, encoder)
+#pragma config(Motor,  mtr_S2_C1_2,     motor_RB,      tmotorTetrix, openLoop)
+#pragma config(Servo,  srvo_S1_C4_1,    servo_pickup_L,       tServoStandard)
+#pragma config(Servo,  srvo_S1_C4_2,    servo_pickup_R,       tServoStandard)
+#pragma config(Servo,  srvo_S1_C4_3,    servo3,               tServoNone)
+#pragma config(Servo,  srvo_S1_C4_4,    servo4,               tServoNone)
+#pragma config(Servo,  srvo_S1_C4_5,    servo5,               tServoNone)
+#pragma config(Servo,  srvo_S1_C4_6,    servo6,               tServoNone)
+#pragma config(Servo,  srvo_S2_C2_1,    servo_dump,           tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_2,    servo_turntable,      tServoStandard)
+#pragma config(Servo,  srvo_S2_C2_3,    servo9,               tServoNone)
+#pragma config(Servo,  srvo_S2_C2_4,    servo10,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_5,    servo11,              tServoNone)
+#pragma config(Servo,  srvo_S2_C2_6,    servo12,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_1,    servo_hopper_A,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C3_2,    servo8,               tServoNone)
+#pragma config(Servo,  srvo_S2_C3_3,    servo9,               tServoNone)
+#pragma config(Servo,  srvo_S2_C3_4,    servo10,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_5,    servo11,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_6,    servo12,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_1,    servo_hopper_B,       tServoStandard)
+#pragma config(Servo,  srvo_S2_C4_2,    servo14,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_3,    servo15,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_4,    servo16,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_5,    servo17,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_6,    servo18,              tServoNone)
 
 #include "includes.h"
 #include "final.h"
@@ -47,19 +54,31 @@ typedef enum HopperPos {
 HopperPos hopper_pos = HOPPER_DOWN;
 HopperPos hopper_target = HOPPER_DOWN;
 
-float heading = 0.0;
-int lift_pos = 0;
-int lift_target = 0;
-bool is_lift_manual = true;
-bool isDown = false;
-bool isReset = false;
-bool isLiftFrozen = false;
+float heading		= 0.0;
 
-float term_P_lift = 0.0;
-float term_I_lift = 0.0;
-float term_D_lift = 0.0;
-float power_lift = 0.0;
+int lift_pos		= 0;
+int lift_target		= 0;
+bool is_lift_manual	= true;
+bool isDown			= false;
+bool isReset		= false;
+bool isLiftFrozen	= false;
+
+float term_P_lift	= 0.0;
+float term_I_lift	= 0.0;
+float term_D_lift	= 0.0;
+float power_lift	= 0.0;
 float power_lift_temp = 0.0;
+
+float hopper_x_pos	= 0.0;
+float hopper_y_pos	= 0.0;
+float hopper_z_pos	= 0.0;
+float hopper_x_target = 0.0;
+float hopper_y_target = 0.0;
+float hopper_z_target = 0.0;
+float hopper_r		= 0.0;
+float hopper_theta	= 0.0;
+float hopper_phi	= 0.0;
+float hopper_h		= 0.0;
 
 task main()
 {
@@ -76,6 +95,7 @@ task main()
 	};
 
 	initializeGlobalVariables();
+	initializeRobotVariables();
 
 	MotorDirection pickup_direction = DIRECTION_NONE;
 	MotorDirection pickup_direction_prev = DIRECTION_NONE;
@@ -89,14 +109,6 @@ task main()
 	float power_pickup	= 0.0;
 	float power_clamp	= 0.0;
 
-	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
-	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
-	Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
-
-	Motor_ResetEncoder(encoder_lift);
-
 	Task_Spawn(Gyro);
 	Task_Spawn(PID);
 	Task_Spawn(Display);
@@ -105,6 +117,9 @@ task main()
 
 	while (true) {
 		Joystick_UpdateData();
+
+		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y);
+		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y);
 
 		power_lift_temp = Joystick_GenericInput(JOYSTICK_L, AXIS_Y, CONTROLLER_2);
 		if (abs(power_lift_temp) > 5) {
@@ -118,8 +133,7 @@ task main()
 			isReset = false;
 		}
 
-		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y);
-		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y);
+		hopper_r = sqrt(hopper_x_target*hopper_x_target + hopper_y_target*hopper_y_target);
 
 		if (Joystick_ButtonPressed(BUTTON_A)) {
 			switch (pickup_direction) {
@@ -263,30 +277,31 @@ task main()
 		Motor_SetPower(power_L, motor_LB);
 		Motor_SetPower(power_R, motor_RT);
 		Motor_SetPower(power_R, motor_RB);
-		Motor_SetPower(power_pickup, motor_pickup);
+		Motor_SetPower(power_pickup, motor_pickup_I);
+		Motor_SetPower(power_pickup, motor_pickup_O);
 		Motor_SetPower(power_clamp, motor_clamp_L);
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
 		Servo_SetPosition(servo_dump, servo_dump_pos);
-		// NOTE: These should be set in the "Hopper" task.
+		// NOTE: Hopper servos should be set in the "Hopper" task.
 		//Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_pos);
 		//Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_pos);
 		switch (pickup_pos) {
 			case PICKUP_UP :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_up);
-				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_up);
+				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_up);
 				break;
 			case PICKUP_RETRACT :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_retract);
-				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_retract);
+				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_retract);
 				break;
 			case PICKUP_LARGE :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
-				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_large);
+				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
 				break;
 			case PICKUP_SMALL :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_small);
-				Servo_SetPosition(servo_pickup_R, 127 - pos_servo_pickup_small);
+				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_small);
 				break;
 		}
 
@@ -298,21 +313,21 @@ task Hopper()
 {
 	Joystick_WaitForStart();
 	while (true) {
-		if (hopper_pos != hopper_target) {
-			int timer_hopper = 0;
-			int lift_target_prev = lift_target;
+		if (hopper_pos != hopper_target) { // if the hopper has to go somewhere
+			int timer_hopper = 0; // timer = 0; this is set here rather than inside the case
+			int lift_target_prev = lift_target; // prev target is where the lift was supposed to be going before the hopper thing was called
 			switch (hopper_target) {
 				case HOPPER_DOWN :
 					if (lift_target_prev < pos_hopper_safety_down) {
 						lift_target = pos_hopper_safety_above;
 						is_lift_manual = false;
 					}
-					for (int i=0; i<10; i++) {
+					for (int i=0; i<10; i++) { // set the servos to the down position ten times (it doesn't always work with fewer tries)
 						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
 						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 					}
 					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<2000) {
+					while (Time_GetTime(timer_hopper)<2000) { //stop lift moving for two seconds
 						if (lift_pos < pos_hopper_safety_down) {
 							isLiftFrozen = true;
 						} else {
@@ -321,36 +336,36 @@ task Hopper()
 						Time_Wait(10);
 					}
 					isLiftFrozen = false;
-					lift_target = lift_target_prev;
+					lift_target = lift_target_prev; // put the lift where it is supposed to be. this might actually be kinda screwy
 					is_lift_manual = false;
-					hopper_pos = HOPPER_DOWN;
+					hopper_pos = HOPPER_DOWN;  // ends the conditional above; the hopper as arrived
 					break;
 				case HOPPER_CENTER :
-					for (int i=0; i<10; i++) {
+					for (int i=0; i<10; i++) { // set servos to center position ten times
 						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
 						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
 					}
 					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<1500) {
+					while (Time_GetTime(timer_hopper)<1500) { // wait for 1.5 seconds
 						Time_Wait(10);
 					}
-					isLiftFrozen = false;
-					hopper_pos = HOPPER_CENTER;
+					isLiftFrozen = false; //unfreeze lift - were is it frozen?
+					hopper_pos = HOPPER_CENTER; // it got there
 					break;
 				case HOPPER_GOAL :
-					if (lift_target_prev < pos_hopper_safety_up) {
+					if (lift_target_prev < pos_hopper_safety_up) { // if the position the lift was supposed to be going to is below the safety position, set it to above the safety position. this shouldn't happen very often.
 						lift_target = pos_hopper_safety_above;
 						is_lift_manual = false;
 					}
-					while (lift_pos < pos_hopper_safety_up) {
+					while (lift_pos < pos_hopper_safety_up) { // wait for the lift to raise aboev the safety position before carrying on.
 						Time_Wait(10);
 					}
-					for (int i=0; i<10; i++) {
+					for (int i=0; i<10; i++) { // signal ten times
 						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
 						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
 					}
 					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<3000) {
+					while (Time_GetTime(timer_hopper)<3000) { //don't let the lift be lowered back below the safety position for 3 seconds.
 						if (lift_pos < pos_hopper_safety_up) {
 							isLiftFrozen = true;
 						} else {
@@ -361,7 +376,7 @@ task Hopper()
 					isLiftFrozen = false;
 					lift_target = lift_target_prev;
 					is_lift_manual = false;
-					hopper_pos = HOPPER_GOAL;
+					hopper_pos = HOPPER_GOAL; // we made it!
 					break;
 			}
 		}
@@ -476,7 +491,6 @@ task PID()
 
 		Motor_SetPower(power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
-		Motor_SetPower(power_lift, motor_lift_C);
 
 		Time_Wait(2);
 	}
@@ -485,11 +499,12 @@ task PID()
 task Display()
 {
 	typedef enum DisplayMode {
-		DISP_FCS,				// Default FCS screen.
-		DISP_ENCODERS,			// Raw encoder values.
-		DISP_PID,
-		DISP_SENSORS,			// Might need to split this into two screens.
-		DISP_JOYSTICKS,			// For convenience. TODO: Add buttons, D-pad, etc.?
+		DISP_FCS,			// Default FCS screen.
+		DISP_ENCODERS,		// Raw encoder values.
+		DISP_LIFT,			// PID, status, mode
+		DISP_HOPPER,		// Maths variables.
+		DISP_SENSORS,		// Might need to split this into two screens.
+		DISP_JOYSTICKS,		// For convenience. TODO: Add buttons, D-pad, etc.?
 		DISP_NUM
 	};
 
@@ -506,39 +521,48 @@ task Display()
 				break;
 			case DISP_ENCODERS :
 				nxtDisplayTextLine(0, "Lift:  %+6i", lift_pos);
-				nxtDisplayTextLine(1, "Tgt:   %+6i", lift_target);
-				nxtDisplayTextLine(2, "Pwr:   %+6i", power_lift);
-				nxtDisplayTextLine(3, "Dist:  %+6i", Motor_GetEncoder(encoder_dist));
 				break;
 			case DISP_SENSORS :
-				nxtDisplayTextLine(0, "Angle: %3d", heading);
+				nxtDisplayTextLine(0, "Angle: %3i", heading);
 				break;
-			case DISP_PID :
-				nxtDisplayTextLine(0, "P: %+7d", term_P_lift);
-				nxtDisplayTextLine(1, "I: %+7d", term_I_lift);
-				nxtDisplayTextLine(2, "D: %+7d", term_D_lift);
+			case DISP_LIFT :
+				string lift_manual_str;
+				string lift_status_str;
 				if (is_lift_manual) {
-					nxtDisplayTextLine(3, "MANUAL");
+					lift_manual_str = "MANUAL";
 				} else {
-					nxtDisplayTextLine(3, "PID");
+					lift_manual_str = "PID";
 				}
 				if (isDown) {
-					nxtDisplayTextLine(4, "DOWN");
+					lift_status_str = "DOWN";
 				} else {
-					nxtDisplayTextLine(4, "UP");
+					lift_status_str = "UP";
 				}
+				nxtDisplayCenteredTextLine(0, "Lift-%s-%s", lift_manual_str, lift_status_str);
+				nxtDisplayTextLine(1, "Pos: %+6i", lift_pos);
+				nxtDisplayTextLine(2, "Tgt: %+6i", lift_target);
+				nxtDisplayTextLine(3, "Pwr: %+3.3f", power_lift);
+				nxtDisplayCenteredTextLine(4, "%+4i  %+4i  %+4i", term_P_lift, term_I_lift, term_D_lift);
+				break;
+			case DISP_HOPPER :
+				nxtDisplayTextLine(0, "XYZ %+2.1f %+2.1f %3i", hopper_x_pos, hopper_y_pos, hopper_z_pos);
+				nxtDisplayTextLine(1, "XYZ %+2.1f %+2.1f %3i", hopper_x_target, hopper_y_target, hopper_z_target);
+				nxtDisplayTextLine(2, "k,i %+4i %+4i", hopper_theta, hopper_phi);
+				nxtDisplayTextLine(3, "r,h %3.1f %3.1f", hopper_r, hopper_h);
 				break;
 			case DISP_JOYSTICKS :
 				nxtDisplayCenteredTextLine(0, "--Driver I:--");
-				nxtDisplayCenteredTextLine(1, "LX:%4d RX:%4d", joystick.joy1_x1, joystick.joy1_x2);
-				nxtDisplayCenteredTextLine(2, "LY:%4d RY:%4d", joystick.joy1_y1, joystick.joy1_y2);
+				nxtDisplayCenteredTextLine(1, "LX:%4i RX:%4i", joystick.joy1_x1, joystick.joy1_x2);
+				nxtDisplayCenteredTextLine(2, "LY:%4i RY:%4i", joystick.joy1_y1, joystick.joy1_y2);
 				nxtDisplayCenteredTextLine(4, "--Driver II:--");
-				nxtDisplayCenteredTextLine(5, "LX:%4d RX:%4d", joystick.joy2_x1, joystick.joy2_x2);
-				nxtDisplayCenteredTextLine(6, "LY:%4d RY:%4d", joystick.joy2_y1, joystick.joy2_y2);
+				nxtDisplayCenteredTextLine(5, "LX:%4i RX:%4i", joystick.joy2_x1, joystick.joy2_x2);
+				nxtDisplayCenteredTextLine(6, "LY:%4i RY:%4i", joystick.joy2_y1, joystick.joy2_y2);
 				break;
 			default :
-				nxtDisplayCenteredTextLine(3, "Doesn't work...");
-				nxtDisplayCenteredTextLine(4, "Yet. >:(");
+				nxtDisplayCenteredTextLine(2, "Debug info");
+				nxtDisplayCenteredTextLine(3, "for this screen");
+				nxtDisplayCenteredTextLine(4, "is not currently");
+				nxtDisplayCenteredTextLine(5, "available.");
 				break;
 		}
 

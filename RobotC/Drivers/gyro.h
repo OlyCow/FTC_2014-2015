@@ -37,7 +37,11 @@ float HTGYROreadRot(tSensors link) {
 		SetSensorType(link, sensorAnalogInactive);
 		wait1Msec(100);
 	}
-	return (SensorValue[link]-HTGYRO_offsets[link][0]);
+	float vel = SensorValue[link]-HTGYRO_offsets[link][0];
+	if (abs(vel-0.0)<1.0) {
+		vel = 0.0;
+	}
+	return vel;
 }
 
 // Calibrate gyro by calculating the average offset of 25
@@ -45,28 +49,34 @@ float HTGYROreadRot(tSensors link) {
 // Returns the new offset value for the gyro.
 // `link`:	Port number of gyro.
 float HTGYROstartCal(tSensors link) {
+	const int flush_count = 20;
+	const int avg_count = 40;
+
+	//hogCPU(); // TODO: doesn't actually work because `wait`s
+
 	// Make sure the sensor is configured as type sensorRawValue.
 	if (SensorType[link] != sensorAnalogInactive) {
 		SetSensorType(link, sensorAnalogInactive);
-		wait1Msec(100);
+		wait1Msec(200);
 	}
 
-	long _avgdata = 0;
-	//hogCPU(); // dangerous
+	float sum = 0.0;
 	wait1Msec(100); // Give the gyro time to initialize.
-	int temp_reading = SensorValue[link]; // Flush out bad readings.
-
-	// Take 20 readings and average them out.
-	// NOTE: When changing limits on `i`, make sure to change
-	// the number `_avgdata` is averaged by as well!
-	for (int i=0; i<20; i++) {
-		_avgdata += SensorValue[link];
+	for (int i=0; i<flush_count; i++) {
+		int temp_reading = SensorValue[link]; // Flush out bad readings.
 		wait1Msec(5);
 	}
-	//releaseCPU(); // dangerous
+
+	// Takes a few readings and averages them out.
+	for (int i=0; i<avg_count; i++) {
+		sum += SensorValue[link];
+		wait1Msec(5);
+	}
+
+	//releaseCPU(); // TODO: doesn't actually work because `wait`s
 
 	// Store & return new offset value.
-	HTGYRO_offsets[link][0] = (float)_avgdata/20.0;
+	HTGYRO_offsets[link][0] = sum/(float)avg_count;
 	return HTGYRO_offsets[link][0];
 }
 
