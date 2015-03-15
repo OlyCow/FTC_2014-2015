@@ -1,17 +1,17 @@
-#pragma config(Hubs,	S1, HTMotor, HTMotor, HTMotor, HTServo)
-#pragma config(Hubs,	S2, HTMotor, HTServo, HTServo, HTServo)
-#pragma config(Sensor,	S3, sensor_gyro,	sensorAnalogInactive)
-#pragma config(Sensor,	S4, sensor_IR,		sensorI2CCustom9V)
-#pragma config(Motor,  motorA,          motor_clamp_R,  tmotorNXT, PIDControl, encoder)
-#pragma config(Motor,  motorB,          motor_clamp_L,  tmotorNXT, PIDControl, encoder)
-#pragma config(Motor,  mtr_S1_C1_1,     motor_lift_A,   tmotorTetrix, openLoop, reversed, encoder)
-#pragma config(Motor,  mtr_S1_C1_2,     motor_lift_B,   tmotorTetrix, openLoop)
+#pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTServo)
+#pragma config(Hubs,  S2, HTMotor,  HTServo,  HTServo,  HTServo)
+#pragma config(Sensor, S3,     sensor_gyro,    sensorAnalogInactive)
+#pragma config(Sensor, S4,     sensor_IR,      sensorI2CCustom9V)
+#pragma config(Motor,  motorA,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
+#pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
+#pragma config(Motor,  mtr_S1_C1_1,     motor_lift_A,  tmotorTetrix, openLoop, reversed, encoder)
+#pragma config(Motor,  mtr_S1_C1_2,     motor_lift_B,  tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C2_1,     motor_pickup_O, tmotorTetrix, openLoop, reversed)
-#pragma config(Motor,  mtr_S1_C2_2,     motor_pickup_I, tmotorTetrix, openLoop, reversed)
-#pragma config(Motor,  mtr_S1_C3_1,     motor_LT,       tmotorTetrix, openLoop, encoder)
-#pragma config(Motor,  mtr_S1_C3_2,     motor_LB,       tmotorTetrix, openLoop, reversed)
-#pragma config(Motor,  mtr_S2_C1_1,     motor_RT,       tmotorTetrix, openLoop, reversed, encoder)
-#pragma config(Motor,  mtr_S2_C1_2,     motor_RB,       tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C2_2,     motor_pickup_I, tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C3_1,     motor_LT,      tmotorTetrix, openLoop, encoder)
+#pragma config(Motor,  mtr_S1_C3_2,     motor_LB,      tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S2_C1_1,     motor_RT,      tmotorTetrix, openLoop, reversed, encoder)
+#pragma config(Motor,  mtr_S2_C1_2,     motor_RB,      tmotorTetrix, openLoop)
 #pragma config(Servo,  srvo_S1_C4_1,    servo_pickup_L,       tServoStandard)
 #pragma config(Servo,  srvo_S1_C4_2,    servo_pickup_R,       tServoStandard)
 #pragma config(Servo,  srvo_S1_C4_3,    servo3,               tServoNone)
@@ -25,17 +25,17 @@
 #pragma config(Servo,  srvo_S2_C2_5,    servo11,              tServoNone)
 #pragma config(Servo,  srvo_S2_C2_6,    servo12,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_1,    servo13,              tServoNone)
-#pragma config(Servo,  srvo_S2_C3_2,    servo8,               tServoNone)
-#pragma config(Servo,  srvo_S2_C3_3,    servo9,               tServoNone)
-#pragma config(Servo,  srvo_S2_C3_4,    servo10,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_2,    servo14,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_3,    servo15,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_4,    servo16,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_5,    servo_dump,           tServoStandard)
 #pragma config(Servo,  srvo_S2_C3_6,    servo_turntable,      tServoStandard)
 #pragma config(Servo,  srvo_S2_C4_1,    servo_hopper_B,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C4_2,    servo14,              tServoNone)
-#pragma config(Servo,  srvo_S2_C4_3,    servo15,              tServoNone)
-#pragma config(Servo,  srvo_S2_C4_4,    servo16,              tServoNone)
-#pragma config(Servo,  srvo_S2_C4_5,    servo17,              tServoNone)
-#pragma config(Servo,  srvo_S2_C4_6,    servo18,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_2,    servo20,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_3,    servo21,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_4,    servo22,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_5,    servo23,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_6,    servo24,              tServoNone)
 
 #include "includes.h"
 #include "final.h"
@@ -97,6 +97,9 @@ task main()
 	initializeGlobalVariables();
 	initializeRobotVariables();
 
+	servoChangeRate[servo_hopper_A]=3;
+	servoChangeRate[servo_hopper_B]=3;
+
 	MotorDirection pickup_direction = DIRECTION_NONE;
 	MotorDirection pickup_direction_prev = DIRECTION_NONE;
 	MotorDirection clamp_direction = DIRECTION_NONE;
@@ -134,6 +137,7 @@ task main()
 		}
 
 		hopper_r = sqrt(hopper_x_target*hopper_x_target + hopper_y_target*hopper_y_target);
+		hopper_theta = atan2(hopper_y_target, hopper_x_target);
 
 		if (Joystick_ButtonPressed(BUTTON_A)) {
 			switch (pickup_direction) {
@@ -162,6 +166,9 @@ task main()
 			switch (pickup_pos) {
 				case PICKUP_LARGE :
 					pickup_pos = PICKUP_RETRACT;
+					break;
+				case PICKUP_RETRACT :
+					pickup_pos = PICKUP_SMALL;
 					break;
 				default :
 					pickup_pos = PICKUP_LARGE;
@@ -215,6 +222,14 @@ task main()
 					servo_dump_pos = pos_servo_dump_closed;
 				}
 			}
+		}
+
+		if (Joystick_Direction(DIRECTION_L, CONTROLLER_2)) {
+			Servo_SetPosition(servo_turntable, pos_servo_turntable_side);
+		} else if (Joystick_Direction(DIRECTION_R, CONTROLLER_2)) {
+			Servo_SetPosition(servo_turntable, pos_servo_turntable_side);
+		} else {
+			Servo_SetPosition(servo_turntable, pos_servo_turntable_front);
 		}
 
 		if (Joystick_ButtonPressed(BUTTON_X)) {
@@ -284,8 +299,6 @@ task main()
 
 		Servo_SetPosition(servo_dump, servo_dump_pos);
 		// NOTE: Hopper servos should be set in the "Hopper" task.
-		//Servo_SetPosition(servo_hopper_T, 128 + servo_hopper_pos);
-		//Servo_SetPosition(servo_hopper_B, 128 - servo_hopper_pos);
 		switch (pickup_pos) {
 			case PICKUP_UP :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_up);
@@ -342,6 +355,8 @@ task Hopper()
 					break;
 				case HOPPER_CENTER :
 					for (int i=0; i<10; i++) { // set servos to center position ten times
+						//Servo_SetPosition(servo_hopper_A, pos_servo_hopper_up);
+						//Servo_SetPosition(servo_hopper_B, pos_servo_hopper_up);
 						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
 						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
 					}

@@ -2,15 +2,16 @@
 #define FINAL_H
 
 void initializeRobotVariables();
+void freezeRobot();
 
 const tMotor encoder_lift	= motor_lift_A;
 const tMotor encoder_L		= motor_LT;
 const tMotor encoder_R		= motor_RT;
 
 const int pos_lift_bottom			= 0;
-const int pos_lift_low				= 933;
-const int pos_lift_medium			= 933;
-const int pos_lift_high				= 1519;
+const int pos_lift_low				= 288;
+const int pos_lift_medium			= 288;
+const int pos_lift_high				= 1755;
 const int pos_lift_center			= 4356;
 const int pos_lift_top				= 4356;
 const int pos_hopper_safety_above	= 1089;
@@ -24,11 +25,14 @@ const int pos_servo_dump_open_dump	= 158;
 const int pos_servo_dump_open_small	= 160;
 const int pos_servo_hopper_down		= 16;
 const int pos_servo_hopper_center	= 120;
-const int pos_servo_hopper_goal		= 235;
+const int pos_servo_hopper_up		= 190;
+const int pos_servo_hopper_goal		= 238;
 const int pos_servo_pickup_up		= 72;	//servo_pickup_L (129+); servo_pickup_R (127-)
 const int pos_servo_pickup_retract	= 52;
 const int pos_servo_pickup_large	= 29;
 const int pos_servo_pickup_small	= 10;
+const int pos_servo_turntable_front	= 128;
+const int pos_servo_turntable_side	= 65;	// TODO
 
 void initializeRobotVariables()
 {
@@ -46,7 +50,7 @@ void initializeRobotVariables()
 	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_up);
 	Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_up);
-	Servo_SetPosition(servo_turntable, 128);
+	Servo_SetPosition(servo_turntable, pos_servo_turntable_front);
 
 	HTIRS2setDSPMode(sensor_IR, DSP_1200);
 
