@@ -307,15 +307,22 @@ task PID()
 			power_lift = 0;
 		}
 
-		if (power_lift>0 && lift_pos>pos_lift_top) {
+		if (isLiftFrozen) {
 			power_lift = 0;
-		} else if (power_lift<0 && lift_pos<pos_lift_bottom) {
-			power_lift = 0;
+		}
+
+		if (isReset == false) {
+			if (power_lift>0 && lift_pos>pos_lift_top) {
+				power_lift = 0;
+			} else if (power_lift<0 && lift_pos<pos_lift_bottom) {
+				power_lift = 0;
+			}
+		} else {
+			Motor_ResetEncoder(encoder_lift);
 		}
 
 		Motor_SetPower(power_lift, motor_lift_A);
 		Motor_SetPower(power_lift, motor_lift_B);
-		Motor_SetPower(power_lift, motor_lift_C);
 
 		Time_Wait(2);
 	}
@@ -323,13 +330,13 @@ task PID()
 
 task Display()
 {
-	typedef enum DisplayMode {
-		DISP_FCS,				// Default FCS screen.
-		DISP_ENCODERS,			// Raw encoder values.
-		DISP_PID_LIFT,
-		DISP_PID_ENCODERS,
-		DISP_PID_ANGLE,
-		DISP_SENSORS,			// Might need to split this into two screens.
+typedef enum DisplayMode {
+		DISP_FCS,			// Default FCS screen.
+		DISP_ENCODERS,		// Raw encoder values.
+		DISP_LIFT,			// PID, status, mode
+		DISP_HOPPER,		// Maths variables.
+		DISP_SENSORS,		// Might need to split this into two screens.
+		DISP_JOYSTICKS,		// For convenience. TODO: Add buttons, D-pad, etc.?
 		DISP_NUM
 	};
 
@@ -345,56 +352,49 @@ task Display()
 			case DISP_FCS :
 				break;
 			case DISP_ENCODERS :
-				nxtDisplayTextLine(0, "Lift: %+6i", Motor_GetEncoder(encoder_lift));
-				nxtDisplayTextLine(1, " Tgt: %+6i", lift_target);
-				nxtDisplayTextLine(2, " Pwr: %+6i", power_lift);
-				nxtDisplayTextLine(3, "Dist: %+6i", Motor_GetEncoder(encoder_L));
+				nxtDisplayTextLine(0, "Lift:  %+6i", lift_pos);
 				break;
 			case DISP_SENSORS :
-				nxtDisplayTextLine(0, "Angle: %3d", heading);
-				nxtDisplayTextLine(1, "Raw  : %3d", HTGYROreadRot(sensor_gyro));
-				nxtDisplayTextLine(2, "IR-A : %3d", IR_A);
-				nxtDisplayTextLine(3, "IR-B : %3d", IR_B);
-				nxtDisplayTextLine(4, "IR-C : %3d", IR_C);
-				nxtDisplayTextLine(5, "IR-D : %3d", IR_D);
-				nxtDisplayTextLine(6, "IR-E : %3d", IR_E);
+				nxtDisplayTextLine(0, "Angle: %3i", heading);
 				break;
-			case DISP_PID_LIFT :
-				nxtDisplayTextLine(0, "P: %+7d", term_P_lift);
-				nxtDisplayTextLine(1, "I: %+7d", term_I_lift);
-				nxtDisplayTextLine(2, "D: %+7d", term_D_lift);
+			case DISP_LIFT :
+				string lift_manual_str;
+				string lift_status_str;
 				if (is_lift_manual) {
-					nxtDisplayTextLine(3, "MANUAL");
+					lift_manual_str = "MANUAL";
 				} else {
-					nxtDisplayTextLine(3, "PID");
+					lift_manual_str = "PID";
 				}
 				if (isDown) {
-					nxtDisplayTextLine(4, "DOWN");
+					lift_status_str = "DOWN";
 				} else {
-					nxtDisplayTextLine(4, "UP");
+					lift_status_str = "UP";
 				}
+				nxtDisplayCenteredTextLine(0, "Lift-%s-%s", lift_manual_str, lift_status_str);
+				nxtDisplayTextLine(1, "Pos: %+6i", lift_pos);
+				nxtDisplayTextLine(2, "Tgt: %+6i", lift_target);
+				nxtDisplayTextLine(3, "Pwr: %+3.3f", power_lift);
+				nxtDisplayCenteredTextLine(4, "%+4i  %+4i  %+4i", term_P_lift, term_I_lift, term_D_lift);
 				break;
-			case DISP_PID_ENCODERS :
-				nxtDisplayTextLine(0, "trgt : %+6i", target_dist_disp);
-				nxtDisplayTextLine(1, "pos L: %+6i", pos_dist_disp);
-				nxtDisplayTextLine(2, "error: %+6i", error_dist_disp);
-				nxtDisplayTextLine(3, "e_sum: %+6i", error_sum_dist_disp);
-				nxtDisplayTextLine(4, "power: %+6i", power_dist_disp);
-				nxtDisplayTextLine(6, "P    : %+6i", term_P_dist);
-				nxtDisplayTextLine(7, "I    : %+6i", term_I_dist);
+			case DISP_HOPPER :
+				nxtDisplayTextLine(0, "XYZ %+2.1f %+2.1f %3i", hopper_x_pos, hopper_y_pos, hopper_z_pos);
+				nxtDisplayTextLine(1, "XYZ %+2.1f %+2.1f %3i", hopper_x_target, hopper_y_target, hopper_z_target);
+				nxtDisplayTextLine(2, "k,i %+4i %+4i", hopper_theta, hopper_phi);
+				nxtDisplayTextLine(3, "r,h %3.1f %3.1f", hopper_r, hopper_h);
 				break;
-			case DISP_PID_ANGLE :
-				nxtDisplayTextLine(0, "trgt : %+6i", target_angle_disp);
-				nxtDisplayTextLine(1, "angle: %+6i", curr_angle_disp);
-				nxtDisplayTextLine(3, "error: %+6i", error_angle_disp);
-				nxtDisplayTextLine(4, "e_sum: %+6i", error_sum_angle_disp);
-				nxtDisplayTextLine(5, "power: %+6i", power_angle_disp);
-				nxtDisplayTextLine(6, "P    : %+6i", term_P_angle);
-				nxtDisplayTextLine(7, "I    : %+6i", term_I_angle);
+			case DISP_JOYSTICKS :
+				nxtDisplayCenteredTextLine(0, "--Driver I:--");
+				nxtDisplayCenteredTextLine(1, "LX:%4i RX:%4i", joystick.joy1_x1, joystick.joy1_x2);
+				nxtDisplayCenteredTextLine(2, "LY:%4i RY:%4i", joystick.joy1_y1, joystick.joy1_y2);
+				nxtDisplayCenteredTextLine(4, "--Driver II:--");
+				nxtDisplayCenteredTextLine(5, "LX:%4i RX:%4i", joystick.joy2_x1, joystick.joy2_x2);
+				nxtDisplayCenteredTextLine(6, "LY:%4i RY:%4i", joystick.joy2_y1, joystick.joy2_y2);
 				break;
 			default :
-				nxtDisplayCenteredTextLine(3, "Doesn't work...");
-				nxtDisplayCenteredTextLine(4, "Yet. >:(");
+				nxtDisplayCenteredTextLine(2, "Debug info");
+				nxtDisplayCenteredTextLine(3, "for this screen");
+				nxtDisplayCenteredTextLine(4, "is not currently");
+				nxtDisplayCenteredTextLine(5, "available.");
 				break;
 		}
 
@@ -417,5 +417,5 @@ task Display()
 			}
 		}
 		Time_Wait(50); // MAGIC_NUM: Prevents the LCD from updating itself to death.
-	}
+    }
 }
