@@ -12,8 +12,8 @@
 #pragma config(Motor,  mtr_S1_C3_2,     motor_LB,      tmotorTetrix, openLoop, reversed)
 #pragma config(Motor,  mtr_S2_C1_1,     motor_RT,      tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Motor,  mtr_S2_C1_2,     motor_RB,      tmotorTetrix, openLoop)
-#pragma config(Servo,  srvo_S1_C4_1,    servo_pickup_L,       tServoStandard)
-#pragma config(Servo,  srvo_S1_C4_2,    servo_pickup_R,       tServoStandard)
+#pragma config(Servo,  srvo_S1_C4_1,    servo1,       tServoNone)
+#pragma config(Servo,  srvo_S1_C4_2,    servo2,               tServoNone)
 #pragma config(Servo,  srvo_S1_C4_3,    servo3,               tServoNone)
 #pragma config(Servo,  srvo_S1_C4_4,    servo4,               tServoNone)
 #pragma config(Servo,  srvo_S1_C4_5,    servo5,               tServoNone)
@@ -24,14 +24,14 @@
 #pragma config(Servo,  srvo_S2_C2_4,    servo10,              tServoNone)
 #pragma config(Servo,  srvo_S2_C2_5,    servo11,              tServoNone)
 #pragma config(Servo,  srvo_S2_C2_6,    servo12,              tServoNone)
-#pragma config(Servo,  srvo_S2_C3_1,    servo13,              tServoNone)
+#pragma config(Servo,  srvo_S2_C3_1,    servo_pickup_L,       tServoStandard)
 #pragma config(Servo,  srvo_S2_C3_2,    servo14,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_3,    servo15,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_4,    servo16,              tServoNone)
 #pragma config(Servo,  srvo_S2_C3_5,    servo_dump,           tServoStandard)
 #pragma config(Servo,  srvo_S2_C3_6,    servo_turntable,      tServoStandard)
 #pragma config(Servo,  srvo_S2_C4_1,    servo_hopper_B,       tServoStandard)
-#pragma config(Servo,  srvo_S2_C4_2,    servo20,              tServoNone)
+#pragma config(Servo,  srvo_S2_C4_2,    servo_pickup_R,       tServoStandard)
 #pragma config(Servo,  srvo_S2_C4_3,    servo21,              tServoNone)
 #pragma config(Servo,  srvo_S2_C4_4,    servo22,              tServoNone)
 #pragma config(Servo,  srvo_S2_C4_5,    servo23,              tServoNone)
@@ -97,8 +97,9 @@ task main()
 	initializeGlobalVariables();
 	initializeRobotVariables();
 
-	servoChangeRate[servo_hopper_A]=3;
-	servoChangeRate[servo_hopper_B]=3;
+	const short servo_updates_per_sec = 4;
+	servoChangeRate[servo_hopper_A] = servo_updates_per_sec;
+	servoChangeRate[servo_hopper_B] = servo_updates_per_sec;
 
 	MotorDirection pickup_direction = DIRECTION_NONE;
 	MotorDirection pickup_direction_prev = DIRECTION_NONE;

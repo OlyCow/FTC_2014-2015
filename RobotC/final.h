@@ -19,7 +19,7 @@ const int pos_hopper_safety_up		= 778;
 const int pos_hopper_safety_down	= 1167;
 const int pos_dump_safety			= 78;
 
-const int pos_servo_dump_closed		= 202;
+const int pos_servo_dump_closed		= 201;
 const int pos_servo_dump_open_feed	= 171;
 const int pos_servo_dump_open_dump	= 158;
 const int pos_servo_dump_open_small	= 160;
