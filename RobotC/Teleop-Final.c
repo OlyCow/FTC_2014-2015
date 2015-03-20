@@ -163,18 +163,30 @@ task main()
 			pickup_direction = pickup_direction_prev;
 		}
 
-		if (Joystick_ButtonPressed(BUTTON_LB) || Joystick_ButtonPressed(BUTTON_RB)) {
-			switch (pickup_pos) {
-				case PICKUP_LARGE :
-					pickup_pos = PICKUP_RETRACT;
-					break;
-				case PICKUP_RETRACT :
-					pickup_pos = PICKUP_SMALL;
-					break;
-				default :
-					pickup_pos = PICKUP_LARGE;
-					break;
-			}
+		if (Joystick_DirectionPressed(DIRECTION_F)) {
+			pickup_pos = PICKUP_RETRACT;
+		} else if (Joystick_DirectionPressed(DIRECTION_L)) {
+			pickup_pos = PICKUP_LARGE;
+		} else if (Joystick_DirectionPressed(DIRECTION_B)) {
+			pickup_pos = PICKUP_SMALL;
+		} else if (Joystick_DirectionPressed(DIRECTION_R)) {
+			//pickup_pos = PICKUP_KICK;
+		}
+
+		if (Joystick_Button(BUTTON_LB)) {
+			clamp_direction = DIRECTION_OUT;
+		} else if (Joystick_Button(BUTTON_LT)) {
+			clamp_direction = DIRECTION_IN;
+		} else {
+			clamp_direction = DIRECTION_NONE;
+		}
+
+		if (Joystick_Button(BUTTON_RB)) {
+			servo_dump_pos = pos_servo_dump_open_small;
+		} else if (Joystick_Button(BUTTON_RT)) {
+			servo_dump_pos = pos_servo_dump_open_dump;
+		} else {
+			servo_dump_pos = pos_servo_dump_closed;
 		}
 
 		if (Joystick_ButtonPressed(BUTTON_X, CONTROLLER_2)) {
@@ -197,32 +209,6 @@ task main()
 			is_lift_manual = false;
 			servo_hopper_pos = pos_servo_hopper_goal;
 			hopper_target = HOPPER_GOAL;
-		}
-
-		if (Joystick_Direction(DIRECTION_B, CONTROLLER_2)) {
-			clamp_direction = DIRECTION_IN;
-		} else if (Joystick_Direction(DIRECTION_F, CONTROLLER_2)) {
-			clamp_direction = DIRECTION_OUT;
-		} else {
-			clamp_direction = DIRECTION_NONE;
-		}
-
-		if (Joystick_Button(BUTTON_RT) || Joystick_Button(BUTTON_LT)) {
-			if (lift_pos > pos_dump_safety) {
-				servo_dump_pos = pos_servo_dump_open_dump;
-			} else {
-				servo_dump_pos = pos_servo_dump_closed;
-			}
-		} else {
-			if (lift_pos > pos_dump_safety) {
-				servo_dump_pos = pos_servo_dump_closed;
-			} else {
-				if (power_pickup > 50) {
-					servo_dump_pos = pos_servo_dump_open_feed;
-				} else {
-					servo_dump_pos = pos_servo_dump_closed;
-				}
-			}
 		}
 
 		if (Joystick_Direction(DIRECTION_L, CONTROLLER_2)) {
