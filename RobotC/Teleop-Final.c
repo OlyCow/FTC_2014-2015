@@ -91,8 +91,7 @@ task main()
 		DIRECTION_OUT
 	};
 	typedef enum PickupPos {
-		PICKUP_UP = 0,
-		PICKUP_RETRACT,
+		PICKUP_RETRACT = 0,
 		PICKUP_LARGE,
 		PICKUP_SMALL,
 		PICKUP_KICK
@@ -339,18 +338,8 @@ task main()
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
 		Servo_SetPosition(servo_dump, servo_dump_pos);
-		if (servo_turntable_pos<pos_servo_turntable_BL) {
-			servo_turntable_pos = pos_servo_turntable_BL;
-		} else if (servo_turntable_pos>pos_servo_turntable_BR) {
-			servo_turntable_pos = pos_servo_turntable_BR;
-		}
-		Servo_SetPosition(servo_turntable, (int)round(servo_turntable_pos));
-		// NOTE: Hopper servos should be set in the "Hopper" task.
+		// NOTE: Hopper and turntable servos should be set in the "Hopper" task.
 		switch (pickup_pos) {
-			case PICKUP_UP :
-				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_up);
-				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_up);
-				break;
 			case PICKUP_RETRACT :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_retract);
 				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_retract);
@@ -377,6 +366,13 @@ task Hopper()
 {
 	Joystick_WaitForStart();
 	while (true) {
+		if (servo_turntable_pos<pos_servo_turntable_BL) {
+			servo_turntable_pos = pos_servo_turntable_BL;
+		} else if (servo_turntable_pos>pos_servo_turntable_BR) {
+			servo_turntable_pos = pos_servo_turntable_BR;
+		}
+		Servo_SetPosition(servo_turntable, (int)round(servo_turntable_pos));
+
 		if (hopper_pos != hopper_target) { // if the hopper has to go somewhere
 			int timer_hopper = 0; // timer = 0; this is set here rather than inside the case
 			int lift_target_prev = lift_target; // prev target is where the lift was supposed to be going before the hopper thing was called
