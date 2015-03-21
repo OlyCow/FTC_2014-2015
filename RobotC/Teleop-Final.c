@@ -91,7 +91,8 @@ task main()
 		PICKUP_UP = 0,
 		PICKUP_RETRACT,
 		PICKUP_LARGE,
-		PICKUP_SMALL
+		PICKUP_SMALL,
+		PICKUP_KICK
 	};
 
 	initializeGlobalVariables();
@@ -101,8 +102,10 @@ task main()
 	servoChangeRate[servo_hopper_A] = servo_updates_per_sec;
 	servoChangeRate[servo_hopper_B] = servo_updates_per_sec;
 
-	MotorDirection pickup_direction = DIRECTION_NONE;
-	MotorDirection pickup_direction_prev = DIRECTION_NONE;
+	MotorDirection pickup_I_direction = DIRECTION_NONE;
+	MotorDirection pickup_I_direction_prev = DIRECTION_NONE;
+	MotorDirection pickup_O_direction = DIRECTION_NONE;
+	MotorDirection pickup_O_direction_prev = DIRECTION_NONE;
 	MotorDirection clamp_direction = DIRECTION_NONE;
 	PickupPos pickup_pos = PICKUP_LARGE;
 	int servo_hopper_pos = pos_servo_hopper_down;
@@ -140,27 +143,34 @@ task main()
 		hopper_r = sqrt(hopper_x_target*hopper_x_target + hopper_y_target*hopper_y_target);
 		hopper_theta = atan2(hopper_y_target, hopper_x_target);
 
+		if (Joystick_Button(BUTTON_B)) {
+			pickup_I_direction = DIRECTION_OUT;
+		} else if (Joystick_Button(BUTTON_X)) {
+			pickup_I_direction = DIRECTION_IN;
+		} else {
+			pickup_I_direction = DIRECTION_NONE;	// can be overridden later
+		}
+
 		if (Joystick_ButtonPressed(BUTTON_A)) {
-			switch (pickup_direction) {
+			switch (pickup_O_direction) {
 				case DIRECTION_NONE :
 				case DIRECTION_OUT :
-					if (lift_pos > pos_hopper_safety_up) {
-						pickup_direction = DIRECTION_NONE;
-					} else {
-						pickup_direction = DIRECTION_IN;
-					}
+					pickup_O_direction = DIRECTION_IN;
 					break;
 				case DIRECTION_IN :
-					pickup_direction = DIRECTION_NONE;
+					pickup_O_direction = DIRECTION_NONE;
 					break;
 			}
 		}
 		if (Joystick_ButtonPressed(BUTTON_Y)) {
-			pickup_direction_prev = pickup_direction;
-			pickup_direction = DIRECTION_OUT;
+			pickup_O_direction_prev = pickup_O_direction;
+			pickup_I_direction_prev = pickup_I_direction;
+			pickup_O_direction = DIRECTION_OUT;
+			pickup_I_direction = DIRECTION_OUT;
 		}
 		if (Joystick_ButtonReleased(BUTTON_Y)) {
-			pickup_direction = pickup_direction_prev;
+			pickup_O_direction = pickup_O_direction_prev;
+			pickup_I_direction = pickup_I_direction_prev;
 		}
 
 		if (Joystick_DirectionPressed(DIRECTION_F)) {
@@ -170,7 +180,7 @@ task main()
 		} else if (Joystick_DirectionPressed(DIRECTION_B)) {
 			pickup_pos = PICKUP_SMALL;
 		} else if (Joystick_DirectionPressed(DIRECTION_R)) {
-			//pickup_pos = PICKUP_KICK;
+			pickup_pos = PICKUP_KICK;
 		}
 
 		if (Joystick_Button(BUTTON_LB)) {
@@ -184,7 +194,7 @@ task main()
 		if (Joystick_Button(BUTTON_RB)) {
 			servo_dump_pos = pos_servo_dump_open_small;
 		} else if (Joystick_Button(BUTTON_RT)) {
-			servo_dump_pos = pos_servo_dump_open_dump;
+			servo_dump_pos = pos_servo_dump_open_large;
 		} else {
 			servo_dump_pos = pos_servo_dump_closed;
 		}
@@ -246,13 +256,8 @@ task main()
 			}
 		}
 
-		if (lift_pos > pos_hopper_safety_up) {
-			if (pickup_direction==DIRECTION_IN) {
-				pickup_direction = DIRECTION_OUT;
-			}
-		}
-
-		switch (pickup_direction) {
+		// ------------------------------------NOT DONE
+		switch (pickup_O_direction) {
 			case DIRECTION_NONE :
 				power_pickup = 0;
 				break;
@@ -302,6 +307,10 @@ task main()
 			case PICKUP_SMALL :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_small);
 				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_small);
+				break;
+			case PICKUP_KICK :
+				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_kick);
+				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_kick);
 				break;
 		}
 

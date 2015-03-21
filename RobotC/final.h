@@ -4,9 +4,10 @@
 void initializeRobotVariables();
 void freezeRobot();
 
-const tMotor encoder_lift	= motor_lift_A;
 const tMotor encoder_L		= motor_LT;
 const tMotor encoder_R		= motor_RT;
+const tMotor encoder_lift	= motor_lift_A;
+//const tMotor encoder_hopper	= ;
 
 const int pos_lift_bottom			= 0;
 const int pos_lift_low				= 288;
@@ -19,19 +20,20 @@ const int pos_hopper_safety_up		= 778;
 const int pos_hopper_safety_down	= 1167;
 const int pos_dump_safety			= 78;
 
-const int pos_servo_dump_closed		= 201;
+const int pos_servo_dump_closed		= 201;	// TODO
 const int pos_servo_dump_open_feed	= 171;
-const int pos_servo_dump_open_dump	= 158;
-const int pos_servo_dump_open_small	= 160;
+const int pos_servo_dump_open_large	= 158;	// TODO
+const int pos_servo_dump_open_small	= 174;	// TODO
 const int pos_servo_hopper_down		= 16;
 const int pos_servo_hopper_center	= 120;
 const int pos_servo_hopper_up		= 190;
 const int pos_servo_hopper_goal		= 238;
-const int pos_servo_pickup_up		= 72;	//servo_pickup_L (129+); servo_pickup_R (127-)
-const int pos_servo_pickup_retract	= 52;
-const int pos_servo_pickup_large	= 29;
-const int pos_servo_pickup_small	= 10;
-const int pos_servo_turntable_front	= 128;
+const int pos_servo_pickup_up		= 78;	// TODO; servo_pickup_L (129+); servo_pickup_R (127-)
+const int pos_servo_pickup_retract	= 78;
+const int pos_servo_pickup_large	= 30;	// TODO
+const int pos_servo_pickup_small	= 21;
+const int pos_servo_pickup_kick		= 60;	// TODO
+const int pos_servo_turntable_front	= 128;	// TODO
 const int pos_servo_turntable_side	= 65;	// TODO
 
 void initializeRobotVariables()
@@ -57,6 +59,16 @@ void initializeRobotVariables()
 	Motor_ResetEncoder(encoder_L);
 	Motor_ResetEncoder(encoder_R);
 	Motor_ResetEncoder(encoder_lift);
+}
+
+void freezeRobot()
+{
+	Motor_SetPower(0, motor_LT);
+	Motor_SetPower(0, motor_LB);
+	Motor_SetPower(0, motor_RT);
+	Motor_SetPower(0, motor_RB);
+	Motor_SetPower(0, motor_lift_A);
+	Motor_SetPower(0, motor_lift_B);
 }
 
 #endif // FINAL_H
