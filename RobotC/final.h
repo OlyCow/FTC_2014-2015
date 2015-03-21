@@ -11,8 +11,8 @@ const tMotor encoder_lift	= motor_lift_A;
 
 const int pos_lift_bottom			= 0;
 const int pos_lift_low				= 288;
-const int pos_lift_medium			= 288;
-const int pos_lift_high				= 1755;
+const int pos_lift_medium			= 328;
+const int pos_lift_high				= 2355;
 const int pos_lift_center			= 4356;
 const int pos_lift_top				= 4356;
 const int pos_hopper_safety_above	= 1089;
@@ -20,24 +20,24 @@ const int pos_hopper_safety_up		= 778;
 const int pos_hopper_safety_down	= 1167;
 const int pos_dump_safety			= 78;
 
-const int pos_servo_dump_closed		= 201;	// TODO
-const int pos_servo_dump_open_feed	= 171;
-const int pos_servo_dump_open_large	= 158;	// TODO
-const int pos_servo_dump_open_small	= 174;	// TODO
+const int pos_servo_dump_closed		= 201;
+const int pos_servo_dump_open_feed	= 164;
+const int pos_servo_dump_open_large	= 158;
+const int pos_servo_dump_open_small	= 187;
 const int pos_servo_hopper_down		= 16;
 const int pos_servo_hopper_center	= 120;
 const int pos_servo_hopper_up		= 190;
 const int pos_servo_hopper_goal		= 238;
-const int pos_servo_pickup_up		= 78;	// TODO; servo_pickup_L (129+); servo_pickup_R (127-)
+const int pos_servo_pickup_up		= 78;	// servo_pickup_L (129+); servo_pickup_R (127-)
 const int pos_servo_pickup_retract	= 78;
-const int pos_servo_pickup_large	= 30;	// TODO
+const int pos_servo_pickup_large	= 30;
 const int pos_servo_pickup_small	= 21;
 const int pos_servo_pickup_kick		= 60;	// TODO
-const int pos_servo_turntable_front	= 128;	// TODO
+const int pos_servo_turntable_F		= 128;	// TODO
 const int pos_servo_turntable_L		= 65;	// TODO
 const int pos_servo_turntable_R		= 193;	// TODO
-const int pos_servo_turntable_back_L = 20;	// TODO
-const int pos_servo_turntable_back_R = 235;	// TODO
+const int pos_servo_turntable_BL	= 20;	// TODO
+const int pos_servo_turntable_BR	= 235;	// TODO
 
 void initializeRobotVariables()
 {
@@ -55,7 +55,7 @@ void initializeRobotVariables()
 	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_up);
 	Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_up);
-	Servo_SetPosition(servo_turntable, pos_servo_turntable_front);
+	Servo_SetPosition(servo_turntable, pos_servo_turntable_F);
 
 	HTIRS2setDSPMode(sensor_IR, DSP_1200);
 
