@@ -34,7 +34,10 @@ const int pos_servo_pickup_large	= 30;	// TODO
 const int pos_servo_pickup_small	= 21;
 const int pos_servo_pickup_kick		= 60;	// TODO
 const int pos_servo_turntable_front	= 128;	// TODO
-const int pos_servo_turntable_side	= 65;	// TODO
+const int pos_servo_turntable_L		= 65;	// TODO
+const int pos_servo_turntable_R		= 193;	// TODO
+const int pos_servo_turntable_back_L = 20;	// TODO
+const int pos_servo_turntable_back_R = 235;	// TODO
 
 void initializeRobotVariables()
 {

@@ -110,11 +110,13 @@ task main()
 	PickupPos pickup_pos = PICKUP_LARGE;
 	int servo_hopper_pos = pos_servo_hopper_down;
 	int servo_dump_pos = pos_servo_dump_closed;
+	float servo_turntable_pos = pos_servo_turntable_front;
 
-	float power_L		= 0.0;
-	float power_R		= 0.0;
-	float power_pickup	= 0.0;
-	float power_clamp	= 0.0;
+	float power_L			= 0.0;
+	float power_R			= 0.0;
+	float power_pickup_I	= 0.0;
+	float power_pickup_O	= 0.0;
+	float power_clamp		= 0.0;
 
 	Task_Spawn(Gyro);
 	Task_Spawn(PID);
@@ -139,6 +141,13 @@ task main()
 		} else {
 			isReset = false;
 		}
+
+		servo_turntable_pos += 0.01 * Joystick_GenericInput(JOYSTICK_R, AXIS_X, CONTROLLER_2);
+		if (Joystick_Button(BUTTON_JOYR, CONTROLLER_2) || Joystick_ButtonReleased(BUTTON_JOYR, CONTROLLER_2)) {
+			servo_turntable_pos = pos_servo_turntable_front;
+			servo_hopper_pos = pos_servo_hopper_up;
+		}
+		servo_hopper_pos += 0.01 * Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
 
 		hopper_r = sqrt(hopper_x_target*hopper_x_target + hopper_y_target*hopper_y_target);
 		hopper_theta = atan2(hopper_y_target, hopper_x_target);
@@ -173,14 +182,14 @@ task main()
 			pickup_I_direction = pickup_I_direction_prev;
 		}
 
-		if (Joystick_DirectionPressed(DIRECTION_F)) {
+		if (Joystick_DirectionPressed(DIRECTION_R)) {
 			pickup_pos = PICKUP_RETRACT;
+		} else if (Joystick_DirectionPressed(DIRECTION_F)) {
+			pickup_pos = PICKUP_KICK;
 		} else if (Joystick_DirectionPressed(DIRECTION_L)) {
 			pickup_pos = PICKUP_LARGE;
 		} else if (Joystick_DirectionPressed(DIRECTION_B)) {
 			pickup_pos = PICKUP_SMALL;
-		} else if (Joystick_DirectionPressed(DIRECTION_R)) {
-			pickup_pos = PICKUP_KICK;
 		}
 
 		if (Joystick_Button(BUTTON_LB)) {
@@ -191,12 +200,19 @@ task main()
 			clamp_direction = DIRECTION_NONE;
 		}
 
-		if (Joystick_Button(BUTTON_RB)) {
+		if (Joystick_Button(BUTTON_RB) || Joystick_Button(BUTTON_RB, CONTROLLER_2)) {
 			servo_dump_pos = pos_servo_dump_open_small;
-		} else if (Joystick_Button(BUTTON_RT)) {
+		} else if (Joystick_Button(BUTTON_RT) || Joystick_Button(BUTTON_RT, CONTROLLER_2)) {
 			servo_dump_pos = pos_servo_dump_open_large;
 		} else {
 			servo_dump_pos = pos_servo_dump_closed;
+		}
+
+		if (Joystick_ButtonPressed(BUTTON_LB, CONTROLLER_2) {
+			servo_hopper_pos = pos_servo_hopper_goal;
+		}
+		if (Joystick_ButtonPressed(BUTTON_LT, CONTROLLER_2) {
+			servo_hopper_pos = pos_servo_hopper_center;
 		}
 
 		if (Joystick_ButtonPressed(BUTTON_X, CONTROLLER_2)) {
@@ -221,14 +237,6 @@ task main()
 			hopper_target = HOPPER_GOAL;
 		}
 
-		if (Joystick_Direction(DIRECTION_L, CONTROLLER_2)) {
-			Servo_SetPosition(servo_turntable, pos_servo_turntable_side);
-		} else if (Joystick_Direction(DIRECTION_R, CONTROLLER_2)) {
-			Servo_SetPosition(servo_turntable, pos_servo_turntable_side);
-		} else {
-			Servo_SetPosition(servo_turntable, pos_servo_turntable_front);
-		}
-
 		if (Joystick_ButtonPressed(BUTTON_X)) {
 			switch (servo_hopper_pos) {
 				case pos_servo_hopper_down :
@@ -241,31 +249,27 @@ task main()
 					break;
 			}
 		}
-		if (Joystick_ButtonPressed(BUTTON_B)) {
-			switch (servo_hopper_pos) {
-				// Intentional fall-through:
-				case pos_servo_hopper_down :
-				case pos_servo_hopper_goal :
-					servo_hopper_pos = pos_servo_hopper_center;
-					hopper_target = HOPPER_CENTER;
-					break;
-				default :
-					servo_hopper_pos = pos_servo_hopper_down;
-					hopper_target = HOPPER_DOWN;
-					break;
-			}
-		}
 
-		// ------------------------------------NOT DONE
-		switch (pickup_O_direction) {
+		switch (pickup_I_direction) {
 			case DIRECTION_NONE :
-				power_pickup = 0;
+				power_pickup_I = 0;
 				break;
 			case DIRECTION_IN :
-				power_pickup = 100;
+				power_pickup_I = 100;
 				break;
 			case DIRECTION_OUT :
-				power_pickup = -100;
+				power_pickup_I = -100;
+				break;
+		}
+		switch (pickup_O_direction) {
+			case DIRECTION_NONE :
+				power_pickup_O = 0;
+				break;
+			case DIRECTION_IN :
+				power_pickup_O = 100;
+				break;
+			case DIRECTION_OUT :
+				power_pickup_O = -100;
 				break;
 		}
 		switch (clamp_direction) {
@@ -284,12 +288,14 @@ task main()
 		Motor_SetPower(power_L, motor_LB);
 		Motor_SetPower(power_R, motor_RT);
 		Motor_SetPower(power_R, motor_RB);
-		Motor_SetPower(power_pickup, motor_pickup_I);
-		Motor_SetPower(power_pickup, motor_pickup_O);
+		Motor_SetPower(power_pickup_I, motor_pickup_I);
+		Motor_SetPower(power_pickup_O, motor_pickup_O);
 		Motor_SetPower(power_clamp, motor_clamp_L);
 		Motor_SetPower(power_clamp, motor_clamp_R);
 
 		Servo_SetPosition(servo_dump, servo_dump_pos);
+		servo_turntable_pos = Math_Limit(servo_turntable_pos, pos_servo_turntable_back);
+		Servo_SetPosition(servo_turntable, (int)round(servo_turntable_pos));
 		// NOTE: Hopper servos should be set in the "Hopper" task.
 		switch (pickup_pos) {
 			case PICKUP_UP :
