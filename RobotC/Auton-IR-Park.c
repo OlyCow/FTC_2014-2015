@@ -100,7 +100,7 @@ task main()
 	Time_Wait(500);
 
 	HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
-	//if (IR_E < 15) { // pos 3
+	if (IR_E < 15) { // pos 3
 		DriveBackward(1800);
 		for (int i=0; i<10; i++) {
 			Servo_SetPosition(servo_hopper_A, pos_servo_hopper_up);
@@ -110,32 +110,96 @@ task main()
 		DriveBackward(1400);
 		Servo_SetPosition(servo_turntable, pos_servo_turntable_L);
 		TurnRight(45);
-	//} else if (IR_E < 72) { // pos 1
-	//	TurnRight(90);
-	//	DriveBackward(1000);
-	//	while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_goal)<4) {
-	//		Time_Wait(2);
-	//	}
-	//	for (int i=0; i<10; i++) {
-	//		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
-	//		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
-	//	}
-	//	TurnRight(90);
-	//	DriveForward(1200);
-	//	Servo_SetPosition(servo_dump, pos_servo_dump_open_large);
-	//	Time_Wait(600);
-	//	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-	//	DriveBackward(1000);
-	//	for (int i=0; i<10; i++) {
-	//		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
-	//		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-	//	}
-	//	while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_down)<4) {
-	//		Time_Wait(2);
-	//	}
-	//} else { // pos 2
-	//	;
-	//}
+		DriveBackward(1100);
+		for (int i=0; i<10; i++) {
+			Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
+			Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
+		}
+		while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_center)<4) {
+			Time_Wait(2);
+		}
+		Time_Wait(1000);
+		Servo_SetPosition(servo_dump, pos_servo_dump_open_large);
+		Time_Wait(600);
+		Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+		Servo_SetPosition(servo_turntable, pos_servo_turntable_F);
+		DriveForward(1900);
+		TurnLeft(90);
+		Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+		Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
+		for (int i=0; i<10; i++) {
+			Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+			Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+		}
+		while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_down)<4) {
+			Time_Wait(2);
+		}
+		lift_target = pos_lift_bottom;
+		DriveForward(1600);
+	} else if (IR_E < 72) { // pos 1
+		TurnRight(90);
+		DriveBackward(1000);
+		while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_goal)<4) {
+			Time_Wait(2);
+		}
+		for (int i=0; i<10; i++) {
+			Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
+			Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
+		}
+		TurnRight(90);
+		DriveForward(1200);
+		Servo_SetPosition(servo_dump, pos_servo_dump_open_large);
+		Time_Wait(600);
+		Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+		DriveBackward(1000);
+		for (int i=0; i<10; i++) {
+			Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+			Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+		}
+		while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_down)<4) {
+			Time_Wait(2);
+		}
+		TurnRight(90);
+		lift_target = pos_lift_bottom;
+		Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+		Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
+		DriveForward(1500);
+		TurnLeft(90);
+		DriveForward(2500);
+		Motor_SetPower(100, motor_pickup_O);
+		DriveForward(1800);
+		TurnRight(60);
+		DriveForward(1200);
+	} else { // pos 2
+		DriveBackward(1100);
+		TurnLeft(45);
+		DriveBackward(1000);
+		for (int i=0; i<10; i++) {
+			Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
+			Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
+		}
+		TurnLeft(90);
+		DriveForward(350);
+		Time_Wait(500);
+		Servo_SetPosition(servo_dump, pos_servo_dump_open_large);
+		Time_Wait(600);
+		Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+		DriveBackward(600);
+		TurnRight(90);
+		for (int i=0; i<10; i++) {
+			Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+			Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+		}
+		while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_down)<4) {
+			Time_Wait(2);
+		}
+		lift_target = pos_lift_bottom;
+		Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
+		Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
+		DriveForward(1300);
+		TurnLeft(90);
+		DriveForward(1900);
+	}
 
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid

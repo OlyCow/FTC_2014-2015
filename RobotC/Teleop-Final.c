@@ -99,10 +99,6 @@ task main()
 	initializeGlobalVariables();
 	initializeRobotVariables();
 
-	const short servo_updates_per_sec = 4;
-	servoChangeRate[servo_hopper_A] = servo_updates_per_sec;
-	servoChangeRate[servo_hopper_B] = servo_updates_per_sec;
-
 	MotorDirection pickup_I_direction		= DIRECTION_NONE;
 	MotorDirection pickup_I_direction_prev	= DIRECTION_NONE;
 	MotorDirection pickup_O_direction		= DIRECTION_NONE;
@@ -126,10 +122,6 @@ task main()
 
 	while (true) {
 		Joystick_UpdateData();
-
-		if (pickup_I_direction==DIRECTION_IN && lift_pos<pos_dump_safety) {
-			servo_dump_pos = pos_servo_dump_open_feed;
-		}
 
 		HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
 
@@ -157,7 +149,7 @@ task main()
 		}
 		if (abs(Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2))>0) {
 			hopper_target = hopper_pos;
-			hopper_target += 0.3 * Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
+			hopper_target += 0.6 * Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
 		}
 
 		hopper_r = sqrt(hopper_x_target*hopper_x_target + hopper_y_target*hopper_y_target);
@@ -242,39 +234,15 @@ task main()
 		} else {
 			servo_dump_pos = pos_servo_dump_closed;
 		}
+		if (pickup_I_direction==DIRECTION_IN && lift_pos<pos_dump_safety) {
+			servo_dump_pos = pos_servo_dump_open_feed;
+		}
 
 		if (Joystick_Button(BUTTON_LB, CONTROLLER_2)) {
 			clamp_direction = DIRECTION_IN;
 		}
 		if (Joystick_Button(BUTTON_LT, CONTROLLER_2)) {
 			clamp_direction = DIRECTION_OUT;
-		}
-		//if (Joystick_Button(BUTTON_LB, CONTROLLER_2)) { {
-		//	servo_hopper_pos = pos_servo_hopper_goal;
-		//}
-		//if (Joystick_Button(BUTTON_LT, CONTROLLER_2)) {
-		//	servo_hopper_pos = pos_servo_hopper_center;
-		//}
-
-		if (isLiftFrozen) {
-			switch (lift_target) {
-				case pos_lift_bottom :
-					if (hopper_pos < pos_servo_hopper_up) {
-						isLiftFrozen = false;
-					}
-					break;
-				default :
-					isHopperFrozen = true;
-					isLiftFrozen = false;
-					break;
-			}
-		}
-		if (isHopperFrozen) {
-			hopper_target = pos_servo_hopper_up;
-			if (abs(lift_pos-lift_target)<300) {
-				hopper_target = pos_servo_hopper_goal;
-				isHopperFrozen = false;
-			}
 		}
 
 		if (Joystick_ButtonPressed(BUTTON_X, CONTROLLER_2)) {
@@ -289,21 +257,21 @@ task main()
 			is_lift_manual = false;
 			hopper_target = pos_servo_hopper_goal;
 			servo_turntable_pos = pos_servo_turntable_F;
-			isLiftFrozen = true;
+			isHopperFrozen = true;
 			servo_dump_pos = pos_servo_dump_closed;
 		} else if (Joystick_ButtonPressed(BUTTON_B, CONTROLLER_2)) {
 			lift_target = pos_lift_medium;
 			is_lift_manual = false;
 			hopper_target = pos_servo_hopper_goal;
 			servo_turntable_pos = pos_servo_turntable_F;
-			isLiftFrozen = true;
+			isHopperFrozen = true;
 			servo_dump_pos = pos_servo_dump_closed;
 		} else if (Joystick_ButtonPressed(BUTTON_Y, CONTROLLER_2)) {
 			lift_target = pos_lift_high;
 			is_lift_manual = false;
 			hopper_target = pos_servo_hopper_goal;
 			servo_turntable_pos = pos_servo_turntable_F;
-			isLiftFrozen = true;
+			isHopperFrozen = true;
 			servo_dump_pos = pos_servo_dump_closed;
 		}
 
@@ -323,6 +291,17 @@ task main()
 				hopper_target = pos_servo_hopper_down;
 			} else {
 				hopper_target = pos_servo_hopper_goal;
+			}
+		}
+
+		if (isLiftFrozen && hopper_pos < pos_servo_hopper_up) {
+			isLiftFrozen = false;
+		}
+		if (isHopperFrozen) {
+			hopper_target = pos_servo_hopper_up;
+			if (abs(lift_pos-lift_target)<300) {
+				hopper_target = pos_servo_hopper_goal;
+				isHopperFrozen = false;
 			}
 		}
 
