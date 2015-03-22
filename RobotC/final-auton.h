@@ -46,6 +46,8 @@ bool TurnRight(int degrees)
 
 bool Drive(int encoder_count)
 {
+	encoder_count *= -1;
+
 	target_dist_disp = encoder_count;
 
 	bool isSuccess = false;
@@ -90,6 +92,8 @@ bool Drive(int encoder_count)
 		error_dist_disp = (float)(error);
 		error_sum_dist_disp = error_sum;
 		power_dist_disp = (float)power;
+
+		power *= -1;
 
 		Motor_SetPower(power, motor_LT);
 		Motor_SetPower(power, motor_LB);

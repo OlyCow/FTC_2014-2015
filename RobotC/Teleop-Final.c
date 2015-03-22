@@ -539,7 +539,9 @@ task Display()
 			case DISP_FCS :
 				break;
 			case DISP_ENCODERS :
-				nxtDisplayTextLine(0, "Lift:  %+6i", lift_pos);
+				nxtDisplayTextLine(0, "Lift :  %+6i", lift_pos);
+				nxtDisplayTextLine(1, "Mtr L:  %+6i", Motor_GetEncoder(encoder_L));
+				nxtDisplayTextLine(2, "Mtr R:  %+6i", Motor_GetEncoder(encoder_R));
 				break;
 			case DISP_SENSORS :
 				nxtDisplayTextLine(0, "Angle: %3i", heading);

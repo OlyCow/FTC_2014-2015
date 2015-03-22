@@ -43,7 +43,6 @@
 task Gyro();
 task PID();
 task Display();
-task Hopper();
 
 int hopper_pos		= pos_servo_hopper_down;
 int hopper_target	= pos_servo_hopper_down;
@@ -53,7 +52,7 @@ float heading		= 0.0;
 
 int lift_pos		= 0;
 int lift_target		= 0;
-bool is_lift_manual	= true;
+bool is_lift_manual	= false;
 bool isDown			= false;
 bool isReset		= false;
 bool isLiftFrozen	= false;
@@ -90,23 +89,23 @@ task main()
 	heading = 0;
 	Time_Wait(500);
 
-	// Move down the ramp at full power (time-based dead reckoning).
-	// NOTE: The commented out section would have broken the "move
-	// down ramp" sequence into two parts: a fast part (to get over
-	// the bump) and a slow part (to stay accurate). Currently the
-	// times are NOT calibrated (i.e. a wild guess). Don't use the
-	// commented out section unless our robot gets off by a lot.
-	int ramp_power = -75;
-	Motor_SetPower(ramp_power, motor_LT);
-	Motor_SetPower(ramp_power, motor_LB);
-	Motor_SetPower(ramp_power, motor_RT);
-	Motor_SetPower(ramp_power, motor_RB);
-	Time_Wait(1700);
-	Motor_SetPower(0, motor_LT);
-	Motor_SetPower(0, motor_LB);
-	Motor_SetPower(0, motor_RT);
-	Motor_SetPower(0, motor_RB);
-	Time_Wait(delay_settle);
+	//// Move down the ramp at full power (time-based dead reckoning).
+	//// NOTE: The commented out section would have broken the "move
+	//// down ramp" sequence into two parts: a fast part (to get over
+	//// the bump) and a slow part (to stay accurate). Currently the
+	//// times are NOT calibrated (i.e. a wild guess). Don't use the
+	//// commented out section unless our robot gets off by a lot.
+	//int ramp_power = -75;
+	//Motor_SetPower(ramp_power, motor_LT);
+	//Motor_SetPower(ramp_power, motor_LB);
+	//Motor_SetPower(ramp_power, motor_RT);
+	//Motor_SetPower(ramp_power, motor_RB);
+	//Time_Wait(1700);
+	//Motor_SetPower(0, motor_LT);
+	//Motor_SetPower(0, motor_LB);
+	//Motor_SetPower(0, motor_RT);
+	//Motor_SetPower(0, motor_RB);
+	//Time_Wait(delay_settle);
 
 	// Minor correction turn. The turn is equal to our current heading
 	// (in the opposite direction) to counteract any error we gained
@@ -114,16 +113,16 @@ task main()
 	int correction_turn = heading;
 	TurnLeft(correction_turn);
 
-	// Drive backward slowly. This power should be slow enough that the
-	// robot will not drive up the ramp if it hits it, but not so slow
-	// such that the robot won't even drive.
-	// NOTE: You can increase the time if the robot doesn't back up far
-	// enough. This is still time-based dead reckoning.
-	Motor_SetPower(15, motor_LT);
-	Motor_SetPower(15, motor_LB);
-	Motor_SetPower(15, motor_RT);
-	Motor_SetPower(15, motor_RB);
-	Time_Wait(1200);
+	//// Drive backward slowly. This power should be slow enough that the
+	//// robot will not drive up the ramp if it hits it, but not so slow
+	//// such that the robot won't even drive.
+	//// NOTE: You can increase the time if the robot doesn't back up far
+	//// enough. This is still time-based dead reckoning.
+	//Motor_SetPower(15, motor_LT);
+	//Motor_SetPower(15, motor_LB);
+	//Motor_SetPower(15, motor_RT);
+	//Motor_SetPower(15, motor_RB);
+	//Time_Wait(800);
 	Motor_SetPower(0, motor_LT);
 	Motor_SetPower(0, motor_LB);
 	Motor_SetPower(0, motor_RT);
@@ -139,9 +138,12 @@ task main()
 	Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
 
 	DriveBackward(2450);
-	TurnRight(60);
+	TurnRight(75);
 	DriveBackward(1750);
 
+	while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_goal)<4) {
+		Time_Wait(2);
+	}
 	for (int i=0; i<10; i++) {
 		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
 		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
@@ -150,7 +152,6 @@ task main()
 	Motor_SetPower(100, motor_clamp_L);
 	Motor_SetPower(100, motor_clamp_R);
 	DriveBackward(900);
-	Time_Wait(900); //wait for arm to stop shaking
 
 	Servo_SetPosition(servo_dump, pos_servo_dump_open_large);
 	Time_Wait(600);
@@ -161,11 +162,11 @@ task main()
 		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 	}
 
-	TurnLeft(15);
-	DriveForward(4000);
-	lift_target = pos_lift_bottom;
-	DriveForward(5000);
-	TurnLeft(155);
+	//TurnLeft(15);
+	//DriveForward(4000);
+	//lift_target = pos_lift_bottom;
+	//DriveForward(5000);
+	//TurnLeft(155);
 
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid
@@ -317,7 +318,9 @@ task Display()
 			case DISP_FCS :
 				break;
 			case DISP_ENCODERS :
-				nxtDisplayTextLine(0, "Lift:  %+6i", lift_pos);
+				nxtDisplayTextLine(0, "Lift :  %+6i", lift_pos);
+				nxtDisplayTextLine(1, "Mtr L:  %+6i", Motor_GetEncoder(encoder_L));
+				nxtDisplayTextLine(2, "Mtr R:  %+6i", Motor_GetEncoder(encoder_R));
 				break;
 			case DISP_SENSORS :
 				nxtDisplayTextLine(0, "Angle: %3i", heading);
