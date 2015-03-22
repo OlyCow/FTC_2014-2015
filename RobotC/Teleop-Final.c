@@ -231,6 +231,9 @@ task main()
 			servo_dump_pos = pos_servo_dump_open_small;
 		} else if (Joystick_Button(BUTTON_RT, CONTROLLER_2)) {
 			servo_dump_pos = pos_servo_dump_open_large;
+			if (abs(lift_pos-pos_lift_high)<800) {
+				pos_lift_high = lift_pos;
+			}
 		} else {
 			servo_dump_pos = pos_servo_dump_closed;
 		}
