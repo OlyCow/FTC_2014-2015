@@ -99,10 +99,6 @@ task main()
 	initializeGlobalVariables();
 	initializeRobotVariables();
 
-	const short servo_updates_per_sec = 4;
-	servoChangeRate[servo_hopper_A] = servo_updates_per_sec;
-	servoChangeRate[servo_hopper_B] = servo_updates_per_sec;
-
 	MotorDirection pickup_I_direction		= DIRECTION_NONE;
 	MotorDirection pickup_I_direction_prev	= DIRECTION_NONE;
 	MotorDirection pickup_O_direction		= DIRECTION_NONE;
@@ -126,10 +122,6 @@ task main()
 
 	while (true) {
 		Joystick_UpdateData();
-
-		if (pickup_I_direction==DIRECTION_IN && lift_pos<pos_dump_safety) {
-			servo_dump_pos = pos_servo_dump_open_feed;
-		}
 
 		HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
 
@@ -157,7 +149,7 @@ task main()
 		}
 		if (abs(Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2))>0) {
 			hopper_target = hopper_pos;
-			hopper_target += 0.3 * Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
+			hopper_target += 0.6 * Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
 		}
 
 		hopper_r = sqrt(hopper_x_target*hopper_x_target + hopper_y_target*hopper_y_target);
@@ -241,6 +233,9 @@ task main()
 			servo_dump_pos = pos_servo_dump_open_large;
 		} else {
 			servo_dump_pos = pos_servo_dump_closed;
+		}
+		if (pickup_I_direction==DIRECTION_IN && lift_pos<pos_dump_safety) {
+			servo_dump_pos = pos_servo_dump_open_feed;
 		}
 
 		if (Joystick_Button(BUTTON_LB, CONTROLLER_2)) {
