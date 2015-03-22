@@ -3,36 +3,38 @@
 
 void initializeRobotVariables();
 void freezeRobot();
+int encoderToHopper(int encoder);
 
 const tMotor encoder_L		= motor_LT;
 const tMotor encoder_R		= motor_RT;
 const tMotor encoder_lift	= motor_lift_A;
-//const tMotor encoder_hopper	= ;
+const tMotor encoder_hopper	= motor_LB;
 
 const int pos_lift_bottom			= 0;
 const int pos_lift_low				= 288;
-const int pos_lift_medium			= 328;
-const int pos_lift_high				= 2355;
-const int pos_lift_center			= 4356;
-const int pos_lift_top				= 4356;
-const int pos_hopper_safety_above	= 1089;
-const int pos_hopper_safety_up		= 778;
-const int pos_hopper_safety_down	= 1167;
+const int pos_lift_medium			= 218;
+const int pos_lift_high				= 1950;
+const int pos_lift_center			= 4100;
+const int pos_lift_top				= 4150;
+const int pos_hopper_safety_above	= 700;
+const int pos_hopper_safety_up		= 500;
+const int pos_hopper_safety_down	= 800;
+const int pos_hopper_safety_side	= 50;	// TODO
 const int pos_dump_safety			= 78;
 
 const int pos_servo_dump_closed		= 201;
 const int pos_servo_dump_open_feed	= 164;
-const int pos_servo_dump_open_large	= 158;
+const int pos_servo_dump_open_large	= 159;
 const int pos_servo_dump_open_small	= 187;
 const int pos_servo_hopper_down		= 16;
-const int pos_servo_hopper_center	= 120;
-const int pos_servo_hopper_up		= 190;
+const int pos_servo_hopper_center	= 124;
+const int pos_servo_hopper_up		= 201;
 const int pos_servo_hopper_goal		= 238;
 const int pos_servo_pickup_retract	= 78;
 const int pos_servo_pickup_large	= 30;
 const int pos_servo_pickup_small	= 21;
-const int pos_servo_pickup_kick		= 60;	// TODO
-const int pos_servo_turntable_F		= 128;	// TODO
+const int pos_servo_pickup_kick		= 60;
+const int pos_servo_turntable_F		= 127;	// TODO
 const int pos_servo_turntable_L		= 65;	// TODO
 const int pos_servo_turntable_R		= 193;	// TODO
 const int pos_servo_turntable_BL	= 20;	// TODO
@@ -61,6 +63,7 @@ void initializeRobotVariables()
 	Motor_ResetEncoder(encoder_L);
 	Motor_ResetEncoder(encoder_R);
 	Motor_ResetEncoder(encoder_lift);
+	Motor_ResetEncoder(encoder_hopper);
 }
 
 void freezeRobot()
@@ -71,6 +74,12 @@ void freezeRobot()
 	Motor_SetPower(0, motor_RB);
 	Motor_SetPower(0, motor_lift_A);
 	Motor_SetPower(0, motor_lift_B);
+}
+
+int encoderToHopper(int encoder)
+{
+	float conv = encoder * ((pos_servo_hopper_goal-pos_servo_hopper_down) / 803.0) + pos_servo_hopper_down;
+	return (int)round(conv);
 }
 
 #endif // FINAL_H

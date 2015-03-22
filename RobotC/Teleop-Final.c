@@ -1,7 +1,7 @@
 #pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTServo)
 #pragma config(Hubs,  S2, HTMotor,  HTServo,  HTServo,  HTServo)
-#pragma config(Sensor, S3,     sensor_gyro,    sensorAnalogInactive)
-#pragma config(Sensor, S4,     sensor_IR,      sensorI2CCustom9V)
+#pragma config(Sensor, S3,     sensor_IR,      sensorI2CCustom9V)
+#pragma config(Sensor, S4,     sensor_gyro,    sensorAnalogInactive)
 #pragma config(Motor,  motorA,          motor_clamp_R, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorB,          motor_clamp_L, tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  mtr_S1_C1_1,     motor_lift_A,  tmotorTetrix, openLoop, reversed, encoder)
@@ -9,10 +9,10 @@
 #pragma config(Motor,  mtr_S1_C2_1,     motor_pickup_O, tmotorTetrix, openLoop, reversed)
 #pragma config(Motor,  mtr_S1_C2_2,     motor_pickup_I, tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C3_1,     motor_LT,      tmotorTetrix, openLoop, encoder)
-#pragma config(Motor,  mtr_S1_C3_2,     motor_LB,      tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C3_2,     motor_LB,      tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Motor,  mtr_S2_C1_1,     motor_RT,      tmotorTetrix, openLoop, reversed, encoder)
 #pragma config(Motor,  mtr_S2_C1_2,     motor_RB,      tmotorTetrix, openLoop)
-#pragma config(Servo,  srvo_S1_C4_1,    servo1,       tServoNone)
+#pragma config(Servo,  srvo_S1_C4_1,    servo1,               tServoNone)
 #pragma config(Servo,  srvo_S1_C4_2,    servo2,               tServoNone)
 #pragma config(Servo,  srvo_S1_C4_3,    servo3,               tServoNone)
 #pragma config(Servo,  srvo_S1_C4_4,    servo4,               tServoNone)
@@ -45,17 +45,9 @@ task PID();
 task Display();
 task Hopper();
 
-typedef enum HopperPos {
-	HOPPER_DOWN = 0,
-	HOPPER_CENTER,
-	HOPPER_GOAL
-};
-
-HopperPos hopper_pos		= HOPPER_DOWN;
-HopperPos hopper_target		= HOPPER_DOWN;
-
-int servo_hopper_pos		= pos_servo_hopper_down;
-float servo_turntable_pos	= pos_servo_turntable_F;
+int hopper_pos		= pos_servo_hopper_down;
+int hopper_target	= pos_servo_hopper_down;
+float servo_turntable_pos = pos_servo_turntable_F;
 
 float heading		= 0.0;
 
@@ -104,13 +96,14 @@ task main()
 	servoChangeRate[servo_hopper_A] = servo_updates_per_sec;
 	servoChangeRate[servo_hopper_B] = servo_updates_per_sec;
 
-	MotorDirection pickup_I_direction = DIRECTION_NONE;
-	MotorDirection pickup_I_direction_prev = DIRECTION_NONE;
-	MotorDirection pickup_O_direction = DIRECTION_NONE;
-	MotorDirection pickup_O_direction_prev = DIRECTION_NONE;
-	MotorDirection clamp_direction = DIRECTION_NONE;
-	PickupPos pickup_pos = PICKUP_LARGE;
-	int servo_dump_pos = pos_servo_dump_closed;
+	MotorDirection pickup_I_direction		= DIRECTION_NONE;
+	MotorDirection pickup_I_direction_prev	= DIRECTION_NONE;
+	MotorDirection pickup_O_direction		= DIRECTION_NONE;
+	MotorDirection pickup_O_direction_prev	= DIRECTION_NONE;
+
+	MotorDirection clamp_direction			= DIRECTION_NONE;
+	PickupPos pickup_pos	= PICKUP_LARGE;
+	int servo_dump_pos		= pos_servo_dump_closed;
 
 	float power_L			= 0.0;
 	float power_R			= 0.0;
@@ -127,6 +120,8 @@ task main()
 	while (true) {
 		Joystick_UpdateData();
 
+		hopper_pos = encoderToHopper(Motor_GetEncoder(encoder_hopper));
+
 		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y);
 		power_R = Joystick_GenericInput(JOYSTICK_R, AXIS_Y);
 
@@ -142,40 +137,47 @@ task main()
 			isReset = false;
 		}
 
-		servo_turntable_pos += 0.02 * Joystick_GenericInput(JOYSTICK_R, AXIS_X, CONTROLLER_2);
+		//servo_turntable_pos -= 0.004 * Joystick_GenericInput(JOYSTICK_R, AXIS_X, CONTROLLER_2);
 		if (Joystick_Button(BUTTON_JOYR, CONTROLLER_2) || Joystick_ButtonReleased(BUTTON_JOYR, CONTROLLER_2)) {
 			servo_turntable_pos = pos_servo_turntable_F;
-			servo_hopper_pos = pos_servo_hopper_up;
+			hopper_target = pos_servo_hopper_down;
 		}
-		servo_hopper_pos += 0.01 * Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
+		if (abs(Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2))>0) {
+			hopper_target = hopper_pos;
+			hopper_target += 0.2 * Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
+		}
 
 		hopper_r = sqrt(hopper_x_target*hopper_x_target + hopper_y_target*hopper_y_target);
 		hopper_theta = atan2(hopper_y_target, hopper_x_target);
 
 		if (Joystick_ButtonPressed(BUTTON_B)) {
+			pickup_I_direction_prev = pickup_I_direction;
 			pickup_I_direction = DIRECTION_OUT;
 		}
 		if (Joystick_ButtonPressed(BUTTON_A)) {
+			pickup_I_direction_prev = pickup_I_direction;
 			pickup_I_direction = DIRECTION_IN;
 		}
 		if (Joystick_ButtonReleased(BUTTON_B)) {
-			pickup_I_direction = DIRECTION_NONE;
+			pickup_I_direction = pickup_I_direction_prev;
 		}
 		if (Joystick_ButtonReleased(BUTTON_A)) {
-			pickup_I_direction = DIRECTION_NONE;
+			pickup_I_direction = pickup_I_direction_prev;
 		}
 
 		if (Joystick_ButtonPressed(BUTTON_Y)) {
+			pickup_O_direction_prev = pickup_O_direction;
 			pickup_O_direction = DIRECTION_OUT;
 		}
 		if (Joystick_ButtonPressed(BUTTON_X)) {
+			pickup_O_direction_prev = pickup_O_direction;
 			pickup_O_direction = DIRECTION_IN;
 		}
 		if (Joystick_ButtonReleased(BUTTON_Y)) {
-			pickup_O_direction = DIRECTION_NONE;
+			pickup_O_direction = pickup_O_direction_prev;
 		}
 		if (Joystick_ButtonReleased(BUTTON_X)) {
-			pickup_O_direction = DIRECTION_NONE;
+			pickup_O_direction = pickup_O_direction_prev;
 		}
 
 		if (Joystick_ButtonPressed(BUTTON_RB)) {
@@ -190,9 +192,6 @@ task main()
 					pickup_I_direction = DIRECTION_NONE;
 					break;
 			}
-		}
-		if (pickup_O_direction == DIRECTION_IN) {
-			pickup_I_direction = DIRECTION_IN;
 		}
 		if (Joystick_ButtonPressed(BUTTON_RT)) {
 			pickup_O_direction_prev = pickup_O_direction;
@@ -247,46 +246,41 @@ task main()
 		if (Joystick_ButtonPressed(BUTTON_X, CONTROLLER_2)) {
 			lift_target = pos_lift_bottom;
 			is_lift_manual = false;
-			servo_hopper_pos = pos_servo_hopper_down;
-			hopper_target = HOPPER_DOWN;
+			hopper_target = pos_servo_hopper_down;
 			servo_turntable_pos = pos_servo_turntable_F;
 		} else if (Joystick_ButtonPressed(BUTTON_A, CONTROLLER_2)) {
 			lift_target = pos_lift_low;
 			is_lift_manual = false;
-			servo_hopper_pos = pos_servo_hopper_goal;
-			hopper_target = HOPPER_GOAL;
+			hopper_target = pos_servo_hopper_goal;
+			servo_turntable_pos = pos_servo_turntable_F;
 		} else if (Joystick_ButtonPressed(BUTTON_B, CONTROLLER_2)) {
 			lift_target = pos_lift_medium;
 			is_lift_manual = false;
-			servo_hopper_pos = pos_servo_hopper_goal;
-			hopper_target = HOPPER_GOAL;
+			hopper_target = pos_servo_hopper_goal;
+			servo_turntable_pos = pos_servo_turntable_F;
 		} else if (Joystick_ButtonPressed(BUTTON_Y, CONTROLLER_2)) {
 			lift_target = pos_lift_high;
 			is_lift_manual = false;
-			servo_hopper_pos = pos_servo_hopper_goal;
-			hopper_target = HOPPER_GOAL;
+			hopper_target = pos_servo_hopper_goal;
+			servo_turntable_pos = pos_servo_turntable_F;
 		}
 
-		if (Joystick_Button(BUTTON_BACK)) {
-			switch (hopper_target) {
-				case HOPPER_DOWN :
-				case HOPPER_GOAL :
-					hopper_target = HOPPER_CENTER;
-					break;
-				case HOPPER_CENTER :
-					hopper_target = HOPPER_DOWN;
-					break;
+		if (Joystick_ButtonPressed(BUTTON_START)) {
+			Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
+			Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
+			if (abs(hopper_target-pos_servo_hopper_center)<3) {
+				hopper_target = pos_servo_hopper_down;
+			} else {
+				hopper_target = pos_servo_hopper_center;
 			}
 		}
-		if (Joystick_Button(BUTTON_START)) {
-			switch (hopper_target) {
-				case HOPPER_DOWN :
-				case HOPPER_CENTER :
-					hopper_target = HOPPER_GOAL;
-					break;
-				case HOPPER_GOAL :
-					hopper_target = HOPPER_DOWN;
-					break;
+		if (Joystick_ButtonPressed(BUTTON_BACK)) {
+			Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
+			Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
+			if (abs(hopper_target-pos_servo_hopper_goal)<3) {
+				hopper_target = pos_servo_hopper_down;
+			} else {
+				hopper_target = pos_servo_hopper_goal;
 			}
 		}
 
@@ -366,88 +360,42 @@ task Hopper()
 {
 	Joystick_WaitForStart();
 	while (true) {
-		if (servo_turntable_pos<pos_servo_turntable_BL) {
-			servo_turntable_pos = pos_servo_turntable_BL;
-		} else if (servo_turntable_pos>pos_servo_turntable_BR) {
-			servo_turntable_pos = pos_servo_turntable_BR;
+		//if (servo_turntable_pos<pos_servo_turntable_BL) {
+		//	servo_turntable_pos = pos_servo_turntable_BL;
+		//} else if (servo_turntable_pos>pos_servo_turntable_BR) {
+		//	servo_turntable_pos = pos_servo_turntable_BR;
+		//}
+		if (lift_pos<pos_hopper_safety_down) {
+			servo_turntable_pos = pos_servo_turntable_F;
 		}
+		if (hopper_pos<pos_hopper_safety_side) {
+			servo_turntable_pos = pos_servo_turntable_F;
+		}
+		servo_turntable_pos = pos_servo_turntable_F;
 		Servo_SetPosition(servo_turntable, (int)round(servo_turntable_pos));
 
-		if (hopper_pos != hopper_target) { // if the hopper has to go somewhere
-			int timer_hopper = 0; // timer = 0; this is set here rather than inside the case
-			int lift_target_prev = lift_target; // prev target is where the lift was supposed to be going before the hopper thing was called
-			switch (hopper_target) {
-				case HOPPER_DOWN :
-					if (lift_target_prev < pos_hopper_safety_down) {
-						lift_target = pos_hopper_safety_above;
-						is_lift_manual = false;
-					}
-					for (int i=0; i<10; i++) { // set the servos to the down position ten times (it doesn't always work with fewer tries)
-						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
-						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-					}
-					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<2000) { //stop lift moving for two seconds
-						if (lift_pos < pos_hopper_safety_down) {
-							isLiftFrozen = true;
-						} else {
-							isLiftFrozen = false;
-						}
-						Time_Wait(10);
-					}
-					isLiftFrozen = false;
-					lift_target = lift_target_prev; // put the lift where it is supposed to be. this might actually be kinda screwy
+		if (lift_pos < pos_hopper_safety_down) {
+			if (hopper_pos > (pos_servo_hopper_down+3)) {
+				int lift_target_buf = lift_target;
+				while (hopper_pos > (pos_servo_hopper_down+3)) {
+					lift_target = pos_hopper_safety_down;
 					is_lift_manual = false;
-					hopper_pos = HOPPER_DOWN;  // ends the conditional above; the hopper as arrived
-					break;
-				case HOPPER_CENTER :
-					for (int i=0; i<10; i++) { // set servos to center position ten times
-						//Servo_SetPosition(servo_hopper_A, pos_servo_hopper_up);
-						//Servo_SetPosition(servo_hopper_B, pos_servo_hopper_up);
-						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
-						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
-					}
-					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<1500) { // wait for 1.5 seconds
-						Time_Wait(10);
-					}
-					isLiftFrozen = false; //unfreeze lift - were is it frozen?
-					hopper_pos = HOPPER_CENTER; // it got there
-					break;
-				case HOPPER_GOAL :
-					if (lift_target_prev < pos_hopper_safety_up) { // if the position the lift was supposed to be going to is below the safety position, set it to above the safety position. this shouldn't happen very often.
-						lift_target = pos_hopper_safety_above;
-						is_lift_manual = false;
-					}
-					while (lift_pos < pos_hopper_safety_up) { // wait for the lift to raise aboev the safety position before carrying on.
-						Time_Wait(10);
-					}
-					for (int i=0; i<10; i++) { // signal ten times
-						Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
-						Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
-					}
-					Time_ClearTimer(timer_hopper);
-					while (Time_GetTime(timer_hopper)<3000) { //don't let the lift be lowered back below the safety position for 3 seconds.
-						if (lift_pos < pos_hopper_safety_up) {
-							isLiftFrozen = true;
-						} else {
-							isLiftFrozen = false;
-						}
-						Time_Wait(10);
-					}
-					isLiftFrozen = false;
-					lift_target = lift_target_prev;
-					is_lift_manual = false;
-					hopper_pos = HOPPER_GOAL; // we made it!
-					break;
-				//default :
-				//	for (int i=0; i<10; i++) { // signal ten times
-				//		Servo_SetPosition(servo_hopper_A, servo_hopper_pos);
-				//		Servo_SetPosition(servo_hopper_B, servo_hopper_pos);
-				//	}
-				//	break;
+					hopper_pos = encoderToHopper(encoder_hopper);
+					hopper_target = pos_servo_hopper_down;
+					Servo_SetPosition(servo_hopper_A, hopper_target);
+					Servo_SetPosition(servo_hopper_B, hopper_target);
+					Time_Wait(5);
+				}
+				lift_target = lift_target_buf;
 			}
 		}
+		if (hopper_target < pos_servo_hopper_down) {
+			hopper_target = pos_servo_hopper_down;
+		} else if (hopper_target > pos_servo_hopper_goal) {
+			hopper_target = pos_servo_hopper_goal;
+		}
+		Servo_SetPosition(servo_hopper_A, hopper_target);
+		Servo_SetPosition(servo_hopper_B, hopper_target);
 		Time_Wait(5);
 	}
 }
@@ -474,13 +422,14 @@ task Gyro()
 
 task PID()
 {
-	const float kP_up = 0.067;
-	const float kI_up = 0.013;
-	const float kD_up = 0.0;
-	const float kP_down = 0.01;
-	const float kI_down = 0.004;
-	const float kD_down = 0.0;
-	const float I_term_decay_rate = 0.85;
+	const float kP_up = 0.082;
+	const float kI_up = 0.017;
+	const float kD_up = 0.00;
+	const float kP_down = 0.002;
+	const float kI_down = 0.005;
+	const float kD_down = 0.00;
+	const float I_term_decay_rate = 0.87;
+	const int I_term_threshold = 500;
 
 	int timer_loop = 0;
 	Time_ClearTimer(timer_loop);
@@ -516,7 +465,9 @@ task PID()
 				isDown = true;
 			}
 			error_sum *= I_term_decay_rate;
-			error_sum += error * (float)dt;
+			if (error < I_term_threshold) {
+				error_sum += error * (float)dt;
+			}
 			error_rate = (error - error_prev) / (float)dt;
 
 			term_P_lift = error;
@@ -617,6 +568,8 @@ task Display()
 				nxtDisplayTextLine(1, "XYZ %+2.1f %+2.1f %3i", hopper_x_target, hopper_y_target, hopper_z_target);
 				nxtDisplayTextLine(2, "k,i %+4i %+4i", hopper_theta, hopper_phi);
 				nxtDisplayTextLine(3, "r,h %3.1f %3.1f", hopper_r, hopper_h);
+				nxtDisplayTextLine(4, "encdr: %+6d", hopper_pos);
+				nxtDisplayTextLine(5, "tgt  : %+6d", hopper_target);
 				break;
 			case DISP_JOYSTICKS :
 				nxtDisplayCenteredTextLine(0, "--Driver I:--");
