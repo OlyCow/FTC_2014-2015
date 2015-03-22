@@ -161,12 +161,15 @@ task main()
 		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
 		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 	}
+	while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_down)<4) {
+		Time_Wait(2);
+	}
 
-	//TurnLeft(15);
-	//DriveForward(4000);
-	//lift_target = pos_lift_bottom;
-	//DriveForward(5000);
-	//TurnLeft(155);
+	TurnLeft(15);
+	DriveForward(4000);
+	lift_target = pos_lift_bottom;
+	DriveForward(5000);
+	TurnLeft(155);
 
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid

@@ -147,8 +147,8 @@ bool Turn(int degrees)
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 7.6;
-	const float kI = 0.98;
+	const float kP = 8.4;
+	const float kI = 1.7;
 	const float I_term_decay_rate = 0.97;
 
 	float heading_init = heading;
