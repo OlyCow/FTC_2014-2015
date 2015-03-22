@@ -249,33 +249,6 @@ task main()
 		if (Joystick_Button(BUTTON_LT, CONTROLLER_2)) {
 			clamp_direction = DIRECTION_OUT;
 		}
-		//if (Joystick_Button(BUTTON_LB, CONTROLLER_2)) { {
-		//	servo_hopper_pos = pos_servo_hopper_goal;
-		//}
-		//if (Joystick_Button(BUTTON_LT, CONTROLLER_2)) {
-		//	servo_hopper_pos = pos_servo_hopper_center;
-		//}
-
-		if (isLiftFrozen) {
-			switch (lift_target) {
-				case pos_lift_bottom :
-					if (hopper_pos < pos_servo_hopper_up) {
-						isLiftFrozen = false;
-					}
-					break;
-				default :
-					isHopperFrozen = true;
-					isLiftFrozen = false;
-					break;
-			}
-		}
-		if (isHopperFrozen) {
-			hopper_target = pos_servo_hopper_up;
-			if (abs(lift_pos-lift_target)<300) {
-				hopper_target = pos_servo_hopper_goal;
-				isHopperFrozen = false;
-			}
-		}
 
 		if (Joystick_ButtonPressed(BUTTON_X, CONTROLLER_2)) {
 			lift_target = pos_lift_bottom;
@@ -289,21 +262,21 @@ task main()
 			is_lift_manual = false;
 			hopper_target = pos_servo_hopper_goal;
 			servo_turntable_pos = pos_servo_turntable_F;
-			isLiftFrozen = true;
+			isHopperFrozen = true;
 			servo_dump_pos = pos_servo_dump_closed;
 		} else if (Joystick_ButtonPressed(BUTTON_B, CONTROLLER_2)) {
 			lift_target = pos_lift_medium;
 			is_lift_manual = false;
 			hopper_target = pos_servo_hopper_goal;
 			servo_turntable_pos = pos_servo_turntable_F;
-			isLiftFrozen = true;
+			isHopperFrozen = true;
 			servo_dump_pos = pos_servo_dump_closed;
 		} else if (Joystick_ButtonPressed(BUTTON_Y, CONTROLLER_2)) {
 			lift_target = pos_lift_high;
 			is_lift_manual = false;
 			hopper_target = pos_servo_hopper_goal;
 			servo_turntable_pos = pos_servo_turntable_F;
-			isLiftFrozen = true;
+			isHopperFrozen = true;
 			servo_dump_pos = pos_servo_dump_closed;
 		}
 
@@ -323,6 +296,17 @@ task main()
 				hopper_target = pos_servo_hopper_down;
 			} else {
 				hopper_target = pos_servo_hopper_goal;
+			}
+		}
+
+		if (isLiftFrozen && hopper_pos < pos_servo_hopper_up) {
+			isLiftFrozen = false;
+		}
+		if (isHopperFrozen) {
+			hopper_target = pos_servo_hopper_up;
+			if (abs(lift_pos-lift_target)<300) {
+				hopper_target = pos_servo_hopper_goal;
+				isHopperFrozen = false;
 			}
 		}
 
