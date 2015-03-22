@@ -57,6 +57,7 @@ bool is_lift_manual	= true;
 bool isDown			= false;
 bool isReset		= false;
 bool isLiftFrozen	= false;
+bool isHopperFrozen	= false;
 
 float term_P_lift	= 0.0;
 float term_I_lift	= 0.0;
@@ -74,6 +75,12 @@ float hopper_r		= 0.0;
 float hopper_theta	= 0.0;
 float hopper_phi	= 0.0;
 float hopper_h		= 0.0;
+
+int IR_A = 0;
+int IR_B = 0;
+int IR_C = 0;
+int IR_D = 0;
+int IR_E = 0;
 
 task main()
 {
@@ -120,6 +127,12 @@ task main()
 	while (true) {
 		Joystick_UpdateData();
 
+		if (pickup_I_direction==DIRECTION_IN && lift_pos<pos_dump_safety) {
+			servo_dump_pos = pos_servo_dump_open_feed;
+		}
+
+		HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
+
 		hopper_pos = encoderToHopper(Motor_GetEncoder(encoder_hopper));
 
 		power_L = Joystick_GenericInput(JOYSTICK_L, AXIS_Y);
@@ -144,7 +157,7 @@ task main()
 		}
 		if (abs(Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2))>0) {
 			hopper_target = hopper_pos;
-			hopper_target += 0.2 * Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
+			hopper_target += 0.3 * Joystick_GenericInput(JOYSTICK_R, AXIS_Y, CONTROLLER_2);
 		}
 
 		hopper_r = sqrt(hopper_x_target*hopper_x_target + hopper_y_target*hopper_y_target);
@@ -243,26 +256,55 @@ task main()
 		//	servo_hopper_pos = pos_servo_hopper_center;
 		//}
 
+		if (isLiftFrozen) {
+			switch (lift_target) {
+				case pos_lift_bottom :
+					if (hopper_pos < pos_servo_hopper_up) {
+						isLiftFrozen = false;
+					}
+					break;
+				default :
+					isHopperFrozen = true;
+					isLiftFrozen = false;
+					break;
+			}
+		}
+		if (isHopperFrozen) {
+			hopper_target = pos_servo_hopper_up;
+			if (abs(lift_pos-lift_target)<300) {
+				hopper_target = pos_servo_hopper_goal;
+				isHopperFrozen = false;
+			}
+		}
+
 		if (Joystick_ButtonPressed(BUTTON_X, CONTROLLER_2)) {
 			lift_target = pos_lift_bottom;
 			is_lift_manual = false;
 			hopper_target = pos_servo_hopper_down;
 			servo_turntable_pos = pos_servo_turntable_F;
+			isLiftFrozen = true;
+			servo_dump_pos = pos_servo_dump_closed;
 		} else if (Joystick_ButtonPressed(BUTTON_A, CONTROLLER_2)) {
 			lift_target = pos_lift_low;
 			is_lift_manual = false;
 			hopper_target = pos_servo_hopper_goal;
 			servo_turntable_pos = pos_servo_turntable_F;
+			isLiftFrozen = true;
+			servo_dump_pos = pos_servo_dump_closed;
 		} else if (Joystick_ButtonPressed(BUTTON_B, CONTROLLER_2)) {
 			lift_target = pos_lift_medium;
 			is_lift_manual = false;
 			hopper_target = pos_servo_hopper_goal;
 			servo_turntable_pos = pos_servo_turntable_F;
+			isLiftFrozen = true;
+			servo_dump_pos = pos_servo_dump_closed;
 		} else if (Joystick_ButtonPressed(BUTTON_Y, CONTROLLER_2)) {
 			lift_target = pos_lift_high;
 			is_lift_manual = false;
 			hopper_target = pos_servo_hopper_goal;
 			servo_turntable_pos = pos_servo_turntable_F;
+			isLiftFrozen = true;
+			servo_dump_pos = pos_servo_dump_closed;
 		}
 
 		if (Joystick_ButtonPressed(BUTTON_START)) {
@@ -282,10 +324,6 @@ task main()
 			} else {
 				hopper_target = pos_servo_hopper_goal;
 			}
-		}
-
-		if (pickup_I_direction==DIRECTION_IN && lift_pos<pos_dump_safety) {
-			servo_dump_pos = pos_servo_dump_open_feed;
 		}
 
 		switch (pickup_I_direction) {
@@ -377,6 +415,7 @@ task Hopper()
 		if (lift_pos < pos_hopper_safety_down) {
 			if (hopper_pos > (pos_servo_hopper_down+3)) {
 				int lift_target_buf = lift_target;
+				int hopper_target_buf = hopper_target;
 				while (hopper_pos > (pos_servo_hopper_down+3)) {
 					lift_target = pos_hopper_safety_down;
 					is_lift_manual = false;
@@ -387,6 +426,7 @@ task Hopper()
 					Time_Wait(5);
 				}
 				lift_target = lift_target_buf;
+				hopper_target = hopper_target_buf;
 			}
 		}
 		if (hopper_target < pos_servo_hopper_down) {
@@ -396,7 +436,7 @@ task Hopper()
 		}
 		Servo_SetPosition(servo_hopper_A, hopper_target);
 		Servo_SetPosition(servo_hopper_B, hopper_target);
-		Time_Wait(5);
+		Time_Wait(2);
 	}
 }
 
@@ -414,7 +454,6 @@ task Gyro()
 		dt = (float)Time_GetTime(timer_gyro)/(float)1000.0; // msec to sec
 		Time_ClearTimer(timer_gyro);
 		vel_curr = (float)HTGYROreadRot(sensor_gyro);
-		vel_curr *= -1;
 		heading += ((float)vel_prev+(float)vel_curr)*(float)0.5*(float)dt;
 		Time_Wait(1);
 	}
@@ -545,6 +584,11 @@ task Display()
 				break;
 			case DISP_SENSORS :
 				nxtDisplayTextLine(0, "Angle: %3i", heading);
+				nxtDisplayTextLine(1, "IR A : %3i", IR_A);
+				nxtDisplayTextLine(2, "IR B : %3i", IR_B);
+				nxtDisplayTextLine(3, "IR C : %3i", IR_C);
+				nxtDisplayTextLine(4, "IR D : %3i", IR_D);
+				nxtDisplayTextLine(5, "IR E : %3i", IR_E);
 				break;
 			case DISP_LIFT :
 				string lift_manual_str;

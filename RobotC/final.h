@@ -20,7 +20,7 @@ const int pos_hopper_safety_above	= 700;
 const int pos_hopper_safety_up		= 500;
 const int pos_hopper_safety_down	= 800;
 const int pos_hopper_safety_side	= 50;	// TODO
-const int pos_dump_safety			= 78;
+const int pos_dump_safety			= 30;
 
 const int pos_servo_dump_closed		= 201;
 const int pos_servo_dump_open_feed	= 164;
@@ -31,14 +31,14 @@ const int pos_servo_hopper_center	= 124;
 const int pos_servo_hopper_up		= 201;
 const int pos_servo_hopper_goal		= 238;
 const int pos_servo_pickup_retract	= 78;
-const int pos_servo_pickup_large	= 30;
+const int pos_servo_pickup_large	= 29;
 const int pos_servo_pickup_small	= 21;
 const int pos_servo_pickup_kick		= 60;
-const int pos_servo_turntable_F		= 127;	// TODO
-const int pos_servo_turntable_L		= 65;	// TODO
-const int pos_servo_turntable_R		= 193;	// TODO
-const int pos_servo_turntable_BL	= 20;	// TODO
-const int pos_servo_turntable_BR	= 235;	// TODO
+const int pos_servo_turntable_F		= 132;	// TODO
+const int pos_servo_turntable_L		= 167;	// TODO
+const int pos_servo_turntable_R		= 87;	// TODO
+const int pos_servo_turntable_BL	= 235;	// TODO
+const int pos_servo_turntable_BR	= 20;	// TODO
 
 void initializeRobotVariables()
 {
