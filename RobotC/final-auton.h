@@ -46,6 +46,8 @@ bool TurnRight(int degrees)
 
 bool Drive(int encoder_count)
 {
+	encoder_count *= -1;
+
 	target_dist_disp = encoder_count;
 
 	bool isSuccess = false;
@@ -90,6 +92,8 @@ bool Drive(int encoder_count)
 		error_dist_disp = (float)(error);
 		error_sum_dist_disp = error_sum;
 		power_dist_disp = (float)power;
+
+		power *= -1;
 
 		Motor_SetPower(power, motor_LT);
 		Motor_SetPower(power, motor_LB);
@@ -143,8 +147,8 @@ bool Turn(int degrees)
 	int timer_finish = 0;
 	Time_ClearTimer(timer_finish);
 
-	const float kP = 7.6;
-	const float kI = 0.98;
+	const float kP = 8.4;
+	const float kI = 1.7;
 	const float I_term_decay_rate = 0.97;
 
 	float heading_init = heading;

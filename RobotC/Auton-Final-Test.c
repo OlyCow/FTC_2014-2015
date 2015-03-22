@@ -65,6 +65,12 @@ float term_D_lift	= 0.0;
 float power_lift	= 0.0;
 float power_lift_temp = 0.0;
 
+int IR_A = 0;
+int IR_B = 0;
+int IR_C = 0;
+int IR_D = 0;
+int IR_E = 0;
+
 task main()
 {
 	initializeGlobalVariables();
@@ -89,94 +95,54 @@ task main()
 	heading = 0;
 	Time_Wait(500);
 
-	//// Move down the ramp at full power (time-based dead reckoning).
-	//// NOTE: The commented out section would have broken the "move
-	//// down ramp" sequence into two parts: a fast part (to get over
-	//// the bump) and a slow part (to stay accurate). Currently the
-	//// times are NOT calibrated (i.e. a wild guess). Don't use the
-	//// commented out section unless our robot gets off by a lot.
-	//int ramp_power = -75;
-	//Motor_SetPower(ramp_power, motor_LT);
-	//Motor_SetPower(ramp_power, motor_LB);
-	//Motor_SetPower(ramp_power, motor_RT);
-	//Motor_SetPower(ramp_power, motor_RB);
-	//Time_Wait(1700);
-	//Motor_SetPower(0, motor_LT);
-	//Motor_SetPower(0, motor_LB);
-	//Motor_SetPower(0, motor_RT);
-	//Motor_SetPower(0, motor_RB);
-	//Time_Wait(delay_settle);
+	lift_target = pos_lift_center -200;
+	DriveBackward(1200);
+	Time_Wait(500);
 
-	// Minor correction turn. The turn is equal to our current heading
-	// (in the opposite direction) to counteract any error we gained
-	// while driving down the ramp.
-	int correction_turn = heading;
-	TurnLeft(correction_turn);
-
-	//// Drive backward slowly. This power should be slow enough that the
-	//// robot will not drive up the ramp if it hits it, but not so slow
-	//// such that the robot won't even drive.
-	//// NOTE: You can increase the time if the robot doesn't back up far
-	//// enough. This is still time-based dead reckoning.
-	//Motor_SetPower(15, motor_LT);
-	//Motor_SetPower(15, motor_LB);
-	//Motor_SetPower(15, motor_RT);
-	//Motor_SetPower(15, motor_RB);
-	//Time_Wait(800);
-	Motor_SetPower(0, motor_LT);
-	Motor_SetPower(0, motor_LB);
-	Motor_SetPower(0, motor_RT);
-	Motor_SetPower(0, motor_RB);
-
-	// Start raising lift early.
-	lift_target = pos_lift_high;
-
-	DriveBackward(700);
-	TurnLeft(30);
-
-	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
-	Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
-
-	DriveBackward(2450);
-	TurnRight(75);
-	DriveBackward(1750);
-
-	while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_goal)<4) {
-		Time_Wait(2);
-	}
-	for (int i=0; i<10; i++) {
-		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_goal);
-		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_goal);
-	}
-
-	Motor_SetPower(100, motor_clamp_L);
-	Motor_SetPower(100, motor_clamp_R);
-	DriveBackward(900);
-
-	Servo_SetPosition(servo_dump, pos_servo_dump_open_large);
-	Time_Wait(600);
-	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
-
-	for (int i=0; i<10; i++) {
-		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
-		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-	}
-	while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_down)<4) {
-		Time_Wait(2);
-	}
-
-	TurnLeft(15);
-	DriveForward(4000);
-	lift_target = pos_lift_bottom;
-	DriveForward(5000);
-	TurnLeft(155);
+	HTIRS2readAllACStrength(sensor_IR, IR_A, IR_B, IR_C, IR_D, IR_E);
+	//if (IR_E < 15) { // pos 3
+		DriveBackward(1800);
+		for (int i=0; i<10; i++) {
+			Servo_SetPosition(servo_hopper_A, pos_servo_hopper_up);
+			Servo_SetPosition(servo_hopper_B, pos_servo_hopper_up);
+		}
+		TurnLeft(45);
+		DriveBackward(1400);
+		Servo_SetPosition(servo_turntable, pos_servo_turntable_L);
+		TurnRight(45);
+	//} else if (IR_E < 72) { // pos 1
+	//	TurnRight(90);
+	//	DriveBackward(1000);
+	//	while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_goal)<4) {
+	//		Time_Wait(2);
+	//	}
+	//	for (int i=0; i<10; i++) {
+	//		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_center);
+	//		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_center);
+	//	}
+	//	TurnRight(90);
+	//	DriveForward(1200);
+	//	Servo_SetPosition(servo_dump, pos_servo_dump_open_large);
+	//	Time_Wait(600);
+	//	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
+	//	DriveBackward(1000);
+	//	for (int i=0; i<10; i++) {
+	//		Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
+	//		Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
+	//	}
+	//	while (abs(encoderToHopper(Motor_GetEncoder(encoder_hopper))-pos_servo_hopper_down)<4) {
+	//		Time_Wait(2);
+	//	}
+	//} else { // pos 2
+	//	;
+	//}
 
 	// Lower lift:
 	// We need to be extra sure that the lift lowers completely. Do NOT get rid
 	// of the delay at the end!
 	Motor_SetPower(0, motor_clamp_L);
 	Motor_SetPower(0, motor_clamp_R);
-	lift_target = pos_lift_bottom;
+	//lift_target = pos_lift_bottom;
 
 	while (true) {
 		PlaySound(soundUpwardTones);
