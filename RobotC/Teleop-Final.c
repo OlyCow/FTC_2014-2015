@@ -109,6 +109,7 @@ task main()
 	PickupPos pickup_pos	= PICKUP_LARGE;
 	int servo_dump_pos		= pos_servo_dump_closed;
 	bool isTableF = false;
+	bool isTableL = false;
 
 	float power_L			= 0.0;
 	float power_R			= 0.0;
@@ -284,9 +285,23 @@ task main()
 			lift_target = pos_lift_center;
 			hopper_target = pos_servo_hopper_up;
 			isTableF = true;
+			isTableL = true;
+		}
+		if (Joystick_DirectionPressed(DIRECTION_R, CONTROLLER_2)) {
+			lift_target = pos_lift_center;
+			hopper_target = pos_servo_hopper_up;
+			isTableF = true;
+			isTableL = false;
 		}
 		if (isTableF && hopper_pos > pos_hopper_safety_side) {
-			servo_turntable_pos = pos_servo_turntable_L;
+			switch (isTableL) {
+				case true :
+					servo_turntable_pos = pos_servo_turntable_L;
+					break;
+				case false :
+					servo_turntable_pos = pos_servo_turntable_R;
+					break;
+			}
 			isTableF = false;
 		}
 
