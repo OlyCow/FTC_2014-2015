@@ -5,7 +5,7 @@ void initializeRobotVariables();
 void freezeRobot();
 int encoderToHopper(int encoder);
 
-const short servo_updates_per_sec = 4;
+const short servo_updates_per_sec = 2;
 
 const tMotor encoder_L		= motor_LT;
 const tMotor encoder_R		= motor_RT;
@@ -15,27 +15,27 @@ const tMotor encoder_hopper	= motor_LB;
 const int pos_lift_bottom			= 0;
 const int pos_lift_low				= 288;
 const int pos_lift_medium			= 218;
-//const int pos_lift_high				= 1950;
-int pos_lift_high					= 1950;
+//const int pos_lift_high				= 1700;
+int pos_lift_high					= 1700;
 const int pos_lift_center			= 4100;
 const int pos_lift_top				= 4150;
 const int pos_hopper_safety_above	= 700;
-const int pos_hopper_safety_up		= 500;
-const int pos_hopper_safety_down	= 800;
+const int pos_hopper_safety_up		= 900;
+const int pos_hopper_safety_down	= 1200;
 const int pos_hopper_safety_side	= 50;	// TODO
-const int pos_dump_safety			= 30;
+const int pos_dump_safety			= 90;
 
 const int pos_servo_dump_closed		= 201;
 const int pos_servo_dump_open_feed	= 164;
 const int pos_servo_dump_open_large	= 159;
 const int pos_servo_dump_open_small	= 187;
-const int pos_servo_hopper_down		= 16;
-const int pos_servo_hopper_center	= 124;
-const int pos_servo_hopper_up		= 189;
-const int pos_servo_hopper_goal		= 238;
+const int pos_servo_hopper_down		= 20;
+const int pos_servo_hopper_center	= 128;
+const int pos_servo_hopper_up		= 193;
+const int pos_servo_hopper_goal		= 242;
 const int pos_servo_pickup_retract	= 78;
-const int pos_servo_pickup_large	= 29;
-const int pos_servo_pickup_small	= 21;
+const int pos_servo_pickup_large	= 28;
+const int pos_servo_pickup_small	= 18;
 const int pos_servo_pickup_kick		= 60;
 const int pos_servo_turntable_F		= 132;
 const int pos_servo_turntable_L		= 161;
@@ -58,7 +58,7 @@ void initializeRobotVariables()
 	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
 	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
 	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_retract);
-	Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_retract);
+	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_retract);
 	Servo_SetPosition(servo_turntable, pos_servo_turntable_F);
 
 	servoChangeRate[servo_hopper_A] = servo_updates_per_sec;

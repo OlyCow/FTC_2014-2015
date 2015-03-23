@@ -89,23 +89,23 @@ task main()
 	heading = 0;
 	Time_Wait(500);
 
-	//// Move down the ramp at full power (time-based dead reckoning).
-	//// NOTE: The commented out section would have broken the "move
-	//// down ramp" sequence into two parts: a fast part (to get over
-	//// the bump) and a slow part (to stay accurate). Currently the
-	//// times are NOT calibrated (i.e. a wild guess). Don't use the
-	//// commented out section unless our robot gets off by a lot.
-	//int ramp_power = -75;
-	//Motor_SetPower(ramp_power, motor_LT);
-	//Motor_SetPower(ramp_power, motor_LB);
-	//Motor_SetPower(ramp_power, motor_RT);
-	//Motor_SetPower(ramp_power, motor_RB);
-	//Time_Wait(1700);
-	//Motor_SetPower(0, motor_LT);
-	//Motor_SetPower(0, motor_LB);
-	//Motor_SetPower(0, motor_RT);
-	//Motor_SetPower(0, motor_RB);
-	//Time_Wait(delay_settle);
+	// Move down the ramp at full power (time-based dead reckoning).
+	// NOTE: The commented out section would have broken the "move
+	// down ramp" sequence into two parts: a fast part (to get over
+	// the bump) and a slow part (to stay accurate). Currently the
+	// times are NOT calibrated (i.e. a wild guess). Don't use the
+	// commented out section unless our robot gets off by a lot.
+	int ramp_power = -75;
+	Motor_SetPower(ramp_power, motor_LT);
+	Motor_SetPower(ramp_power, motor_LB);
+	Motor_SetPower(ramp_power, motor_RT);
+	Motor_SetPower(ramp_power, motor_RB);
+	Time_Wait(1700);
+	Motor_SetPower(0, motor_LT);
+	Motor_SetPower(0, motor_LB);
+	Motor_SetPower(0, motor_RT);
+	Motor_SetPower(0, motor_RB);
+	Time_Wait(delay_settle);
 
 	// Minor correction turn. The turn is equal to our current heading
 	// (in the opposite direction) to counteract any error we gained
@@ -113,16 +113,16 @@ task main()
 	int correction_turn = heading;
 	TurnLeft(correction_turn);
 
-	//// Drive backward slowly. This power should be slow enough that the
-	//// robot will not drive up the ramp if it hits it, but not so slow
-	//// such that the robot won't even drive.
-	//// NOTE: You can increase the time if the robot doesn't back up far
-	//// enough. This is still time-based dead reckoning.
-	//Motor_SetPower(15, motor_LT);
-	//Motor_SetPower(15, motor_LB);
-	//Motor_SetPower(15, motor_RT);
-	//Motor_SetPower(15, motor_RB);
-	//Time_Wait(800);
+	// Drive backward slowly. This power should be slow enough that the
+	// robot will not drive up the ramp if it hits it, but not so slow
+	// such that the robot won't even drive.
+	// NOTE: You can increase the time if the robot doesn't back up far
+	// enough. This is still time-based dead reckoning.
+	Motor_SetPower(15, motor_LT);
+	Motor_SetPower(15, motor_LB);
+	Motor_SetPower(15, motor_RT);
+	Motor_SetPower(15, motor_RB);
+	Time_Wait(800);
 	Motor_SetPower(0, motor_LT);
 	Motor_SetPower(0, motor_LB);
 	Motor_SetPower(0, motor_RT);

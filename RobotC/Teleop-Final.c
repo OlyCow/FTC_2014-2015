@@ -105,8 +105,10 @@ task main()
 	MotorDirection pickup_O_direction_prev	= DIRECTION_NONE;
 
 	MotorDirection clamp_direction			= DIRECTION_NONE;
+	MotorDirection clamp_direction_prev		= DIRECTION_NONE;
 	PickupPos pickup_pos	= PICKUP_LARGE;
 	int servo_dump_pos		= pos_servo_dump_closed;
+	bool isTableF = false;
 
 	float power_L			= 0.0;
 	float power_R			= 0.0;
@@ -142,7 +144,7 @@ task main()
 			isReset = false;
 		}
 
-		//servo_turntable_pos -= 0.004 * Joystick_GenericInput(JOYSTICK_R, AXIS_X, CONTROLLER_2);
+		servo_turntable_pos -= 0.02 * Joystick_GenericInput(JOYSTICK_R, AXIS_X, CONTROLLER_2);
 		if (Joystick_Button(BUTTON_JOYR, CONTROLLER_2) || Joystick_ButtonReleased(BUTTON_JOYR, CONTROLLER_2)) {
 			servo_turntable_pos = pos_servo_turntable_F;
 			hopper_target = pos_servo_hopper_down;
@@ -219,12 +221,19 @@ task main()
 			pickup_pos = PICKUP_SMALL;
 		}
 
-		if (Joystick_Button(BUTTON_LB)) {
+		if (Joystick_ButtonPressed(BUTTON_LB) || Joystick_ButtonPressed(BUTTON_LB, CONTROLLER_2)) {
+			if (clamp_direction == DIRECTION_IN) {
+				clamp_direction = DIRECTION_NONE;
+			} else {
+				clamp_direction = DIRECTION_IN;
+			}
+		}
+		if (Joystick_ButtonPressed(BUTTON_LT) || Joystick_ButtonPressed(BUTTON_LT, CONTROLLER_2)) {
+			clamp_direction_prev = clamp_direction;
 			clamp_direction = DIRECTION_OUT;
-		} else if (Joystick_Button(BUTTON_LT)) {
-			clamp_direction = DIRECTION_IN;
-		} else {
-			clamp_direction = DIRECTION_NONE;
+		}
+		if (Joystick_ButtonReleased(BUTTON_LT) || Joystick_ButtonReleased(BUTTON_LT, CONTROLLER_2)) {
+			clamp_direction = clamp_direction_prev;
 		}
 
 		if (Joystick_Button(BUTTON_RB, CONTROLLER_2)) {
@@ -239,13 +248,6 @@ task main()
 		}
 		if (pickup_I_direction==DIRECTION_IN && lift_pos<pos_dump_safety) {
 			servo_dump_pos = pos_servo_dump_open_feed;
-		}
-
-		if (Joystick_Button(BUTTON_LB, CONTROLLER_2)) {
-			clamp_direction = DIRECTION_IN;
-		}
-		if (Joystick_Button(BUTTON_LT, CONTROLLER_2)) {
-			clamp_direction = DIRECTION_OUT;
 		}
 
 		if (Joystick_ButtonPressed(BUTTON_X, CONTROLLER_2)) {
@@ -276,6 +278,16 @@ task main()
 			servo_turntable_pos = pos_servo_turntable_F;
 			isHopperFrozen = true;
 			servo_dump_pos = pos_servo_dump_closed;
+		}
+
+		if (Joystick_DirectionPressed(DIRECTION_L, CONTROLLER_2)) {
+			lift_target = pos_lift_center;
+			hopper_target = pos_servo_hopper_up;
+			isTableF = true;
+		}
+		if (isTableF && hopper_pos > pos_hopper_safety_side) {
+			servo_turntable_pos = pos_servo_turntable_L;
+			isTableF = false;
 		}
 
 		if (Joystick_ButtonPressed(BUTTON_START)) {
@@ -356,19 +368,19 @@ task main()
 		switch (pickup_pos) {
 			case PICKUP_RETRACT :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_retract);
-				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_retract);
+				Servo_SetPosition(servo_pickup_R, 130 - pos_servo_pickup_retract);
 				break;
 			case PICKUP_LARGE :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
-				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_large);
+				Servo_SetPosition(servo_pickup_R, 130 - pos_servo_pickup_large);
 				break;
 			case PICKUP_SMALL :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_small);
-				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_small);
+				Servo_SetPosition(servo_pickup_R, 130 - pos_servo_pickup_small);
 				break;
 			case PICKUP_KICK :
 				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_kick);
-				Servo_SetPosition(servo_pickup_R, 120 - pos_servo_pickup_kick);
+				Servo_SetPosition(servo_pickup_R, 130 - pos_servo_pickup_kick);
 				break;
 		}
 
@@ -380,22 +392,22 @@ task Hopper()
 {
 	Joystick_WaitForStart();
 	while (true) {
-		//if (servo_turntable_pos<pos_servo_turntable_BL) {
+		//if (servo_turntable_pos>pos_servo_turntable_BL) {
 		//	servo_turntable_pos = pos_servo_turntable_BL;
-		//} else if (servo_turntable_pos>pos_servo_turntable_BR) {
+		//} else if (servo_turntable_pos<pos_servo_turntable_BR) {
 		//	servo_turntable_pos = pos_servo_turntable_BR;
 		//}
-		if (lift_pos<pos_hopper_safety_down) {
-			servo_turntable_pos = pos_servo_turntable_F;
-		}
-		if (hopper_pos<pos_hopper_safety_side) {
-			servo_turntable_pos = pos_servo_turntable_F;
-		}
-		servo_turntable_pos = pos_servo_turntable_F;
+		//if (lift_pos<pos_hopper_safety_down) {
+		//	servo_turntable_pos = pos_servo_turntable_F;
+		//}
+		//if (hopper_pos<pos_hopper_safety_side) {
+		//	servo_turntable_pos = pos_servo_turntable_F;
+		//}
+		//servo_turntable_pos = pos_servo_turntable_F;
 		Servo_SetPosition(servo_turntable, (int)round(servo_turntable_pos));
 
 		if (lift_pos < pos_hopper_safety_down) {
-			if (hopper_pos > (pos_servo_hopper_down+3)) {
+			if (hopper_pos > (pos_servo_hopper_down+2)) {
 				int lift_target_buf = lift_target;
 				int hopper_target_buf = hopper_target;
 				while (hopper_pos > (pos_servo_hopper_down+3)) {
