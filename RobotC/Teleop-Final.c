@@ -382,20 +382,20 @@ task main()
 		// NOTE: Hopper and turntable servos should be set in the "Hopper" task.
 		switch (pickup_pos) {
 			case PICKUP_RETRACT :
-				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_retract);
-				Servo_SetPosition(servo_pickup_R, 130 - pos_servo_pickup_retract);
+				Servo_SetPosition(servo_pickup_L, 128 + pos_servo_pickup_retract);
+				Servo_SetPosition(servo_pickup_R, 131 - pos_servo_pickup_retract);
 				break;
 			case PICKUP_LARGE :
-				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_large);
-				Servo_SetPosition(servo_pickup_R, 130 - pos_servo_pickup_large);
+				Servo_SetPosition(servo_pickup_L, 128 + pos_servo_pickup_large);
+				Servo_SetPosition(servo_pickup_R, 131 - pos_servo_pickup_large);
 				break;
 			case PICKUP_SMALL :
-				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_small);
-				Servo_SetPosition(servo_pickup_R, 130 - pos_servo_pickup_small);
+				Servo_SetPosition(servo_pickup_L, 128 + pos_servo_pickup_small);
+				Servo_SetPosition(servo_pickup_R, 131 - pos_servo_pickup_small);
 				break;
 			case PICKUP_KICK :
-				Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_kick);
-				Servo_SetPosition(servo_pickup_R, 130 - pos_servo_pickup_kick);
+				Servo_SetPosition(servo_pickup_L, 128 + pos_servo_pickup_kick);
+				Servo_SetPosition(servo_pickup_R, 131 - pos_servo_pickup_kick);
 				break;
 		}
 

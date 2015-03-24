@@ -57,8 +57,8 @@ void initializeRobotVariables()
 	Servo_SetPosition(servo_dump, pos_servo_dump_closed);
 	Servo_SetPosition(servo_hopper_A, pos_servo_hopper_down);
 	Servo_SetPosition(servo_hopper_B, pos_servo_hopper_down);
-	Servo_SetPosition(servo_pickup_L, 129 + pos_servo_pickup_retract);
-	Servo_SetPosition(servo_pickup_R, 128 - pos_servo_pickup_retract);
+	Servo_SetPosition(servo_pickup_L, 128 + pos_servo_pickup_retract);
+	Servo_SetPosition(servo_pickup_R, 131 - pos_servo_pickup_retract);
 	Servo_SetPosition(servo_turntable, pos_servo_turntable_F);
 
 	servoChangeRate[servo_hopper_A] = servo_updates_per_sec;
